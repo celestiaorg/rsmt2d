@@ -3,9 +3,13 @@ package rsmt2d
 
 import (
     "bytes"
+    "errors"
 
     "github.com/vivint/infectious"
 )
+
+// The max number of original data chunks
+const MaxChunks = 128*128 // Using Galois Field 256 correcting up to t/2 symbols
 
 // Represents an extended piece of data.
 type ExtendedDataSquare struct {
@@ -15,6 +19,10 @@ type ExtendedDataSquare struct {
 
 // Loads original data as extended data.
 func NewExtendedDataSquare(data [][]byte) (*ExtendedDataSquare, error) {
+    if len(data) > MaxChunks {
+        return nil, errors.New("number of chunks exceeds the maximum")
+    }
+
     ds, err := newDataSquare(data)
     if err != nil {
         return nil, err
@@ -41,7 +49,9 @@ func (eds *ExtendedDataSquare) erasureExtendSquare() error {
     shares := make([][]byte, eds.originalDataWidth)
     output := func(s infectious.Share) {
         if s.Number >= int(eds.originalDataWidth) {
-            shares[s.Number-int(eds.originalDataWidth)] = s.Data
+            shareData := make([]byte, eds.chunkSize)
+            copy(shareData, s.Data)
+            shares[s.Number-int(eds.originalDataWidth)] = shareData
         }
     }
 

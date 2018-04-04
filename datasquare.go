@@ -57,7 +57,8 @@ func (ds *dataSquare) extendSquare(extendedWidth uint, fillerChunk []byte) error
     }
 
     for i := ds.width; i < newWidth; i++ {
-        newSquare[i] = fillerRow
+        newSquare[i] = make([][]byte, newWidth)
+        copy(newSquare[i], fillerRow)
     }
 
     ds.square = newSquare
@@ -70,10 +71,18 @@ func (ds *dataSquare) getRowSlice(x uint, y uint, length uint) [][]byte {
     return ds.square[x][y:y+length]
 }
 
-func (ds *dataSquare) setRowSlice(x uint, y uint, newRow [][]byte) {
+func (ds *dataSquare) setRowSlice(x uint, y uint, newRow [][]byte) error {
+    for i := uint(0); i < uint(len(newRow)); i++ {
+        if len(newRow[i]) != int(ds.chunkSize) {
+            return errors.New("invalid chunk size")
+        }
+    }
+
     for i := uint(0); i < uint(len(newRow)); i++ {
         ds.square[x][y+i] = newRow[i]
     }
+
+    return nil
 }
 
 func (ds *dataSquare) getColumnSlice(x uint, y uint, length uint) [][]byte {
@@ -85,8 +94,16 @@ func (ds *dataSquare) getColumnSlice(x uint, y uint, length uint) [][]byte {
     return columnSlice
 }
 
-func (ds *dataSquare) setColumnSlice(x uint, y uint, newColumn [][]byte) {
+func (ds *dataSquare) setColumnSlice(x uint, y uint, newColumn [][]byte) error {
+    for i := uint(0); i < uint(len(newColumn)); i++ {
+        if len(newColumn[i]) != int(ds.chunkSize) {
+            return errors.New("invalid chunk size")
+        }
+    }
+
     for i := uint(0); i < uint(len(newColumn)); i++ {
         ds.square[x+i][y] = newColumn[i]
     }
+
+    return nil
 }
