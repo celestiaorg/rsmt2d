@@ -13,7 +13,6 @@ func TestNewExtendedDataSquare(t *testing.T) {
     if (err != nil) {
         panic(err)
     }
-    t.Log(result.square)
     if (!reflect.DeepEqual(result.square, [][][]byte{
         {{1}, {2}, {7}, {13}},
         {{3}, {4}, {13}, {31}},
