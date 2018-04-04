@@ -1,7 +1,5 @@
 language: go
 before_install:
-  - go get github.com/musalbas/rsmt2d/...
   - go get github.com/mattn/goveralls
 script:
-  - go test -v ./...
-  - $GOPATH/bin/goveralls -service=travis-ci
+  - goveralls -v -service=travis-ci
