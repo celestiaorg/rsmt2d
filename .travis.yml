@@ -1,0 +1,17 @@
+language: go
+before_install:
+  - go get golang.org/x/tools/cmd/vet
+  - go get github.com/modocache/gover
+  - go get github.com/musalbas/rsmt2d/...
+script:
+  # Vet examines Go source code and reports suspicious construct
+  - go vet github.com/musalbas/rsmt2d...
+  # Run the unit tests suite
+  - go test -v ./...
+  # Collect coverage reports
+  - go list -f '{{if len .TestGoFiles}}"go test -coverprofile={{.Dir}}/.coverprofile {{.ImportPath}}"{{end}}' ./... | xargs -i sh -c {}
+  # Merge coverage reports
+  - gover . coverprofile.txt
+after_success:
+  # Send coverage reports to Codecov
+  - bash < (curl -s https://codecov.io/bash) -f coverprofile.txt
