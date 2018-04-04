@@ -1,6 +1,5 @@
 language: go
 before_install:
-  - go get golang.org/x/tools/cmd/vet
   - go get github.com/modocache/gover
   - go get github.com/musalbas/rsmt2d/...
 script:
