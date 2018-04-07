@@ -3,12 +3,17 @@ package rsmt2d
 import(
     "math"
     "errors"
+    "crypto/sha256"
+
+    "github.com/NebulousLabs/merkletree"
 )
 
 type dataSquare struct {
     square [][][]byte
     width uint
     chunkSize uint
+    rowRoots [][]byte
+    columnRoots [][]byte
 }
 
 func newDataSquare(data [][]byte) (*dataSquare, error) {
@@ -29,7 +34,11 @@ func newDataSquare(data [][]byte) (*dataSquare, error) {
         }
     }
 
-    return &dataSquare{square, uint(width), uint(chunkSize)}, nil
+    return &dataSquare{
+        square: square,
+        width: uint(width),
+        chunkSize: uint(chunkSize),
+    }, nil
 }
 
 func (ds *dataSquare) extendSquare(extendedWidth uint, fillerChunk []byte) error {
@@ -64,11 +73,17 @@ func (ds *dataSquare) extendSquare(extendedWidth uint, fillerChunk []byte) error
     ds.square = newSquare
     ds.width = newWidth
 
+    ds.resetRoots()
+
     return nil
 }
 
 func (ds *dataSquare) getRowSlice(x uint, y uint, length uint) [][]byte {
     return ds.square[x][y:y+length]
+}
+
+func (ds *dataSquare) getRow(x uint) [][]byte {
+    return ds.getRowSlice(x, 0, ds.width)
 }
 
 func (ds *dataSquare) setRowSlice(x uint, y uint, newRow [][]byte) error {
@@ -82,6 +97,8 @@ func (ds *dataSquare) setRowSlice(x uint, y uint, newRow [][]byte) error {
         ds.square[x][y+i] = newRow[i]
     }
 
+    ds.resetRoots()
+
     return nil
 }
 
@@ -92,6 +109,10 @@ func (ds *dataSquare) getColumnSlice(x uint, y uint, length uint) [][]byte {
     }
 
     return columnSlice
+}
+
+func (ds *dataSquare) getColumn(y uint) [][]byte {
+    return ds.getColumnSlice(0, y, ds.width)
 }
 
 func (ds *dataSquare) setColumnSlice(x uint, y uint, newColumn [][]byte) error {
@@ -105,5 +126,53 @@ func (ds *dataSquare) setColumnSlice(x uint, y uint, newColumn [][]byte) error {
         ds.square[x+i][y] = newColumn[i]
     }
 
+    ds.resetRoots()
+
     return nil
+}
+
+func (ds *dataSquare) resetRoots() {
+    ds.rowRoots = nil
+    ds.columnRoots = nil
+}
+
+func (ds *dataSquare) computeRoots() {
+    rowRoots := make([][]byte, ds.width)
+    columnRoots := make([][]byte, ds.width)
+    var rowTree *merkletree.Tree
+    var columnTree *merkletree.Tree
+    var rowData [][]byte
+    var columnData [][]byte
+    for i := uint(0); i < ds.width; i++ {
+        rowTree = merkletree.New(sha256.New())
+        columnTree = merkletree.New(sha256.New())
+        rowData = ds.getRow(i)
+        columnData = ds.getColumn(i)
+        for j := uint(0); j < ds.width; j++ {
+            rowTree.Push(rowData[j])
+            columnTree.Push(columnData[j])
+        }
+
+        rowRoots[i] = rowTree.Root()
+        columnRoots[i] = columnTree.Root()
+    }
+
+    ds.rowRoots = rowRoots
+    ds.columnRoots = columnRoots
+}
+
+func (ds *dataSquare) RowRoots() [][]byte {
+    if ds.rowRoots == nil {
+        ds.computeRoots()
+    }
+
+    return ds.rowRoots
+}
+
+func (ds *dataSquare) ColumnRoots() [][]byte {
+    if ds.columnRoots == nil {
+        ds.computeRoots()
+    }
+
+    return ds.columnRoots
 }
