@@ -62,3 +62,35 @@ func TestRoots(t *testing.T) {
         t.Errorf("computing roots failed; expecting row and column roots for 1x1 square to be equal")
     }
 }
+
+func TestProofs(t *testing.T) {
+    result, err := newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}})
+    if err != nil {
+        panic(err)
+    }
+    _, proof, proofIndex, numLeaves := result.computeRowProof(1, 1)
+    if len(proof) != 2 {
+        t.Errorf("computing row proof for (1, 1) in 2x2 square failed; expecting proof set of length 2")
+    }
+    if proofIndex != 1 {
+        t.Errorf("computing row proof for (1, 1) in 2x2 square failed; expecting proof index of 1")
+    }
+    if numLeaves != 2 {
+        t.Errorf("computing row proof for (1, 1) in 2x2 square failed; expecting number of leaves to be 2")
+    }
+
+    result, err = newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}})
+    if err != nil {
+        panic(err)
+    }
+    _, proof, proofIndex, numLeaves = result.computeColumnProof(1, 1)
+    if len(proof) != 2 {
+        t.Errorf("computing column proof for (1, 1) in 2x2 square failed; expecting proof set of length 2")
+    }
+    if proofIndex != 1 {
+        t.Errorf("computing column proof for (1, 1) in 2x2 square failed; expecting proof index of 1")
+    }
+    if numLeaves != 2 {
+        t.Errorf("computing column proof for (1, 1) in 2x2 square failed; expecting number of leaves to be 2")
+    }
+}

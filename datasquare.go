@@ -176,3 +176,29 @@ func (ds *dataSquare) ColumnRoots() [][]byte {
 
     return ds.columnRoots
 }
+
+func (ds *dataSquare) computeRowProof(x uint, y uint) ([]byte, [][]byte, uint, uint) {
+    tree := merkletree.New(sha256.New())
+    tree.SetIndex(uint64(y))
+    data := ds.getRow(x)
+
+    for i := uint(0); i < ds.width; i++ {
+        tree.Push(data[i])
+    }
+
+    merkleRoot, proof, proofIndex, numLeaves := tree.Prove()
+    return merkleRoot, proof, uint(proofIndex), uint(numLeaves)
+}
+
+func (ds *dataSquare) computeColumnProof(x uint, y uint) ([]byte, [][]byte, uint, uint) {
+    tree := merkletree.New(sha256.New())
+    tree.SetIndex(uint64(x))
+    data := ds.getColumn(y)
+
+    for i := uint(0); i < ds.width; i++ {
+        tree.Push(data[i])
+    }
+
+    merkleRoot, proof, proofIndex, numLeaves := tree.Prove()
+    return merkleRoot, proof, uint(proofIndex), uint(numLeaves)
+}
