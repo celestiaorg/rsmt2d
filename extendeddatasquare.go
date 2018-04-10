@@ -9,7 +9,7 @@ import (
 )
 
 // The max number of original data chunks
-const MaxChunks = 16384 // Using Galois Field 256 correcting up to t/2 symbols
+const MaxChunks = 128*128 // Using Galois Field 256 correcting up to t/2 symbols
 
 // Represents an extended piece of data.
 type ExtendedDataSquare struct {
