@@ -37,6 +37,26 @@ func NewExtendedDataSquare(data [][]byte) (*ExtendedDataSquare, error) {
     return &eds, nil
 }
 
+func ImportExtendedDataSquare(data [][]byte) (*ExtendedDataSquare, error) {
+    if len(data) > MaxChunks*4 {
+        return nil, errors.New("number of chunks exceeds the maximum")
+    }
+
+    ds, err := newDataSquare(data)
+    if err != nil {
+        return nil, err
+    }
+
+    eds := ExtendedDataSquare{dataSquare: ds}
+    if eds.width%2 != 0 {
+        return nil, errors.New("square width must be even")
+    }
+
+    eds.originalDataWidth = eds.width/2
+
+    return &eds, nil
+}
+
 func (eds *ExtendedDataSquare) erasureExtendSquare() error {
     eds.originalDataWidth = eds.width
     eds.extendSquare(eds.width, bytes.Repeat([]byte{0}, int(eds.chunkSize)))
