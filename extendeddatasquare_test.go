@@ -5,8 +5,8 @@ import (
     "reflect"
 )
 
-func TestNewExtendedDataSquare(t *testing.T) {
-    result, err := NewExtendedDataSquare([][]byte{
+func TestComputeExtendedDataSquare(t *testing.T) {
+    result, err := ComputeExtendedDataSquare([][]byte{
         {1}, {2},
         {3}, {4},
     })

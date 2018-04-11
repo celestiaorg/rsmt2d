@@ -18,7 +18,7 @@ type ExtendedDataSquare struct {
 }
 
 // Loads original data as extended data.
-func NewExtendedDataSquare(data [][]byte) (*ExtendedDataSquare, error) {
+func ComputeExtendedDataSquare(data [][]byte) (*ExtendedDataSquare, error) {
     if len(data) > MaxChunks {
         return nil, errors.New("number of chunks exceeds the maximum")
     }
