@@ -1,4 +1,4 @@
-// A two dimensional Reed-Solomon merkle tree data availability scheme.
+// Package rsmt2d implements the two dimensional Reed-Solomon merkle tree data availability scheme.
 package rsmt2d
 
 import (
@@ -8,16 +8,15 @@ import (
     "github.com/vivint/infectious"
 )
 
-// The max number of original data chunks
-const MaxChunks = 128*128 // Using Galois Field 256 correcting up to t/2 symbols
+const MaxChunks = 128*128 // // The max number of original data chunks.
 
-// Represents an extended piece of data.
+// ExtendedDataSquare represents an extended piece of data.
 type ExtendedDataSquare struct {
     *dataSquare
     originalDataWidth uint
 }
 
-// Computes the extended data square for some chunks of data.
+// ComputeExtendedDataSquare computes the extended data square for some chunks of data.
 func ComputeExtendedDataSquare(data [][]byte) (*ExtendedDataSquare, error) {
     if len(data) > MaxChunks {
         return nil, errors.New("number of chunks exceeds the maximum")
@@ -37,7 +36,7 @@ func ComputeExtendedDataSquare(data [][]byte) (*ExtendedDataSquare, error) {
     return &eds, nil
 }
 
-// Imports an extended data square, represented as flattened chunks of data.
+// ImportExtendedDataSquare imports an extended data square, represented as flattened chunks of data.
 func ImportExtendedDataSquare(data [][]byte) (*ExtendedDataSquare, error) {
     if len(data) > MaxChunks*4 {
         return nil, errors.New("number of chunks exceeds the maximum")
