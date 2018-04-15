@@ -87,14 +87,14 @@ func (eds *ExtendedDataSquare) erasureExtendSquare() error {
     //  -------
     for i := uint(0); i < eds.originalDataWidth; i++ {
         // Extend horizontally
-        err = fec.Encode(flattenChunks(eds.getRowSlice(i, 0, eds.originalDataWidth)), output)
+        err = fec.Encode(flattenChunks(eds.rowSlice(i, 0, eds.originalDataWidth)), output)
         if err != nil {
             return err
         }
         eds.setRowSlice(i, eds.originalDataWidth, shares)
 
         // Extend vertically
-        err = fec.Encode(flattenChunks(eds.getColumnSlice(0, i, eds.originalDataWidth)), output)
+        err = fec.Encode(flattenChunks(eds.columnSlice(0, i, eds.originalDataWidth)), output)
         if err != nil {
             return err
         }
@@ -113,7 +113,7 @@ func (eds *ExtendedDataSquare) erasureExtendSquare() error {
     //  ------- -------
     for i := eds.originalDataWidth; i < eds.width; i++ {
         // Extend horizontally
-        err = fec.Encode(flattenChunks(eds.getRowSlice(i, 0, eds.originalDataWidth)), output)
+        err = fec.Encode(flattenChunks(eds.rowSlice(i, 0, eds.originalDataWidth)), output)
         if err != nil {
             return err
         }
@@ -121,4 +121,9 @@ func (eds *ExtendedDataSquare) erasureExtendSquare() error {
     }
 
     return nil
+}
+
+func (eds *ExtendedDataSquare) deepCopy() (ExtendedDataSquare, error) {
+    eds, err := ImportExtendedDataSquare(eds.flattened())
+    return *eds, err
 }

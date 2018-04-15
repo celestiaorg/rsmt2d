@@ -78,12 +78,12 @@ func (ds *dataSquare) extendSquare(extendedWidth uint, fillerChunk []byte) error
     return nil
 }
 
-func (ds *dataSquare) getRowSlice(x uint, y uint, length uint) [][]byte {
+func (ds *dataSquare) rowSlice(x uint, y uint, length uint) [][]byte {
     return ds.square[x][y:y+length]
 }
 
-func (ds *dataSquare) getRow(x uint) [][]byte {
-    return ds.getRowSlice(x, 0, ds.width)
+func (ds *dataSquare) row(x uint) [][]byte {
+    return ds.rowSlice(x, 0, ds.width)
 }
 
 func (ds *dataSquare) setRowSlice(x uint, y uint, newRow [][]byte) error {
@@ -102,7 +102,7 @@ func (ds *dataSquare) setRowSlice(x uint, y uint, newRow [][]byte) error {
     return nil
 }
 
-func (ds *dataSquare) getColumnSlice(x uint, y uint, length uint) [][]byte {
+func (ds *dataSquare) columnSlice(x uint, y uint, length uint) [][]byte {
     columnSlice := make([][]byte, length)
     for i := uint(0); i < length; i++ {
         columnSlice[i] = ds.square[x+i][y]
@@ -111,8 +111,8 @@ func (ds *dataSquare) getColumnSlice(x uint, y uint, length uint) [][]byte {
     return columnSlice
 }
 
-func (ds *dataSquare) getColumn(y uint) [][]byte {
-    return ds.getColumnSlice(0, y, ds.width)
+func (ds *dataSquare) column(y uint) [][]byte {
+    return ds.columnSlice(0, y, ds.width)
 }
 
 func (ds *dataSquare) setColumnSlice(x uint, y uint, newColumn [][]byte) error {
@@ -146,8 +146,8 @@ func (ds *dataSquare) computeRoots() {
     for i := uint(0); i < ds.width; i++ {
         rowTree = merkletree.New(sha256.New())
         columnTree = merkletree.New(sha256.New())
-        rowData = ds.getRow(i)
-        columnData = ds.getColumn(i)
+        rowData = ds.row(i)
+        columnData = ds.column(i)
         for j := uint(0); j < ds.width; j++ {
             rowTree.Push(rowData[j])
             columnTree.Push(columnData[j])
@@ -180,7 +180,7 @@ func (ds *dataSquare) ColumnRoots() [][]byte {
 func (ds *dataSquare) computeRowProof(x uint, y uint) ([]byte, [][]byte, uint, uint) {
     tree := merkletree.New(sha256.New())
     tree.SetIndex(uint64(y))
-    data := ds.getRow(x)
+    data := ds.row(x)
 
     for i := uint(0); i < ds.width; i++ {
         tree.Push(data[i])
@@ -193,7 +193,7 @@ func (ds *dataSquare) computeRowProof(x uint, y uint) ([]byte, [][]byte, uint, u
 func (ds *dataSquare) computeColumnProof(x uint, y uint) ([]byte, [][]byte, uint, uint) {
     tree := merkletree.New(sha256.New())
     tree.SetIndex(uint64(x))
-    data := ds.getColumn(y)
+    data := ds.column(y)
 
     for i := uint(0); i < ds.width; i++ {
         tree.Push(data[i])
@@ -201,4 +201,22 @@ func (ds *dataSquare) computeColumnProof(x uint, y uint) ([]byte, [][]byte, uint
 
     merkleRoot, proof, proofIndex, numLeaves := tree.Prove()
     return merkleRoot, proof, uint(proofIndex), uint(numLeaves)
+}
+
+func (ds *dataSquare) cell(x uint, y uint) []byte {
+    return ds.square[x][y]
+}
+
+func (ds *dataSquare) setCell(x uint, y uint, newChunk []byte) {
+    ds.square[x][y] = newChunk
+    ds.resetRoots()
+}
+
+func (ds *dataSquare) flattened() [][]byte {
+    flattened := [][]byte(nil)
+    for _, data := range ds.square {
+        flattened = append(flattened, data...)
+    }
+
+    return flattened
 }
