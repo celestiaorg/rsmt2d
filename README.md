@@ -5,7 +5,7 @@ Go implementation of two dimensional Reed-Solomon merkle tree data availability 
 [![Coverage Status](https://img.shields.io/coveralls/github/musalbas/rsmt2d.svg)](https://coveralls.io/github/musalbas/rsmt2d?branch=master)
 [![GoDoc](https://godoc.org/github.com/musalbas/rsmt2d?status.svg)](https://godoc.org/github.com/musalbas/rsmt2d)
 
-Experimental software. Use at your own risk!
+Experimental software. Use at your own risk! May have security flaws.
 
 ## <a name="pkg-index">Index</a>
 * [Constants](#pkg-constants)
