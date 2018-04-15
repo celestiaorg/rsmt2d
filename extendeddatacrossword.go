@@ -186,7 +186,7 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
                             }
                         }
 
-                        // Check that newly completed adjacent vectors match their new merkle roots
+                        // Check that newly completed orthogonal vectors match their new merkle roots
                         for j := uint(0); j < eds.width; j++ {
                             if vectorMask.AtVec(int(j)) == 0 {
                                 if mode == row {
