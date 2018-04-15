@@ -15,6 +15,7 @@ const (
     column = 1
 )
 
+// Thrown when there is a repaired row does not match the expected row merkle root.
 type ByzantineRowError struct {
     RowNumber uint
     LastGoodSquare ExtendedDataSquare
@@ -24,6 +25,7 @@ func (e *ByzantineRowError) Error() string {
     return fmt.Sprintf("byzantine row: %d", e.RowNumber)
 }
 
+// Thrown when there is a repaired column does not match the expected column merkle root.
 type ByzantineColumnError struct {
     ColumnNumber uint
     LastGoodSquare ExtendedDataSquare
@@ -33,6 +35,7 @@ func (e *ByzantineColumnError) Error() string {
     return fmt.Sprintf("byzantine column: %d", e.ColumnNumber)
 }
 
+// Thrown when there is insufficient chunks to repair the square.
 type UnrepairableDataSquareError struct {
 }
 
@@ -40,6 +43,8 @@ func (e *UnrepairableDataSquareError) Error() string {
     return "failed to solve data square"
 }
 
+// Repair an incomplete extended data square, against its expected row and column merkle roots.
+// Missing data chunks should be represented as nil.
 func RepairExtendedDataSquare(rowRoots [][]byte, columnRoots [][]byte, data [][]byte) (*ExtendedDataSquare, error) {
     matrixData := make([]float64, len(data))
     var chunkSize int

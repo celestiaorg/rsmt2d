@@ -17,7 +17,7 @@ type ExtendedDataSquare struct {
     originalDataWidth uint
 }
 
-// Loads original data as extended data.
+// Computes the extended data square for some chunks of data.
 func ComputeExtendedDataSquare(data [][]byte) (*ExtendedDataSquare, error) {
     if len(data) > MaxChunks {
         return nil, errors.New("number of chunks exceeds the maximum")
@@ -37,6 +37,7 @@ func ComputeExtendedDataSquare(data [][]byte) (*ExtendedDataSquare, error) {
     return &eds, nil
 }
 
+// Imports an extended data square, represented as flattened chunks of data.
 func ImportExtendedDataSquare(data [][]byte) (*ExtendedDataSquare, error) {
     if len(data) > MaxChunks*4 {
         return nil, errors.New("number of chunks exceeds the maximum")
