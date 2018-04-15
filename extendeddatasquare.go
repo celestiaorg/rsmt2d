@@ -8,7 +8,8 @@ import (
     "github.com/vivint/infectious"
 )
 
-const MaxChunks = 128*128 // // The max number of original data chunks.
+// The max number of original data chunks.
+const MaxChunks = 128*128 // Using Galois Field 256 correcting up to t/2 symbols
 
 // ExtendedDataSquare represents an extended piece of data.
 type ExtendedDataSquare struct {
