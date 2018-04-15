@@ -16,31 +16,31 @@ const (
 )
 
 type ByzantineRowError struct {
-    rowNumber uint
-    lastGoodSquare ExtendedDataSquare
+    RowNumber uint
+    LastGoodSquare ExtendedDataSquare
 }
 
 func (e *ByzantineRowError) Error() string {
-    return fmt.Sprintf("byzantine row: %d", e.rowNumber)
+    return fmt.Sprintf("byzantine row: %d", e.RowNumber)
 }
 
 type ByzantineColumnError struct {
-    columnNumber uint
-    lastGoodSquare ExtendedDataSquare
+    ColumnNumber uint
+    LastGoodSquare ExtendedDataSquare
 }
 
 func (e *ByzantineColumnError) Error() string {
-    return fmt.Sprintf("byzantine column: %d", e.columnNumber)
+    return fmt.Sprintf("byzantine column: %d", e.ColumnNumber)
 }
 
 type ByzantineInconsistencyError struct {
-    rowNumber uint
-    columnNumber uint
-    lastGoodSquare ExtendedDataSquare
+    RowNumber uint
+    ColumnNumber uint
+    LastGoodSquare ExtendedDataSquare
 }
 
 func (e *ByzantineInconsistencyError) Error() string {
-    return fmt.Sprintf("byzantine inconsistency in cell (%d, %d)", e.rowNumber, e.columnNumber)
+    return fmt.Sprintf("byzantine inconsistency in cell (%d, %d)", e.RowNumber, e.ColumnNumber)
 }
 
 type UnrepairableDataSquareError struct {
