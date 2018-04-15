@@ -33,16 +33,6 @@ func (e *ByzantineColumnError) Error() string {
     return fmt.Sprintf("byzantine column: %d", e.ColumnNumber)
 }
 
-type ByzantineInconsistencyError struct {
-    RowNumber uint
-    ColumnNumber uint
-    LastGoodSquare ExtendedDataSquare
-}
-
-func (e *ByzantineInconsistencyError) Error() string {
-    return fmt.Sprintf("byzantine inconsistency in cell (%d, %d)", e.RowNumber, e.ColumnNumber)
-}
-
 type UnrepairableDataSquareError struct {
 }
 
@@ -205,21 +195,6 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
                                         return &ByzantineRowError{j, edsBackup}
                                     }
                                 }
-                            }
-                        }
-
-                        // Check consistency between rows and columns
-                        for j := uint(0); j < eds.width; j++ {
-                            var r, c uint
-                            if mode == row {
-                                r = i
-                                c = j
-                            } else if mode == column {
-                                r = j
-                                c = i
-                            }
-                            if vectorMask.AtVec(int(j)) == 1 && !bytes.Equal(eds.cell(r, c), edsBackup.cell(r, c)) {
-                                return &ByzantineInconsistencyError{r, c, edsBackup}
                             }
                         }
 
