@@ -1,6 +1,7 @@
 package rsmt2d
 
 import(
+    "hash"
     "math"
     "errors"
     "crypto/sha256"
@@ -14,6 +15,7 @@ type dataSquare struct {
     chunkSize uint
     rowRoots [][]byte
     columnRoots [][]byte
+    hasher hash.Hash
 }
 
 func newDataSquare(data [][]byte) (*dataSquare, error) {
@@ -38,7 +40,12 @@ func newDataSquare(data [][]byte) (*dataSquare, error) {
         square: square,
         width: uint(width),
         chunkSize: uint(chunkSize),
+        hasher: sha256.New(),
     }, nil
+}
+
+func (ds *dataSquare) setHasher(hasher hash.Hash) {
+    ds.hasher = hasher
 }
 
 func (ds *dataSquare) extendSquare(extendedWidth uint, fillerChunk []byte) error {
@@ -144,8 +151,8 @@ func (ds *dataSquare) computeRoots() {
     var rowData [][]byte
     var columnData [][]byte
     for i := uint(0); i < ds.width; i++ {
-        rowTree = merkletree.New(sha256.New())
-        columnTree = merkletree.New(sha256.New())
+        rowTree = merkletree.New(ds.hasher)
+        columnTree = merkletree.New(ds.hasher)
         rowData = ds.row(i)
         columnData = ds.column(i)
         for j := uint(0); j < ds.width; j++ {
@@ -178,7 +185,7 @@ func (ds *dataSquare) ColumnRoots() [][]byte {
 }
 
 func (ds *dataSquare) computeRowProof(x uint, y uint) ([]byte, [][]byte, uint, uint) {
-    tree := merkletree.New(sha256.New())
+    tree := merkletree.New(ds.hasher)
     tree.SetIndex(uint64(y))
     data := ds.row(x)
 
@@ -191,7 +198,7 @@ func (ds *dataSquare) computeRowProof(x uint, y uint) ([]byte, [][]byte, uint, u
 }
 
 func (ds *dataSquare) computeColumnProof(x uint, y uint) ([]byte, [][]byte, uint, uint) {
-    tree := merkletree.New(sha256.New())
+    tree := merkletree.New(ds.hasher)
     tree.SetIndex(uint64(x))
     data := ds.column(y)
 
