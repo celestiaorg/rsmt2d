@@ -17,12 +17,13 @@ func main() {
     for _, width := range widths {
         var runs []float64
         for i := 0; i < repeats; i++ {
+            data := generateRandomSquare(width, 256)
             start := time.Now()
-            _, err := rsmt2d.ComputeExtendedDataSquare(generateRandomSquare(width, 256))
+            _, err := rsmt2d.ComputeExtendedDataSquare(data)
+            runs = append(runs, time.Since(start).Seconds())
             if err != nil {
                 panic(err)
             }
-            runs = append(runs, time.Since(start).Seconds())
         }
         fmt.Println(width, "\t\t", 256, "\t\t", mean(runs))
     }
