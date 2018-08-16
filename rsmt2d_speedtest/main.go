@@ -9,23 +9,26 @@ import(
 )
 
 func main() {
-    widths := []uint{64, 128}
+    widths := []uint{1, 2, 4, 8, 16, 32, 64, 128}
+    chunkSizes := []uint{256}
     repeats := 10
 
     fmt.Println("Square width\t Chunk size\t Average time to encode (s)")
 
     for _, width := range widths {
-        var runs []float64
-        for i := 0; i < repeats; i++ {
-            data := generateRandomSquare(width, 256)
-            start := time.Now()
-            _, err := rsmt2d.ComputeExtendedDataSquare(data)
-            runs = append(runs, time.Since(start).Seconds())
-            if err != nil {
-                panic(err)
+        for _, chunkSize := range chunkSizes {
+            var runs []float64
+            for i := 0; i < repeats; i++ {
+                data := generateRandomSquare(width, chunkSize)
+                start := time.Now()
+                _, err := rsmt2d.ComputeExtendedDataSquare(data)
+                runs = append(runs, time.Since(start).Seconds())
+                if err != nil {
+                    panic(err)
+                }
             }
+            fmt.Println(width, "\t\t", chunkSize, "\t\t", mean(runs))
         }
-        fmt.Println(width, "\t\t", 256, "\t\t", mean(runs))
     }
 }
 
