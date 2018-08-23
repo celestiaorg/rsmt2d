@@ -45,7 +45,7 @@ func (e *UnrepairableDataSquareError) Error() string {
 
 // RepairExtendedDataSquare repairs an incomplete extended data square, against its expected row and column merkle roots.
 // Missing data chunks should be represented as nil.
-func RepairExtendedDataSquare(rowRoots [][]byte, columnRoots [][]byte, data [][]byte) (*ExtendedDataSquare, error) {
+func RepairExtendedDataSquare(rowRoots [][]byte, columnRoots [][]byte, data [][]byte, codec int) (*ExtendedDataSquare, error) {
     matrixData := make([]float64, len(data))
     var chunkSize int
     for i := range data {
@@ -71,7 +71,7 @@ func RepairExtendedDataSquare(rowRoots [][]byte, columnRoots [][]byte, data [][]
         }
     }
 
-    eds, err := ImportExtendedDataSquare(data)
+    eds, err := ImportExtendedDataSquare(data, codec)
     if err != nil {
         return nil, err
     }
@@ -92,24 +92,13 @@ func RepairExtendedDataSquare(rowRoots [][]byte, columnRoots [][]byte, data [][]
 }
 
 func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][]byte, mask mat.Dense) error {
-    rebuiltShares := make([]infectious.Share, eds.originalDataWidth)
-    rebuiltSharesOutput := func(s infectious.Share) {
-        rebuiltShares[s.Number] = s.DeepCopy()
-    }
-    rebuiltExtendedSharesOutput := func(s infectious.Share) {
-        if s.Number >= int(eds.originalDataWidth) {
-            rebuiltShares[s.Number-int(eds.originalDataWidth)] = s.DeepCopy()
-        }
-    }
-
-    fec, err := infectious.NewFEC(int(eds.originalDataWidth), int(eds.width))
-    if err != nil {
-        return err
-    }
-
     // Keep repeating until the square is solved
     var solved bool
     var progressMade bool
+    var err error
+    var shares [][]byte
+    var rebuiltShares [][]byte
+    var rebuiltExtendedShares [][]byte
     for {
         solved = true
         progressMade = false
@@ -132,15 +121,15 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
                     } else if mode == column {
                         vectorData = eds.column(i)
                     }
-                    shares := []infectious.Share{}
-                    for j := 0; j < vectorMask.Len(); j++ {
+                    shares = make([][]byte, eds.width)
+                    for j := uint(0); j < eds.width; j++ {
                         if vectorMask.AtVec(int(j)) == 1 {
-                            shares = append(shares, infectious.Share{j, vectorData[j]})
+                            shares[j] = vectorData[j]
                         }
                     }
 
                     // Attempt rebuild
-                    err := fec.Rebuild(shares, rebuiltSharesOutput)
+                    rebuiltShares, err = decode(shares, eds.codec)
                     if err == nil { // repair successful
                         progressMade = true
 
@@ -148,29 +137,29 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
                         edsBackup, _ := eds.deepCopy()
 
                         // Insert rebuilt shares into square
-                        for _, s := range rebuiltShares {
+                        for p, s := range rebuiltShares {
                             if mode == row {
-                                eds.setCell(i, uint(s.Number), s.Data)
+                                eds.setCell(i, uint(p), s)
                             } else if mode == column {
-                                eds.setCell(uint(s.Number), i, s.Data)
+                                eds.setCell(uint(p), i, s)
                             }
                         }
 
                         // Rebuild extended part if incomplete
                         if !vecSliceIsTrue(vectorMask, int(eds.originalDataWidth), int(eds.width)) {
                             if mode == row {
-                                err = fec.Encode(flattenChunks(eds.rowSlice(i, 0, eds.originalDataWidth)), rebuiltExtendedSharesOutput)
+                                rebuiltExtendedShares, err = encode(eds.rowSlice(i, 0, eds.originalDataWidth), eds.codec)
                             } else if mode == column {
-                                err = fec.Encode(flattenChunks(eds.columnSlice(0, i, eds.originalDataWidth)), rebuiltExtendedSharesOutput)
+                                rebuiltExtendedShares, err = encode(eds.columnSlice(0, i, eds.originalDataWidth), eds.codec)
                             }
                             if err != nil {
                                 return err
                             }
-                            for _, s := range rebuiltShares {
+                            for p, s := range rebuiltExtendedShares {
                                 if mode == row {
-                                    eds.setCell(i, uint(s.Number), s.Data)
+                                    eds.setCell(i, eds.originalDataWidth + uint(p), s)
                                 } else if mode == column {
-                                    eds.setCell(uint(s.Number), i, s.Data)
+                                    eds.setCell(eds.originalDataWidth + uint(p), i, s)
                                 }
                             }
                         }
