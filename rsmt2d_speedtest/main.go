@@ -21,7 +21,7 @@ func main() {
             for i := 0; i < repeats; i++ {
                 data := generateRandomSquare(width, chunkSize)
                 start := time.Now()
-                _, err := rsmt2d.ComputeExtendedDataSquare(data)
+                _, err := rsmt2d.ComputeExtendedDataSquare(data, rsmt2d.CodecRSGF8)
                 runs = append(runs, time.Since(start).Seconds())
                 if err != nil {
                     panic(err)
