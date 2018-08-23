@@ -7,7 +7,6 @@ import (
     "reflect"
 
     "gonum.org/v1/gonum/mat"
-    "github.com/vivint/infectious"
 )
 
 const (
@@ -220,20 +219,8 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 }
 
 func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoots [][]byte, mask mat.Dense) error {
-    fec, err := infectious.NewFEC(int(eds.originalDataWidth), int(eds.width))
-    if err != nil {
-        return err
-    }
-
-    shares := make([][]byte, eds.originalDataWidth)
-    output := func(s infectious.Share) {
-        if s.Number >= int(eds.originalDataWidth) {
-            shareData := make([]byte, eds.chunkSize)
-            copy(shareData, s.Data)
-            shares[s.Number-int(eds.originalDataWidth)] = shareData
-        }
-    }
-
+    var shares [][]byte
+    var err error
     for i := uint(0); i < eds.width; i++ {
         rowMask := mask.RowView(int(i))
         columnMask := mask.ColView(int(i))
@@ -242,7 +229,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoo
         }
 
         if vecIsTrue(rowMask) {
-            err = fec.Encode(flattenChunks(eds.rowSlice(i, 0, eds.originalDataWidth)), output)
+            shares, err = encode(eds.rowSlice(i, 0, eds.originalDataWidth), eds.codec)
             if err != nil {
                 return err
             }
@@ -252,7 +239,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoo
         }
 
         if vecIsTrue(columnMask) {
-            err = fec.Encode(flattenChunks(eds.columnSlice(0, i, eds.originalDataWidth)), output)
+            shares, err = encode(eds.columnSlice(0, i, eds.originalDataWidth), eds.codec)
             if err != nil {
                 return err
             }
