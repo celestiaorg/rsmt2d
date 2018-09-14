@@ -227,3 +227,7 @@ func (ds *dataSquare) flattened() [][]byte {
 
     return flattened
 }
+
+func (ds *dataSquare) Flattened() [][]byte {
+    return ds.flattened()
+}

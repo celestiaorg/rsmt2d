@@ -80,7 +80,7 @@ func decode_RSGF8(data [][]byte) ([][]byte, error) {
             return nil, err
         }
 
-        infectiousCache[len(data)] = fec
+        infectiousCache[len(data) / 2] = fec
     }
 
     rebuiltShares := make([][]byte, len(data) / 2)
