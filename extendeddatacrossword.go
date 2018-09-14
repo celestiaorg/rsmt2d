@@ -4,7 +4,6 @@ import (
     "bytes"
     "fmt"
     "errors"
-    "reflect"
 
     "gonum.org/v1/gonum/mat"
 )
@@ -233,7 +232,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoo
             if err != nil {
                 return err
             }
-            if !reflect.DeepEqual(shares, eds.rowSlice(i, eds.originalDataWidth, eds.originalDataWidth)) {
+            if !bytes.Equal(flattenChunks(shares), flattenChunks(eds.rowSlice(i, eds.originalDataWidth, eds.originalDataWidth))) {
                 return &ByzantineRowError{i, *eds}
             }
         }
@@ -243,7 +242,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoo
             if err != nil {
                 return err
             }
-            if !reflect.DeepEqual(shares, eds.columnSlice(eds.originalDataWidth, i, eds.originalDataWidth)) {
+            if !bytes.Equal(flattenChunks(shares), flattenChunks(eds.columnSlice(eds.originalDataWidth, i, eds.originalDataWidth))) {
                 return &ByzantineColumnError{i, *eds}
             }
         }
