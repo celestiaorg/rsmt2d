@@ -15,11 +15,9 @@ var SupportedCodecs = map[int]int{
 }
 
 var infectiousCache map[int]*infectious.FEC
-var Encode func([][]byte, int) ([][]byte, error)
 
 func init() {
     infectiousCache = make(map[int]*infectious.FEC)
-    Encode = encode
 }
 
 func encode(data [][]byte, codec int) ([][]byte, error) {
