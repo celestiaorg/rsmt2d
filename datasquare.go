@@ -44,7 +44,8 @@ func newDataSquare(data [][]byte) (*dataSquare, error) {
     }, nil
 }
 
-func (ds *dataSquare) setHasher(hasher hash.Hash) {
+// SetHasher sets the hasher used for computing Merkle roots.
+func (ds *dataSquare) SetHasher(hasher hash.Hash) {
     ds.hasher = hasher
 }
 
