@@ -232,3 +232,8 @@ func (ds *dataSquare) flattened() [][]byte {
 
     return flattened
 }
+
+// Width returns the width of the square.
+func (ds *dataSquare) Width() uint {
+    return ds.width
+}
