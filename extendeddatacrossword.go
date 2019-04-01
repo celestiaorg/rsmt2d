@@ -115,9 +115,9 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
                     // Prepare shares
                     var vectorData [][]byte
                     if mode == row {
-                        vectorData = eds.row(i)
+                        vectorData = eds.Row(i)
                     } else if mode == column {
-                        vectorData = eds.column(i)
+                        vectorData = eds.Column(i)
                     }
                     shares = make([][]byte, eds.width)
                     for j := uint(0); j < eds.width; j++ {

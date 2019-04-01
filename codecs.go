@@ -23,14 +23,14 @@ func init() {
 func encode(data [][]byte, codec int) ([][]byte, error) {
     switch codec {
     case CodecRSGF8:
-        result, err := encode_RSGF8(data)
+        result, err := encodeRSGF8(data)
         return result, err
     default:
         return nil, errors.New("invalid codec")
     }
 }
 
-func encode_RSGF8(data [][]byte) ([][]byte, error) {
+func encodeRSGF8(data [][]byte) ([][]byte, error) {
     var fec *infectious.FEC
     var err error
     if value, ok := infectiousCache[len(data)]; ok {
@@ -62,14 +62,14 @@ func encode_RSGF8(data [][]byte) ([][]byte, error) {
 func decode(data [][]byte, codec int) ([][]byte, error) {
     switch codec {
     case CodecRSGF8:
-        result, err := decode_RSGF8(data)
+        result, err := decodeRSGF8(data)
         return result, err
     default:
         return nil, errors.New("invalid codec")
     }
 }
 
-func decode_RSGF8(data [][]byte) ([][]byte, error) {
+func decodeRSGF8(data [][]byte) ([][]byte, error) {
     var fec *infectious.FEC
     var err error
     if value, ok := infectiousCache[len(data) / 2]; ok {

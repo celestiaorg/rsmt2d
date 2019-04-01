@@ -90,7 +90,8 @@ func (ds *dataSquare) rowSlice(x uint, y uint, length uint) [][]byte {
     return ds.square[x][y:y+length]
 }
 
-func (ds *dataSquare) row(x uint) [][]byte {
+// Row returns the data in a row.
+func (ds *dataSquare) Row(x uint) [][]byte {
     return ds.rowSlice(x, 0, ds.width)
 }
 
@@ -119,7 +120,8 @@ func (ds *dataSquare) columnSlice(x uint, y uint, length uint) [][]byte {
     return columnSlice
 }
 
-func (ds *dataSquare) column(y uint) [][]byte {
+// Column returns the data in a column.
+func (ds *dataSquare) Column(y uint) [][]byte {
     return ds.columnSlice(0, y, ds.width)
 }
 
@@ -154,8 +156,8 @@ func (ds *dataSquare) computeRoots() {
     for i := uint(0); i < ds.width; i++ {
         rowTree = merkletree.New(ds.hasher)
         columnTree = merkletree.New(ds.hasher)
-        rowData = ds.row(i)
-        columnData = ds.column(i)
+        rowData = ds.Row(i)
+        columnData = ds.Column(i)
         for j := uint(0); j < ds.width; j++ {
             rowTree.Push(rowData[j])
             columnTree.Push(columnData[j])
@@ -169,6 +171,7 @@ func (ds *dataSquare) computeRoots() {
     ds.columnRoots = columnRoots
 }
 
+// RowRoots returns the Merkle roots of all the rows in the square.
 func (ds *dataSquare) RowRoots() [][]byte {
     if ds.rowRoots == nil {
         ds.computeRoots()
@@ -177,6 +180,7 @@ func (ds *dataSquare) RowRoots() [][]byte {
     return ds.rowRoots
 }
 
+// ColumnRoots returns the Merkle roots of all the columns in the square.
 func (ds *dataSquare) ColumnRoots() [][]byte {
     if ds.columnRoots == nil {
         ds.computeRoots()
@@ -188,7 +192,7 @@ func (ds *dataSquare) ColumnRoots() [][]byte {
 func (ds *dataSquare) computeRowProof(x uint, y uint) ([]byte, [][]byte, uint, uint) {
     tree := merkletree.New(ds.hasher)
     tree.SetIndex(uint64(y))
-    data := ds.row(x)
+    data := ds.Row(x)
 
     for i := uint(0); i < ds.width; i++ {
         tree.Push(data[i])
@@ -201,7 +205,7 @@ func (ds *dataSquare) computeRowProof(x uint, y uint) ([]byte, [][]byte, uint, u
 func (ds *dataSquare) computeColumnProof(x uint, y uint) ([]byte, [][]byte, uint, uint) {
     tree := merkletree.New(ds.hasher)
     tree.SetIndex(uint64(x))
-    data := ds.column(y)
+    data := ds.Column(y)
 
     for i := uint(0); i < ds.width; i++ {
         tree.Push(data[i])
