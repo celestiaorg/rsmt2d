@@ -215,8 +215,11 @@ func (ds *dataSquare) computeColumnProof(x uint, y uint) ([]byte, [][]byte, uint
     return merkleRoot, proof, uint(proofIndex), uint(numLeaves)
 }
 
-func (ds *dataSquare) cell(x uint, y uint) []byte {
-    return ds.square[x][y]
+// Cell returns a single chunk at a specific cell.
+func (ds *dataSquare) Cell(x uint, y uint) []byte {
+    cell := make([]byte, ds.chunkSize)
+    copy(cell, ds.square[x][y])
+    return cell
 }
 
 func (ds *dataSquare) setCell(x uint, y uint, newChunk []byte) {
