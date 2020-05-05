@@ -189,11 +189,11 @@ func (ds *dataSquare) ColumnRoots() [][]byte {
 	return ds.columnRoots
 }
 
-func (ds *dataSquare) computeRowProof(x uint, y uint) ([]byte, [][]byte, uint, uint) {
+func (ds *dataSquare) computeRowProof(x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
 	tree := merkletree.New(ds.hasher)
 	err := tree.SetIndex(uint64(y))
 	if err != nil {
-		panic(err)
+		return nil, nil, 0, 0, err
 	}
 	data := ds.Row(x)
 
@@ -202,14 +202,14 @@ func (ds *dataSquare) computeRowProof(x uint, y uint) ([]byte, [][]byte, uint, u
 	}
 
 	merkleRoot, proof, proofIndex, numLeaves := tree.Prove()
-	return merkleRoot, proof, uint(proofIndex), uint(numLeaves)
+	return merkleRoot, proof, uint(proofIndex), uint(numLeaves), nil
 }
 
-func (ds *dataSquare) computeColumnProof(x uint, y uint) ([]byte, [][]byte, uint, uint) {
+func (ds *dataSquare) computeColumnProof(x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
 	tree := merkletree.New(ds.hasher)
 	err := tree.SetIndex(uint64(x))
 	if err != nil {
-		panic(err)
+		return nil, nil, 0, 0, err
 	}
 	data := ds.Column(y)
 
@@ -218,7 +218,7 @@ func (ds *dataSquare) computeColumnProof(x uint, y uint) ([]byte, [][]byte, uint
 	}
 
 	merkleRoot, proof, proofIndex, numLeaves := tree.Prove()
-	return merkleRoot, proof, uint(proofIndex), uint(numLeaves)
+	return merkleRoot, proof, uint(proofIndex), uint(numLeaves), nil
 }
 
 // Cell returns a single chunk at a specific cell.

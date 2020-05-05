@@ -71,7 +71,10 @@ func TestProofs(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	_, proof, proofIndex, numLeaves := result.computeRowProof(1, 1)
+	_, proof, proofIndex, numLeaves, err := result.computeRowProof(1, 1)
+	if err != nil {
+		t.Errorf("Got unexpected error: %v", err)
+	}
 	if len(proof) != 2 {
 		t.Errorf("computing row proof for (1, 1) in 2x2 square failed; expecting proof set of length 2")
 	}
@@ -86,7 +89,10 @@ func TestProofs(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	_, proof, proofIndex, numLeaves = result.computeColumnProof(1, 1)
+	_, proof, proofIndex, numLeaves, err = result.computeColumnProof(1, 1)
+	if err != nil {
+		t.Errorf("Got unexpected error: %v", err)
+	}
 	if len(proof) != 2 {
 		t.Errorf("computing column proof for (1, 1) in 2x2 square failed; expecting proof set of length 2")
 	}
