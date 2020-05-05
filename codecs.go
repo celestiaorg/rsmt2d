@@ -6,12 +6,18 @@ import (
 	"github.com/vivint/infectious"
 )
 
-// Erasure codes.
-const CodecRSGF8 = 0 // Reed-Solomon, Galois Field 2^8
+// Codec type
+type Codec int
+
+// Erasure codes enum:
+const (
+	// RSGF8 represents Reed-Solomon Codec with an 8-bit Finite Galois Field (2^8)
+	RSGF8 Codec = iota
+)
 
 // Max number of chunks each code supports in a 2D square.
-var SupportedCodecs = map[int]int{
-	CodecRSGF8: 128 * 128,
+var CodecsMaxChunksMap = map[Codec]int{
+	RSGF8: 128 * 128,
 }
 
 var infectiousCache map[int]*infectious.FEC
@@ -20,9 +26,9 @@ func init() {
 	infectiousCache = make(map[int]*infectious.FEC)
 }
 
-func encode(data [][]byte, codec int) ([][]byte, error) {
+func encode(data [][]byte, codec Codec) ([][]byte, error) {
 	switch codec {
-	case CodecRSGF8:
+	case RSGF8:
 		result, err := encodeRSGF8(data)
 		return result, err
 	default:
@@ -59,9 +65,9 @@ func encodeRSGF8(data [][]byte) ([][]byte, error) {
 	return shares, err
 }
 
-func decode(data [][]byte, codec int) ([][]byte, error) {
+func decode(data [][]byte, codec Codec) ([][]byte, error) {
 	switch codec {
-	case CodecRSGF8:
+	case RSGF8:
 		result, err := decodeRSGF8(data)
 		return result, err
 	default:
