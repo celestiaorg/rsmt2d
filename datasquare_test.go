@@ -22,12 +22,12 @@ func TestNewDataSquare(t *testing.T) {
 		t.Errorf("newDataSquare failed for 2x2 square")
 	}
 
-	result, err = newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}})
+	_, err = newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}})
 	if err == nil {
 		t.Errorf("newDataSquare failed; inconsistent number of chunks accepted")
 	}
 
-	result, err = newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7}})
+	_, err = newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7}})
 	if err == nil {
 		t.Errorf("newDataSquare failed; chunks of unequal size accepted")
 	}

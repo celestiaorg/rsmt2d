@@ -6,7 +6,7 @@ import (
 )
 
 func TestComputeExtendedDataSquare(t *testing.T) {
-	for codec, _ := range CodecsMaxChunksMap {
+	for codec := range CodecsMaxChunksMap {
 		result, err := ComputeExtendedDataSquare([][]byte{
 			{1}, {2},
 			{3}, {4},

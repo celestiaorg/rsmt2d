@@ -64,7 +64,9 @@ func ImportExtendedDataSquare(data [][]byte, codec Codec) (*ExtendedDataSquare, 
 
 func (eds *ExtendedDataSquare) erasureExtendSquare() error {
 	eds.originalDataWidth = eds.width
-	eds.extendSquare(eds.width, bytes.Repeat([]byte{0}, int(eds.chunkSize)))
+	if err := eds.extendSquare(eds.width, bytes.Repeat([]byte{0}, int(eds.chunkSize))); err != nil {
+		return err
+	}
 
 	var shares [][]byte
 	var err error
@@ -85,14 +87,18 @@ func (eds *ExtendedDataSquare) erasureExtendSquare() error {
 		if err != nil {
 			return err
 		}
-		eds.setRowSlice(i, eds.originalDataWidth, shares)
+		if err := eds.setRowSlice(i, eds.originalDataWidth, shares); err != nil {
+			return err
+		}
 
 		// Extend vertically
 		shares, err = encode(eds.columnSlice(0, i, eds.originalDataWidth), eds.codec)
 		if err != nil {
 			return err
 		}
-		eds.setColumnSlice(eds.originalDataWidth, i, shares)
+		if err := eds.setColumnSlice(eds.originalDataWidth, i, shares); err != nil {
+			return err
+		}
 	}
 
 	// Extend extended square horizontally
@@ -111,7 +117,9 @@ func (eds *ExtendedDataSquare) erasureExtendSquare() error {
 		if err != nil {
 			return err
 		}
-		eds.setRowSlice(i, eds.originalDataWidth, shares)
+		if err := eds.setRowSlice(i, eds.originalDataWidth, shares); err != nil {
+			return err
+		}
 	}
 
 	return nil
