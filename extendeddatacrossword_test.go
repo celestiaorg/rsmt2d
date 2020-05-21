@@ -54,14 +54,13 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		if err == nil {
 			t.Errorf("did not return an error on trying to repair an unrepairable square")
 		}
-		// TODO: figure out why these tests fail too now (only increased bufferBytes from 1 to 64):
-		// They probably just assume the old one-byte chunk layout ...
 		var corrupted ExtendedDataSquare
 		corrupted, err = original.deepCopy()
 		if err != nil {
 			t.Fatalf("unexpected err while copying original data: %v, codec: :%v", err, codec)
 		}
-		corrupted.setCell(0, 0, []byte{66})
+		corruptChunk := bytes.Repeat([]byte{66}, bufferSize)
+		corrupted.setCell(0, 0, corruptChunk)
 		_, err = RepairExtendedDataSquare(original.RowRoots(), original.ColumnRoots(), corrupted.flattened(), codec)
 		if err == nil {
 			t.Errorf("did not return an error on trying to repair a square with bad roots")
@@ -72,7 +71,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected err while copying original data: %v, codec: :%v", err, codec)
 		}
-		corrupted.setCell(0, 0, []byte{66})
+		corrupted.setCell(0, 0, corruptChunk)
 		_, err = RepairExtendedDataSquare(corrupted.RowRoots(), corrupted.ColumnRoots(), corrupted.flattened(), codec)
 		if err, ok = err.(*ByzantineRowError); !ok {
 			t.Errorf("did not return a ByzantineRowError for a bad row; got: %v", err)
@@ -82,7 +81,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected err while copying original data: %v, codec: :%v", err, codec)
 		}
-		corrupted.setCell(0, 3, []byte{66})
+		corrupted.setCell(0, 3, corruptChunk)
 		_, err = RepairExtendedDataSquare(corrupted.RowRoots(), corrupted.ColumnRoots(), corrupted.flattened(), codec)
 		if err, ok = err.(*ByzantineRowError); !ok {
 			t.Errorf("did not return a ByzantineRowError for a bad row; got %v", err)
@@ -92,7 +91,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected err while copying original data: %v, codec: :%v", err, codec)
 		}
-		corrupted.setCell(0, 0, []byte{66})
+		corrupted.setCell(0, 0, corruptChunk)
 		flattened = corrupted.flattened()
 		flattened[1], flattened[2], flattened[3] = nil, nil, nil
 		_, err = RepairExtendedDataSquare(corrupted.RowRoots(), corrupted.ColumnRoots(), flattened, codec)
@@ -104,7 +103,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected err while copying original data: %v, codec: :%v", err, codec)
 		}
-		corrupted.setCell(3, 0, []byte{66})
+		corrupted.setCell(3, 0, corruptChunk)
 		flattened = corrupted.flattened()
 		flattened[1], flattened[2], flattened[3] = nil, nil, nil
 		_, err = RepairExtendedDataSquare(corrupted.RowRoots(), corrupted.ColumnRoots(), flattened, codec)
