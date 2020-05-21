@@ -20,7 +20,7 @@ type Codec interface {
 	encode(data [][]byte) ([][]byte, error)
 	decode(data [][]byte) ([][]byte, error)
 	codecType() CodecType
-	// maxChunks returns th max number of chunks each code supports in a 2D square.
+	// maxChunks returns the max. number of chunks each code supports in a 2D square.
 	maxChunks() int
 }
 

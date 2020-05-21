@@ -80,7 +80,7 @@ func (c *rsGF8Codec) codecType() CodecType {
 	return RSGF8
 }
 
-// maxChunks returns th max number of chunks each code supports in a 2D square.
+// maxChunks returns the max. number of chunks each code supports in a 2D square.
 func (c *rsGF8Codec) maxChunks() int {
 	return 128 * 128
 }
