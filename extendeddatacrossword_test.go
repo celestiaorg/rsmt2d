@@ -6,7 +6,8 @@ import (
 )
 
 func TestRepairExtendedDataSquare(t *testing.T) {
-	for codec := range CodecsMaxChunksMap {
+	for _, codec := range codecs {
+		codec := codec.codecType()
 		original, err := ComputeExtendedDataSquare([][]byte{
 			{1}, {2},
 			{3}, {4},

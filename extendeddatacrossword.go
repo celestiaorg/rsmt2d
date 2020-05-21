@@ -43,7 +43,7 @@ func (e *UnrepairableDataSquareError) Error() string {
 
 // RepairExtendedDataSquare repairs an incomplete extended data square, against its expected row and column merkle roots.
 // Missing data chunks should be represented as nil.
-func RepairExtendedDataSquare(rowRoots [][]byte, columnRoots [][]byte, data [][]byte, codec Codec) (*ExtendedDataSquare, error) {
+func RepairExtendedDataSquare(rowRoots [][]byte, columnRoots [][]byte, data [][]byte, codec CodecType) (*ExtendedDataSquare, error) {
 	matrixData := make([]float64, len(data))
 	var chunkSize int
 	for i := range data {

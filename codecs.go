@@ -2,106 +2,49 @@ package rsmt2d
 
 import (
 	"errors"
-
-	"github.com/vivint/infectious"
+	"fmt"
 )
 
-// Codec type
-type Codec int
+// codecType type
+type CodecType int
 
 // Erasure codes enum:
 const (
-	// RSGF8 represents Reed-Solomon Codec with an 8-bit Finite Galois Field (2^8)
-	RSGF8 Codec = iota
+	// RSGF8 represents Reed-Solomon codecType with an 8-bit Finite Galois Field (2^8)
+	RSGF8      CodecType = iota
+	LeopardF8  CodecType = 1
+	LeopardF16 CodecType = 2
 )
 
-// Max number of chunks each code supports in a 2D square.
-var CodecsMaxChunksMap = map[Codec]int{
-	RSGF8: 128 * 128,
+type Codec interface {
+	encode(data [][]byte) ([][]byte, error)
+	decode(data [][]byte) ([][]byte, error)
+	codecType() CodecType
+	// maxChunks returns th max number of chunks each code supports in a 2D square.
+	maxChunks() int
 }
 
-var infectiousCache map[int]*infectious.FEC
+var codecs = make(map[CodecType]Codec)
 
-func init() {
-	infectiousCache = make(map[int]*infectious.FEC)
+func registerCodec(ct CodecType, codec Codec) {
+	if codecs[ct] != nil {
+		panic(fmt.Sprintf("%v already registered", codec))
+	}
+	codecs[ct] = codec
 }
 
-func encode(data [][]byte, codec Codec) ([][]byte, error) {
-	switch codec {
-	case RSGF8:
-		result, err := encodeRSGF8(data)
-		return result, err
-	default:
+func encode(data [][]byte, codec CodecType) ([][]byte, error) {
+	if codec, ok := codecs[codec]; !ok {
 		return nil, errors.New("invalid codec")
-	}
-}
-
-func encodeRSGF8(data [][]byte) ([][]byte, error) {
-	var fec *infectious.FEC
-	var err error
-	if value, ok := infectiousCache[len(data)]; ok {
-		fec = value
 	} else {
-		fec, err = infectious.NewFEC(len(data), len(data)*2)
-		if err != nil {
-			return nil, err
-		}
-
-		infectiousCache[len(data)] = fec
+		return codec.encode(data)
 	}
-
-	shares := make([][]byte, len(data))
-	output := func(s infectious.Share) {
-		if s.Number >= len(data) {
-			shareData := make([]byte, len(data[0]))
-			copy(shareData, s.Data)
-			shares[s.Number-len(data)] = shareData
-		}
-	}
-
-	flattened := flattenChunks(data)
-	err = fec.Encode(flattened, output)
-
-	return shares, err
 }
 
-func decode(data [][]byte, codec Codec) ([][]byte, error) {
-	switch codec {
-	case RSGF8:
-		result, err := decodeRSGF8(data)
-		return result, err
-	default:
+func decode(data [][]byte, codec CodecType) ([][]byte, error) {
+	if codec, ok := codecs[codec]; !ok {
 		return nil, errors.New("invalid codec")
-	}
-}
-
-func decodeRSGF8(data [][]byte) ([][]byte, error) {
-	var fec *infectious.FEC
-	var err error
-	if value, ok := infectiousCache[len(data)/2]; ok {
-		fec = value
 	} else {
-		fec, err = infectious.NewFEC(len(data)/2, len(data))
-		if err != nil {
-			return nil, err
-		}
-
-		infectiousCache[len(data)/2] = fec
+		return codec.decode(data)
 	}
-
-	rebuiltShares := make([][]byte, len(data)/2)
-	rebuiltSharesOutput := func(s infectious.Share) {
-		rebuiltShares[s.Number] = s.DeepCopy().Data
-	}
-
-	shares := []infectious.Share{}
-	for j := 0; j < len(data); j++ {
-		if data[j] != nil {
-			shares = append(shares, infectious.Share{Number: j, Data: data[j]})
-		}
-	}
-
-	err = fec.Rebuild(shares, rebuiltSharesOutput)
-
-	return rebuiltShares, err
 }

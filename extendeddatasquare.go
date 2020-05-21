@@ -10,17 +10,17 @@ import (
 type ExtendedDataSquare struct {
 	*dataSquare
 	originalDataWidth uint
-	codec             Codec
+	codec             CodecType
 }
 
 // ComputeExtendedDataSquare computes the extended data square for some chunks of data.
-func ComputeExtendedDataSquare(data [][]byte, codec Codec) (*ExtendedDataSquare, error) {
-	if value, ok := CodecsMaxChunksMap[codec]; ok {
-		if len(data) > value {
+func ComputeExtendedDataSquare(data [][]byte, codecType CodecType) (*ExtendedDataSquare, error) {
+	if codec, ok := codecs[codecType]; !ok {
+		return nil, errors.New("unsupported codecType")
+	} else {
+		if len(data) > codec.maxChunks() {
 			return nil, errors.New("number of chunks exceeds the maximum")
 		}
-	} else {
-		return nil, errors.New("unsupported codec")
 	}
 
 	ds, err := newDataSquare(data)
@@ -28,7 +28,7 @@ func ComputeExtendedDataSquare(data [][]byte, codec Codec) (*ExtendedDataSquare,
 		return nil, err
 	}
 
-	eds := ExtendedDataSquare{dataSquare: ds, codec: codec}
+	eds := ExtendedDataSquare{dataSquare: ds, codec: codecType}
 	err = eds.erasureExtendSquare()
 	if err != nil {
 		return nil, err
@@ -38,21 +38,20 @@ func ComputeExtendedDataSquare(data [][]byte, codec Codec) (*ExtendedDataSquare,
 }
 
 // ImportExtendedDataSquare imports an extended data square, represented as flattened chunks of data.
-func ImportExtendedDataSquare(data [][]byte, codec Codec) (*ExtendedDataSquare, error) {
-	if value, ok := CodecsMaxChunksMap[codec]; ok {
-		if len(data) > value*4 {
+func ImportExtendedDataSquare(data [][]byte, codecType CodecType) (*ExtendedDataSquare, error) {
+	if codec, ok := codecs[codecType]; !ok {
+		return nil, errors.New("unsupported codecType")
+	} else {
+		if len(data) > 4*codec.maxChunks() {
 			return nil, errors.New("number of chunks exceeds the maximum")
 		}
-	} else {
-		return nil, errors.New("unsupported codec")
 	}
-
 	ds, err := newDataSquare(data)
 	if err != nil {
 		return nil, err
 	}
 
-	eds := ExtendedDataSquare{dataSquare: ds, codec: codec}
+	eds := ExtendedDataSquare{dataSquare: ds, codec: codecType}
 	if eds.width%2 != 0 {
 		return nil, errors.New("square width must be even")
 	}
