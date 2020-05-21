@@ -11,9 +11,9 @@ type CodecType int
 // Erasure codes enum:
 const (
 	// RSGF8 represents Reed-Solomon codecType with an 8-bit Finite Galois Field (2^8)
-	RSGF8      CodecType = iota
-	LeopardF8  CodecType = 1
-	LeopardF16 CodecType = 2
+	RSGF8       CodecType = iota
+	LeopardFF8  CodecType = 1
+	LeopardFF16 CodecType = 2
 )
 
 type Codec interface {
