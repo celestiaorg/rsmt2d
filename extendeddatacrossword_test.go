@@ -30,20 +30,13 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		var result *ExtendedDataSquare
 		result, err = RepairExtendedDataSquare(original.RowRoots(), original.ColumnRoots(), flattened, codec)
 		if err != nil {
-			t.Fatalf("unexpected err while repairing data square: %v, codec: :%v", err, codec)
+			t.Errorf("unexpected err while repairing data square: %v, codec: :%v", err, codec)
+		} else {
+			assert.Equal(t, true, checkBytes(result.square[0][0]))
+			assert.Equal(t, true, checkBytes(result.square[0][1]))
+			assert.Equal(t, true, checkBytes(result.square[1][0]))
+			assert.Equal(t, true, checkBytes(result.square[1][1]))
 		}
-		//if !reflect.DeepEqual(result.square, [][][]byte{
-		//	{{1}, {2}, {7}, {13}},
-		//	{{3}, {4}, {13}, {31}},
-		//	{{5}, {14}, {19}, {41}},
-		//	{{9}, {26}, {47}, {69}},
-		//}) {
-		//	t.Errorf("failed to repair a repairable square")
-		//}
-		assert.Equal(t, true, checkBytes(result.square[0][0]))
-		assert.Equal(t, true, checkBytes(result.square[0][1]))
-		assert.Equal(t, true, checkBytes(result.square[1][0]))
-		assert.Equal(t, true, checkBytes(result.square[1][1]))
 
 		flattened = original.flattened()
 		flattened[0], flattened[2], flattened[3] = nil, nil, nil
