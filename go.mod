@@ -9,6 +9,7 @@ require (
 	// only needed if built with go build -tags leopard
 	github.com/liamsi/go-leopard v0.0.0-20200521113841-0667db14a6a4
 	github.com/spacemonkeygo/errors v0.0.0-20171212215202-9064522e9fd1 // indirect
+	github.com/stretchr/testify v1.5.1
 	github.com/vivint/infectious v0.0.0-20190108171102-2455b059135b
 	golang.org/x/net v0.0.0-20200520182314-0ba52f642ac2 // indirect
 	golang.org/x/sys v0.0.0-20200519105757-fe76b779f299 // indirect
