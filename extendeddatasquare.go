@@ -82,7 +82,7 @@ func (eds *ExtendedDataSquare) erasureExtendSquare() error {
 	//  -------
 	for i := uint(0); i < eds.originalDataWidth; i++ {
 		// Extend horizontally
-		shares, err = encode(eds.rowSlice(i, 0, eds.originalDataWidth), eds.codec)
+		shares, err = Encode(eds.rowSlice(i, 0, eds.originalDataWidth), eds.codec)
 		if err != nil {
 			return err
 		}
@@ -91,7 +91,7 @@ func (eds *ExtendedDataSquare) erasureExtendSquare() error {
 		}
 
 		// Extend vertically
-		shares, err = encode(eds.columnSlice(0, i, eds.originalDataWidth), eds.codec)
+		shares, err = Encode(eds.columnSlice(0, i, eds.originalDataWidth), eds.codec)
 		if err != nil {
 			return err
 		}
@@ -112,7 +112,7 @@ func (eds *ExtendedDataSquare) erasureExtendSquare() error {
 	//  ------- -------
 	for i := eds.originalDataWidth; i < eds.width; i++ {
 		// Extend horizontally
-		shares, err = encode(eds.rowSlice(i, 0, eds.originalDataWidth), eds.codec)
+		shares, err = Encode(eds.rowSlice(i, 0, eds.originalDataWidth), eds.codec)
 		if err != nil {
 			return err
 		}

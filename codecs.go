@@ -33,7 +33,7 @@ func registerCodec(ct CodecType, codec Codec) {
 	codecs[ct] = codec
 }
 
-func encode(data [][]byte, codec CodecType) ([][]byte, error) {
+func Encode(data [][]byte, codec CodecType) ([][]byte, error) {
 	if codec, ok := codecs[codec]; !ok {
 		return nil, errors.New("invalid codec")
 	} else {
@@ -41,7 +41,7 @@ func encode(data [][]byte, codec CodecType) ([][]byte, error) {
 	}
 }
 
-func decode(data [][]byte, codec CodecType) ([][]byte, error) {
+func Decode(data [][]byte, codec CodecType) ([][]byte, error) {
 	if codec, ok := codecs[codec]; !ok {
 		return nil, errors.New("invalid codec")
 	} else {
