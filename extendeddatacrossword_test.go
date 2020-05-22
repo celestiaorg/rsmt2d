@@ -1,15 +1,25 @@
 package rsmt2d
 
 import (
-	"reflect"
+	"bytes"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRepairExtendedDataSquare(t *testing.T) {
-	for codec := range CodecsMaxChunksMap {
+	for _, codec := range codecs {
+		codec := codec.codecType()
+
+		bufferSize := 64
+		ones := bytes.Repeat([]byte{1}, bufferSize)
+		twos := bytes.Repeat([]byte{2}, bufferSize)
+		threes := bytes.Repeat([]byte{3}, bufferSize)
+		fours := bytes.Repeat([]byte{4}, bufferSize)
+
 		original, err := ComputeExtendedDataSquare([][]byte{
-			{1}, {2},
-			{3}, {4},
+			ones, twos,
+			threes, fours,
 		}, codec)
 		if err != nil {
 			panic(err)
@@ -23,15 +33,12 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		var result *ExtendedDataSquare
 		result, err = RepairExtendedDataSquare(original.RowRoots(), original.ColumnRoots(), flattened, codec)
 		if err != nil {
-			t.Fatalf("unexpected err while repairing data square: %v, codec: :%v", err, codec)
-		}
-		if !reflect.DeepEqual(result.square, [][][]byte{
-			{{1}, {2}, {7}, {13}},
-			{{3}, {4}, {13}, {31}},
-			{{5}, {14}, {19}, {41}},
-			{{9}, {26}, {47}, {69}},
-		}) {
-			t.Errorf("failed to repair a repairable square")
+			t.Errorf("unexpected err while repairing data square: %v, codec: :%v", err, codec)
+		} else {
+			assert.Equal(t, result.square[0][0], ones)
+			assert.Equal(t, result.square[0][1], twos)
+			assert.Equal(t, result.square[1][0], threes)
+			assert.Equal(t, result.square[1][1], fours)
 		}
 
 		flattened = original.flattened()
@@ -43,13 +50,13 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		if err == nil {
 			t.Errorf("did not return an error on trying to repair an unrepairable square")
 		}
-
 		var corrupted ExtendedDataSquare
 		corrupted, err = original.deepCopy()
 		if err != nil {
 			t.Fatalf("unexpected err while copying original data: %v, codec: :%v", err, codec)
 		}
-		corrupted.setCell(0, 0, []byte{66})
+		corruptChunk := bytes.Repeat([]byte{66}, bufferSize)
+		corrupted.setCell(0, 0, corruptChunk)
 		_, err = RepairExtendedDataSquare(original.RowRoots(), original.ColumnRoots(), corrupted.flattened(), codec)
 		if err == nil {
 			t.Errorf("did not return an error on trying to repair a square with bad roots")
@@ -60,7 +67,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected err while copying original data: %v, codec: :%v", err, codec)
 		}
-		corrupted.setCell(0, 0, []byte{66})
+		corrupted.setCell(0, 0, corruptChunk)
 		_, err = RepairExtendedDataSquare(corrupted.RowRoots(), corrupted.ColumnRoots(), corrupted.flattened(), codec)
 		if err, ok = err.(*ByzantineRowError); !ok {
 			t.Errorf("did not return a ByzantineRowError for a bad row; got: %v", err)
@@ -70,7 +77,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected err while copying original data: %v, codec: :%v", err, codec)
 		}
-		corrupted.setCell(0, 3, []byte{66})
+		corrupted.setCell(0, 3, corruptChunk)
 		_, err = RepairExtendedDataSquare(corrupted.RowRoots(), corrupted.ColumnRoots(), corrupted.flattened(), codec)
 		if err, ok = err.(*ByzantineRowError); !ok {
 			t.Errorf("did not return a ByzantineRowError for a bad row; got %v", err)
@@ -80,7 +87,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected err while copying original data: %v, codec: :%v", err, codec)
 		}
-		corrupted.setCell(0, 0, []byte{66})
+		corrupted.setCell(0, 0, corruptChunk)
 		flattened = corrupted.flattened()
 		flattened[1], flattened[2], flattened[3] = nil, nil, nil
 		_, err = RepairExtendedDataSquare(corrupted.RowRoots(), corrupted.ColumnRoots(), flattened, codec)
@@ -92,7 +99,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected err while copying original data: %v, codec: :%v", err, codec)
 		}
-		corrupted.setCell(3, 0, []byte{66})
+		corrupted.setCell(3, 0, corruptChunk)
 		flattened = corrupted.flattened()
 		flattened[1], flattened[2], flattened[3] = nil, nil, nil
 		_, err = RepairExtendedDataSquare(corrupted.RowRoots(), corrupted.ColumnRoots(), flattened, codec)

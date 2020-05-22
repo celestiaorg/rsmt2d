@@ -43,7 +43,7 @@ func (e *UnrepairableDataSquareError) Error() string {
 
 // RepairExtendedDataSquare repairs an incomplete extended data square, against its expected row and column merkle roots.
 // Missing data chunks should be represented as nil.
-func RepairExtendedDataSquare(rowRoots [][]byte, columnRoots [][]byte, data [][]byte, codec Codec) (*ExtendedDataSquare, error) {
+func RepairExtendedDataSquare(rowRoots [][]byte, columnRoots [][]byte, data [][]byte, codec CodecType) (*ExtendedDataSquare, error) {
 	matrixData := make([]float64, len(data))
 	var chunkSize int
 	for i := range data {
@@ -127,7 +127,7 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 					}
 
 					// Attempt rebuild
-					rebuiltShares, err = decode(shares, eds.codec)
+					rebuiltShares, err = Decode(shares, eds.codec)
 					if err == nil { // repair successful
 						progressMade = true
 
@@ -146,9 +146,9 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 						// Rebuild extended part if incomplete
 						if !vecSliceIsTrue(vectorMask, int(eds.originalDataWidth), int(eds.width)) {
 							if mode == row {
-								rebuiltExtendedShares, err = encode(eds.rowSlice(i, 0, eds.originalDataWidth), eds.codec)
+								rebuiltExtendedShares, err = Encode(eds.rowSlice(i, 0, eds.originalDataWidth), eds.codec)
 							} else if mode == column {
-								rebuiltExtendedShares, err = encode(eds.columnSlice(0, i, eds.originalDataWidth), eds.codec)
+								rebuiltExtendedShares, err = Encode(eds.columnSlice(0, i, eds.originalDataWidth), eds.codec)
 							}
 							if err != nil {
 								return err
@@ -228,7 +228,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoo
 		}
 
 		if vecIsTrue(rowMask) {
-			shares, err = encode(eds.rowSlice(i, 0, eds.originalDataWidth), eds.codec)
+			shares, err = Encode(eds.rowSlice(i, 0, eds.originalDataWidth), eds.codec)
 			if err != nil {
 				return err
 			}
@@ -238,7 +238,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoo
 		}
 
 		if vecIsTrue(columnMask) {
-			shares, err = encode(eds.columnSlice(0, i, eds.originalDataWidth), eds.codec)
+			shares, err = Encode(eds.columnSlice(0, i, eds.originalDataWidth), eds.codec)
 			if err != nil {
 				return err
 			}
