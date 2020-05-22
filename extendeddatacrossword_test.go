@@ -2,8 +2,6 @@ package rsmt2d
 
 import (
 	"bytes"
-	"crypto/md5"
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,9 +12,14 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		codec := codec.codecType()
 
 		bufferSize := 64
+		ones := bytes.Repeat([]byte{1}, bufferSize)
+		twos := bytes.Repeat([]byte{2}, bufferSize)
+		threes := bytes.Repeat([]byte{3}, bufferSize)
+		fours := bytes.Repeat([]byte{4}, bufferSize)
+
 		original, err := ComputeExtendedDataSquare([][]byte{
-			makeCheckedRandBytes(bufferSize), makeCheckedRandBytes(bufferSize),
-			makeCheckedRandBytes(bufferSize), makeCheckedRandBytes(bufferSize),
+			ones, twos,
+			threes, fours,
 		}, codec)
 		if err != nil {
 			panic(err)
@@ -32,10 +35,10 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		if err != nil {
 			t.Errorf("unexpected err while repairing data square: %v, codec: :%v", err, codec)
 		} else {
-			assert.Equal(t, true, checkBytes(result.square[0][0]))
-			assert.Equal(t, true, checkBytes(result.square[0][1]))
-			assert.Equal(t, true, checkBytes(result.square[1][0]))
-			assert.Equal(t, true, checkBytes(result.square[1][1]))
+			assert.Equal(t, result.square[0][0], ones)
+			assert.Equal(t, result.square[0][1], twos)
+			assert.Equal(t, result.square[1][0], threes)
+			assert.Equal(t, result.square[1][1], fours)
 		}
 
 		flattened = original.flattened()
@@ -104,30 +107,4 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 			t.Errorf("did not return a ByzantineColumnError for a bad column; got %v", err)
 		}
 	}
-}
-
-func makeCheckedRandBytes(num int) []byte {
-	p := make([]byte, num)
-	if len(p) <= md5.Size {
-		panic("provided slice is too small")
-	}
-	raw := make([]byte, len(p)-md5.Size)
-	rand.Read(raw)
-	chksm := md5.Sum(raw)
-	copy(p, raw)
-	copy(p[len(p)-md5.Size:], chksm[:])
-	return p
-}
-
-func checkBytes(p []byte) bool {
-	if len(p) <= md5.Size {
-		panic("provided slice is too small")
-	}
-	data := p[:len(p)-md5.Size]
-	readChksm := p[len(p)-md5.Size:]
-	chksm := md5.Sum(data)
-	if !bytes.Equal(readChksm, chksm[:]) {
-		return false
-	}
-	return true
 }
