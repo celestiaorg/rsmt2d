@@ -8,7 +8,7 @@ require (
 	github.com/NebulousLabs/merkletree v0.0.0-20181203152040-08d5d54b07f5
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	// only needed if built with go build -tags leopard
-	github.com/liamsi/go-leopard v0.0.0-20200522120806-b2bdbf8f6401
+	github.com/lazyledger/go-leopard v0.0.0-20200522143752-0e197c66b782
 	github.com/spacemonkeygo/errors v0.0.0-20171212215202-9064522e9fd1 // indirect
 	github.com/stretchr/testify v1.5.1
 	github.com/vivint/infectious v0.0.0-20190108171102-2455b059135b
