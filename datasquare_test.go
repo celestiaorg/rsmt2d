@@ -6,7 +6,7 @@ import (
 )
 
 func TestNewDataSquare(t *testing.T) {
-	result, err := newDataSquare([][]byte{{1, 2}})
+	result, err := newDataSquare([][]byte{{1, 2}}, DefaultTreeCreator)
 	if err != nil {
 		panic(err)
 	}
@@ -14,7 +14,7 @@ func TestNewDataSquare(t *testing.T) {
 		t.Errorf("newDataSquare failed for 1x1 square")
 	}
 
-	result, err = newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}})
+	result, err = newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}}, DefaultTreeCreator)
 	if err != nil {
 		panic(err)
 	}
@@ -22,19 +22,19 @@ func TestNewDataSquare(t *testing.T) {
 		t.Errorf("newDataSquare failed for 2x2 square")
 	}
 
-	_, err = newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}})
+	_, err = newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}}, DefaultTreeCreator)
 	if err == nil {
 		t.Errorf("newDataSquare failed; inconsistent number of chunks accepted")
 	}
 
-	_, err = newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7}})
+	_, err = newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7}}, DefaultTreeCreator)
 	if err == nil {
 		t.Errorf("newDataSquare failed; chunks of unequal size accepted")
 	}
 }
 
 func TestExtendSquare(t *testing.T) {
-	ds, err := newDataSquare([][]byte{{1, 2}})
+	ds, err := newDataSquare([][]byte{{1, 2}}, DefaultTreeCreator)
 	if err != nil {
 		panic(err)
 	}
@@ -43,7 +43,7 @@ func TestExtendSquare(t *testing.T) {
 		t.Errorf("extendSquare failed; error not returned when filler chunk size does not match data square chunk size")
 	}
 
-	ds, err = newDataSquare([][]byte{{1, 2}})
+	ds, err = newDataSquare([][]byte{{1, 2}}, DefaultTreeCreator)
 	if err != nil {
 		panic(err)
 	}
@@ -57,7 +57,7 @@ func TestExtendSquare(t *testing.T) {
 }
 
 func TestRoots(t *testing.T) {
-	result, err := newDataSquare([][]byte{{1, 2}})
+	result, err := newDataSquare([][]byte{{1, 2}}, DefaultTreeCreator)
 	if err != nil {
 		panic(err)
 	}
@@ -67,7 +67,7 @@ func TestRoots(t *testing.T) {
 }
 
 func TestProofs(t *testing.T) {
-	result, err := newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}})
+	result, err := newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}}, DefaultTreeCreator)
 	if err != nil {
 		panic(err)
 	}
@@ -85,7 +85,7 @@ func TestProofs(t *testing.T) {
 		t.Errorf("computing row proof for (1, 1) in 2x2 square failed; expecting number of leaves to be 2")
 	}
 
-	result, err = newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}})
+	result, err = newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}}, DefaultTreeCreator)
 	if err != nil {
 		panic(err)
 	}
