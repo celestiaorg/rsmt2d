@@ -16,6 +16,19 @@ const (
 	LeopardFF16 CodecType = 2
 )
 
+func (c CodecType) String() string {
+	switch c {
+	case 0:
+		return "RSGF8"
+	case 1:
+		return "LeopardFF8"
+	case 2:
+		return "LeopardFF16"
+	default:
+		return "UNSUPPORTED CODEC TYPE"
+	}
+}
+
 type Codec interface {
 	encode(data [][]byte) ([][]byte, error)
 	decode(data [][]byte) ([][]byte, error)
