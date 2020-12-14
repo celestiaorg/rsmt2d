@@ -7,8 +7,6 @@ import (
 	"github.com/NebulousLabs/merkletree"
 )
 
-var DefaultTreeCreator = &defaultTreeCreator{}
-
 type Tree interface {
 	Push(data []byte)
 	// TODO(ismail): is this general enough?
@@ -16,21 +14,18 @@ type Tree interface {
 	Root() []byte
 }
 
-type TreeCreator interface {
-	New() Tree
-}
-
-var _ TreeCreator = &defaultTreeCreator{}
 var _ Tree = &DefaultTree{}
 
-type defaultTreeCreator struct{}
+// TreeFn creates a fresh Tree instance to be used as the Merkle inside of rsmt2d.
+type TreeFn = func() Tree
+
 type DefaultTree struct {
 	*merkletree.Tree
 	leaves [][]byte
 	root   []byte
 }
 
-func (d *defaultTreeCreator) New() Tree {
+func NewDefaultTree() Tree {
 	return &DefaultTree{
 		Tree:   merkletree.New(sha256.New()),
 		leaves: make([][]byte, 0, 128),

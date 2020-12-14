@@ -20,7 +20,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		original, err := ComputeExtendedDataSquare([][]byte{
 			ones, twos,
 			threes, fours,
-		}, codec, DefaultTreeCreator)
+		}, codec, NewDefaultTree)
 		if err != nil {
 			panic(err)
 		}

@@ -69,7 +69,7 @@ func RepairExtendedDataSquare(rowRoots [][]byte, columnRoots [][]byte, data [][]
 		}
 	}
 
-	eds, err := ImportExtendedDataSquare(data, codec, DefaultTreeCreator)
+	eds, err := ImportExtendedDataSquare(data, codec, NewDefaultTree)
 	if err != nil {
 		return nil, err
 	}

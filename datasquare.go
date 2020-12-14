@@ -6,15 +6,15 @@ import (
 )
 
 type dataSquare struct {
-	square      [][][]byte
-	width       uint
-	chunkSize   uint
-	rowRoots    [][]byte
-	columnRoots [][]byte
-	treeCreator TreeCreator
+	square       [][][]byte
+	width        uint
+	chunkSize    uint
+	rowRoots     [][]byte
+	columnRoots  [][]byte
+	createTreeFn TreeFn
 }
 
-func newDataSquare(data [][]byte, treeCreator TreeCreator) (*dataSquare, error) {
+func newDataSquare(data [][]byte, treeCreator TreeFn) (*dataSquare, error) {
 	width := int(math.Ceil(math.Sqrt(float64(len(data)))))
 	if int(math.Pow(float64(width), 2)) != len(data) {
 		return nil, errors.New("number of chunks must be a square number")
@@ -33,10 +33,10 @@ func newDataSquare(data [][]byte, treeCreator TreeCreator) (*dataSquare, error) 
 	}
 
 	return &dataSquare{
-		square:      square,
-		width:       uint(width),
-		chunkSize:   uint(chunkSize),
-		treeCreator: treeCreator,
+		square:       square,
+		width:        uint(width),
+		chunkSize:    uint(chunkSize),
+		createTreeFn: treeCreator,
 	}, nil
 }
 
@@ -141,8 +141,8 @@ func (ds *dataSquare) computeRoots() {
 	rowRoots := make([][]byte, ds.width)
 	columnRoots := make([][]byte, ds.width)
 	for i := uint(0); i < ds.width; i++ {
-		rowTree := ds.treeCreator.New()
-		columnTree := ds.treeCreator.New()
+		rowTree := ds.createTreeFn()
+		columnTree := ds.createTreeFn()
 		rowData := ds.Row(i)
 		columnData := ds.Column(i)
 		for j := uint(0); j < ds.width; j++ {
@@ -177,7 +177,7 @@ func (ds *dataSquare) ColumnRoots() [][]byte {
 }
 
 func (ds *dataSquare) computeRowProof(x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
-	tree := ds.treeCreator.New()
+	tree := ds.createTreeFn()
 	data := ds.Row(x)
 
 	for i := uint(0); i < ds.width; i++ {
@@ -189,7 +189,7 @@ func (ds *dataSquare) computeRowProof(x uint, y uint) ([]byte, [][]byte, uint, u
 }
 
 func (ds *dataSquare) computeColumnProof(x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
-	tree := ds.treeCreator.New()
+	tree := ds.createTreeFn()
 	data := ds.Column(y)
 
 	for i := uint(0); i < ds.width; i++ {
