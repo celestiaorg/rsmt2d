@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	"github.com/NebulousLabs/merkletree"
+	"github.com/lazyledger/merkletree"
 )
 
 type Tree interface {
