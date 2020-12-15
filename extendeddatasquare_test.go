@@ -10,7 +10,7 @@ func TestComputeExtendedDataSquare(t *testing.T) {
 	result, err := ComputeExtendedDataSquare([][]byte{
 		{1}, {2},
 		{3}, {4},
-	}, codec)
+	}, codec, NewDefaultTree)
 	if err != nil {
 		panic(err)
 	}
