@@ -11,10 +11,10 @@ type dataSquare struct {
 	chunkSize    uint
 	rowRoots     [][]byte
 	columnRoots  [][]byte
-	createTreeFn TreeFn
+	createTreeFn TreeConstructorFn
 }
 
-func newDataSquare(data [][]byte, treeCreator TreeFn) (*dataSquare, error) {
+func newDataSquare(data [][]byte, treeCreator TreeConstructorFn) (*dataSquare, error) {
 	width := int(math.Ceil(math.Sqrt(float64(len(data)))))
 	if int(math.Pow(float64(width), 2)) != len(data) {
 		return nil, errors.New("number of chunks must be a square number")

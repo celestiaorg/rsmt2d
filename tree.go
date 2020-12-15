@@ -7,6 +7,9 @@ import (
 	"github.com/lazyledger/merkletree"
 )
 
+// TreeConstructorFn creates a fresh Tree instance to be used as the Merkle inside of rsmt2d.
+type TreeConstructorFn = func() Tree
+
 type Tree interface {
 	Push(data []byte)
 	// TODO(ismail): is this general enough?
@@ -15,9 +18,6 @@ type Tree interface {
 }
 
 var _ Tree = &DefaultTree{}
-
-// TreeFn creates a fresh Tree instance to be used as the Merkle inside of rsmt2d.
-type TreeFn = func() Tree
 
 type DefaultTree struct {
 	*merkletree.Tree
