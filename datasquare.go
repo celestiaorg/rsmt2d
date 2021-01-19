@@ -1,24 +1,20 @@
 package rsmt2d
 
 import (
-	"crypto/sha256"
 	"errors"
-	"hash"
 	"math"
-
-	"github.com/NebulousLabs/merkletree"
 )
 
 type dataSquare struct {
-	square      [][][]byte
-	width       uint
-	chunkSize   uint
-	rowRoots    [][]byte
-	columnRoots [][]byte
-	hasher      hash.Hash
+	square       [][][]byte
+	width        uint
+	chunkSize    uint
+	rowRoots     [][]byte
+	columnRoots  [][]byte
+	createTreeFn TreeConstructorFn
 }
 
-func newDataSquare(data [][]byte) (*dataSquare, error) {
+func newDataSquare(data [][]byte, treeCreator TreeConstructorFn) (*dataSquare, error) {
 	width := int(math.Ceil(math.Sqrt(float64(len(data)))))
 	if int(math.Pow(float64(width), 2)) != len(data) {
 		return nil, errors.New("number of chunks must be a square number")
@@ -37,16 +33,11 @@ func newDataSquare(data [][]byte) (*dataSquare, error) {
 	}
 
 	return &dataSquare{
-		square:    square,
-		width:     uint(width),
-		chunkSize: uint(chunkSize),
-		hasher:    sha256.New(),
+		square:       square,
+		width:        uint(width),
+		chunkSize:    uint(chunkSize),
+		createTreeFn: treeCreator,
 	}, nil
-}
-
-// SetHasher sets the hasher used for computing Merkle roots.
-func (ds *dataSquare) SetHasher(hasher hash.Hash) {
-	ds.hasher = hasher
 }
 
 func (ds *dataSquare) extendSquare(extendedWidth uint, fillerChunk []byte) error {
@@ -149,15 +140,11 @@ func (ds *dataSquare) resetRoots() {
 func (ds *dataSquare) computeRoots() {
 	rowRoots := make([][]byte, ds.width)
 	columnRoots := make([][]byte, ds.width)
-	var rowTree *merkletree.Tree
-	var columnTree *merkletree.Tree
-	var rowData [][]byte
-	var columnData [][]byte
 	for i := uint(0); i < ds.width; i++ {
-		rowTree = merkletree.New(ds.hasher)
-		columnTree = merkletree.New(ds.hasher)
-		rowData = ds.Row(i)
-		columnData = ds.Column(i)
+		rowTree := ds.createTreeFn()
+		columnTree := ds.createTreeFn()
+		rowData := ds.Row(i)
+		columnData := ds.Column(i)
 		for j := uint(0); j < ds.width; j++ {
 			rowTree.Push(rowData[j])
 			columnTree.Push(columnData[j])
@@ -190,34 +177,26 @@ func (ds *dataSquare) ColumnRoots() [][]byte {
 }
 
 func (ds *dataSquare) computeRowProof(x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
-	tree := merkletree.New(ds.hasher)
-	err := tree.SetIndex(uint64(y))
-	if err != nil {
-		return nil, nil, 0, 0, err
-	}
+	tree := ds.createTreeFn()
 	data := ds.Row(x)
 
 	for i := uint(0); i < ds.width; i++ {
 		tree.Push(data[i])
 	}
 
-	merkleRoot, proof, proofIndex, numLeaves := tree.Prove()
+	merkleRoot, proof, proofIndex, numLeaves := tree.Prove(int(y))
 	return merkleRoot, proof, uint(proofIndex), uint(numLeaves), nil
 }
 
 func (ds *dataSquare) computeColumnProof(x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
-	tree := merkletree.New(ds.hasher)
-	err := tree.SetIndex(uint64(x))
-	if err != nil {
-		return nil, nil, 0, 0, err
-	}
+	tree := ds.createTreeFn()
 	data := ds.Column(y)
 
 	for i := uint(0); i < ds.width; i++ {
 		tree.Push(data[i])
 	}
-
-	merkleRoot, proof, proofIndex, numLeaves := tree.Prove()
+	// TODO(ismail): check for overflow when casting from uint -> int
+	merkleRoot, proof, proofIndex, numLeaves := tree.Prove(int(x))
 	return merkleRoot, proof, uint(proofIndex), uint(numLeaves), nil
 }
 
