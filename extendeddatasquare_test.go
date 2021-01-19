@@ -26,7 +26,7 @@ func TestComputeExtendedDataSquare(t *testing.T) {
 	}
 }
 
-// dump acts as a data dump for the benchmarks to stop the compiler from makeing
+// dump acts as a data dump for the benchmarks to stop the compiler from making
 // unrealistic optimizations
 var dump *ExtendedDataSquare
 
