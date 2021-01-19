@@ -39,7 +39,7 @@ func BenchmarkExtension(b *testing.B) {
 				fmt.Sprintf("%s size %d (extended = %d) ", _codecType, i, i*2),
 				func(b *testing.B) {
 					for n := 0; n < b.N; n++ {
-						eds, err := ComputeExtendedDataSquare(square, _codecType)
+						eds, err := ComputeExtendedDataSquare(square, _codecType, NewDefaultTree)
 						if err != nil {
 							b.Error(err)
 						}

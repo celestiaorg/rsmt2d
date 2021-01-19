@@ -107,7 +107,7 @@ func TestProofs(t *testing.T) {
 
 func BenchmarkRoots(b *testing.B) {
 	for i := 32; i < 257; i *= 2 {
-		square, err := newDataSquare(genRandDS(i))
+		square, err := newDataSquare(genRandDS(i), NewDefaultTree)
 		if err != nil {
 			b.Errorf("Failure to create square of size %d: %s", i, err)
 		}
