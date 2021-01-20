@@ -11,6 +11,8 @@ var (
 	decodedDataDump [][]byte
 )
 
+const benchmarkDivider = "-------------------------------"
+
 func BenchmarkEncoding(b *testing.B) {
 	// generate some fake data
 	data := mockEncodableData(128)
@@ -28,6 +30,7 @@ func BenchmarkEncoding(b *testing.B) {
 			},
 		)
 	}
+	fmt.Println(benchmarkDivider)
 }
 
 func mockEncodableData(count int) [][]byte {
@@ -60,6 +63,7 @@ func BenchmarkDecoding(b *testing.B) {
 			},
 		)
 	}
+	fmt.Println(benchmarkDivider)
 }
 
 func mockDecodableData(count int, _codecType CodecType) [][]byte {
@@ -75,6 +79,5 @@ func mockDecodableData(count int, _codecType CodecType) [][]byte {
 			output[i] = []byte{}
 		}
 	}
-	fmt.Println(output)
 	return output
 }
