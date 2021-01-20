@@ -15,7 +15,7 @@ const benchmarkDivider = "-------------------------------"
 
 func BenchmarkEncoding(b *testing.B) {
 	// generate some fake data
-	data := mockEncodableData(128)
+	data := generateRandData(128)
 	for _codecType := range codecs {
 		b.Run(
 			fmt.Sprintf("Encoding 128 shares using %s", _codecType),
@@ -33,7 +33,7 @@ func BenchmarkEncoding(b *testing.B) {
 	fmt.Println(benchmarkDivider)
 }
 
-func mockEncodableData(count int) [][]byte {
+func generateRandData(count int) [][]byte {
 	out := make([][]byte, count)
 	for i := 0; i < count; i++ {
 		randData := make([]byte, count)
@@ -67,7 +67,7 @@ func BenchmarkDecoding(b *testing.B) {
 }
 
 func mockDecodableData(count int, _codecType CodecType) [][]byte {
-	randData := mockEncodableData(count)
+	randData := generateRandData(count)
 	encoded, err := Encode(randData, _codecType)
 	if err != nil {
 		panic(err)
