@@ -32,9 +32,13 @@ var dump *ExtendedDataSquare
 
 // BenchmarkExtension benchmarks extending datasquares sizes 4-128 using all supported codecs
 func BenchmarkExtension(b *testing.B) {
+	var codecTypes []string
+	for codec := range codecs {
+		codecTypes = append(codecTypes, codec.String())
+	}
 	for i := 4; i < 129; i *= 2 {
 		fmt.Printf("%s Square Width: %d (shares) (extended = %d)\n", benchmarkDivider, i, i*2)
-		for _codecType := range codecs {
+		for _codecType := range codecTypes {
 			square := genRandDS(i)
 			b.Run(
 				fmt.Sprintf("%s size %d", _codecType, i),
