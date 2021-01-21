@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/rand"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -12,6 +14,12 @@ var (
 )
 
 const benchmarkDivider = "-------------------------------"
+
+func TestCodec_String(t *testing.T) {
+	for codec := range codecs {
+		assert.NotEqual(t, "", codec.String())
+	}
+}
 
 func BenchmarkEncoding(b *testing.B) {
 	// generate some fake data
