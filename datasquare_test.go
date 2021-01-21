@@ -1,6 +1,7 @@
 package rsmt2d
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -101,5 +102,23 @@ func TestProofs(t *testing.T) {
 	}
 	if numLeaves != 2 {
 		t.Errorf("computing column proof for (1, 1) in 2x2 square failed; expecting number of leaves to be 2")
+	}
+}
+
+func BenchmarkRoots(b *testing.B) {
+	for i := 32; i < 257; i *= 2 {
+		square, err := newDataSquare(genRandDS(i), NewDefaultTree)
+		if err != nil {
+			b.Errorf("Failure to create square of size %d: %s", i, err)
+		}
+		b.Run(
+			fmt.Sprintf("Square Size %dx%d", i, i),
+			func(b *testing.B) {
+				for n := 0; n < b.N; n++ {
+					square.computeRoots()
+				}
+			},
+		)
+
 	}
 }
