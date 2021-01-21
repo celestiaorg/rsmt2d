@@ -1,8 +1,8 @@
 package rsmt2d
 
 import (
-	"crypto/rand"
 	"fmt"
+	"math/rand"
 	"testing"
 )
 
@@ -48,13 +48,13 @@ func generateRandData(count int) [][]byte {
 
 func BenchmarkDecoding(b *testing.B) {
 	// generate some fake data
-	for _codecType := range codecs {
-		data := mockDecodableData(128, _codecType)
+	for codecType := range codecs {
+		data := generateMissigData(128, codecType)
 		b.Run(
-			fmt.Sprintf("Decoding 128 shares using %s", _codecType),
+			fmt.Sprintf("Decoding 128 shares using %s", codecType),
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
-					encodedData, err := Decode(data, _codecType)
+					encodedData, err := Decode(data, codecType)
 					if err != nil {
 						b.Error(err)
 					}
@@ -66,18 +66,23 @@ func BenchmarkDecoding(b *testing.B) {
 	fmt.Println(benchmarkDivider)
 }
 
-func mockDecodableData(count int, _codecType CodecType) [][]byte {
+func generateMissigData(count int, codecType CodecType) [][]byte {
 	randData := generateRandData(count)
-	encoded, err := Encode(randData, _codecType)
+	encoded, err := Encode(randData, codecType)
 	if err != nil {
 		panic(err)
 	}
 	output := append(randData, encoded...)
-	// remove every other share
-	for i := range output {
-		if i%2 != 0 {
-			output[i] = []byte{}
+
+	// remove half of the shares randomly
+	for i := 0; i < (count / 2); {
+		ind := rand.Intn(count)
+		if len(output[ind]) == 0 {
+			continue
 		}
+		output[ind] = []byte{}
+		i++
 	}
+
 	return output
 }
