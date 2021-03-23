@@ -232,7 +232,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoo
 		columnMaskIsVec := vecIsTrue(columnMask)
 
 		// if there's no missing data in the this row
-		if !checkForNil(eds.Row(i)) {
+		if noMissingData(eds.Row(i)) {
 			// ensure that the roots are equal and that rowMask is a vector
 			if rowMaskIsVec && !bytes.Equal(rowRoots[i], eds.RowRoot(i)) {
 				return fmt.Errorf("bad root input: row %d expected %v got %v", i, rowRoots[i], eds.RowRoot(i))
@@ -240,7 +240,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoo
 		}
 
 		// if there's no missing data in the this col
-		if !checkForNil(eds.Column(i)) {
+		if noMissingData(eds.Column(i)) {
 			// ensure that the roots are equal and that rowMask is a vector
 			if columnMaskIsVec && !bytes.Equal(columnRoots[i], eds.ColRoot(i)) {
 				return fmt.Errorf("bad root input: col %d expected %v got %v", i, columnRoots[i], eds.ColRoot(i))
@@ -271,13 +271,13 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoo
 	return nil
 }
 
-func checkForNil(input [][]byte) bool {
+func noMissingData(input [][]byte) bool {
 	for _, d := range input {
 		if d == nil {
-			return true
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 func vecIsTrue(vec mat.Vector) bool {
