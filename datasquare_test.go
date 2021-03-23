@@ -76,7 +76,7 @@ func TestLazyRootGeneration(t *testing.T) {
 	var rowRoots [][]byte
 	var colRoots [][]byte
 
-	for i := uint(0); i < 2; i++ {
+	for i := uint(0); i < square.width; i++ {
 		rowRoots = append(rowRoots, square.RowRoot(i))
 		colRoots = append(rowRoots, square.ColRoot(i))
 	}
