@@ -67,6 +67,28 @@ func TestRoots(t *testing.T) {
 	}
 }
 
+func TestLazyRootGeneration(t *testing.T) {
+	square, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
+	if err != nil {
+		panic(err)
+	}
+
+	var rowRoots [][]byte
+	var colRoots [][]byte
+
+	for i := uint(0); i < 2; i++ {
+		rowRoots = append(rowRoots, square.RowRoot(i))
+		colRoots = append(rowRoots, square.ColRoot(i))
+	}
+
+	square.computeRoots()
+
+	if !reflect.DeepEqual(square.rowRoots, rowRoots) && !reflect.DeepEqual(square.columnRoots, colRoots) {
+		t.Error("RowRoot or ColumnRoot did not produce identical roots to computeRoots")
+	}
+
+}
+
 func TestProofs(t *testing.T) {
 	result, err := newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}}, NewDefaultTree)
 	if err != nil {

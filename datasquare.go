@@ -141,17 +141,8 @@ func (ds *dataSquare) computeRoots() {
 	rowRoots := make([][]byte, ds.width)
 	columnRoots := make([][]byte, ds.width)
 	for i := uint(0); i < ds.width; i++ {
-		rowTree := ds.createTreeFn()
-		columnTree := ds.createTreeFn()
-		rowData := ds.Row(i)
-		columnData := ds.Column(i)
-		for j := uint(0); j < ds.width; j++ {
-			rowTree.Push(rowData[j])
-			columnTree.Push(columnData[j])
-		}
-
-		rowRoots[i] = rowTree.Root()
-		columnRoots[i] = columnTree.Root()
+		rowRoots[i] = ds.RowRoot(i)
+		columnRoots[i] = ds.ColRoot(i)
 	}
 
 	ds.rowRoots = rowRoots
@@ -167,6 +158,21 @@ func (ds *dataSquare) RowRoots() [][]byte {
 	return ds.rowRoots
 }
 
+// RowRoot calculates and returns the root of the selected row. Note: unlike the
+// RowRoots method, RowRoot uses the built-in cache when available.
+func (ds *dataSquare) RowRoot(x uint) []byte {
+	if ds.rowRoots != nil {
+		return ds.rowRoots[x]
+	}
+
+	tree := ds.createTreeFn()
+	for _, d := range ds.Row(x) {
+		tree.Push(d)
+	}
+
+	return tree.Root()
+}
+
 // ColumnRoots returns the Merkle roots of all the columns in the square.
 func (ds *dataSquare) ColumnRoots() [][]byte {
 	if ds.columnRoots == nil {
@@ -174,6 +180,21 @@ func (ds *dataSquare) ColumnRoots() [][]byte {
 	}
 
 	return ds.columnRoots
+}
+
+// ColRoot calculates and returns the root of the selected row. Note: unlike the
+// ColRoots method, ColRoot does not use the built in cache
+func (ds *dataSquare) ColRoot(y uint) []byte {
+	if ds.columnRoots != nil {
+		return ds.columnRoots[y]
+	}
+
+	tree := ds.createTreeFn()
+	for _, d := range ds.Column(y) {
+		tree.Push(d)
+	}
+
+	return tree.Root()
 }
 
 func (ds *dataSquare) computeRowProof(x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
