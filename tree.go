@@ -10,19 +10,26 @@ import (
 // TreeConstructorFn creates a fresh Tree instance to be used as the Merkle inside of rsmt2d.
 type TreeConstructorFn = func() Tree
 
+// Axis indicates whether a Column or Row is being used
 type Axis bool
 
 const (
+	// Row indicates the use of the x axis of a data square
 	Row Axis = true
+
+	// Col indicates the use of the y axis of a data square
 	Col Axis = false
 )
 
+// CellIndex contains all information needed to identify the cell that is being
+// pushed
 type CellIndex struct {
 	AxisIndex uint
 	CellIndex uint
 	Axis      Axis
 }
 
+// Tree wraps merkle tree implementations to work with rsmt2d
 type Tree interface {
 	Push(data []byte, idx CellIndex)
 	// TODO(ismail): is this general enough?
