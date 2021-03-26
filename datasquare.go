@@ -166,8 +166,8 @@ func (ds *dataSquare) RowRoot(x uint) []byte {
 	}
 
 	tree := ds.createTreeFn()
-	for _, d := range ds.Row(x) {
-		tree.Push(d)
+	for i, d := range ds.Row(x) {
+		tree.Push(d, CellIndex{Axis: Row, CellIndex: uint(i), AxisIndex: x})
 	}
 
 	return tree.Root()
@@ -190,8 +190,8 @@ func (ds *dataSquare) ColRoot(y uint) []byte {
 	}
 
 	tree := ds.createTreeFn()
-	for _, d := range ds.Column(y) {
-		tree.Push(d)
+	for i, d := range ds.Column(y) {
+		tree.Push(d, CellIndex{Axis: Col, CellIndex: uint(i), AxisIndex: y})
 	}
 
 	return tree.Root()
@@ -202,7 +202,7 @@ func (ds *dataSquare) computeRowProof(x uint, y uint) ([]byte, [][]byte, uint, u
 	data := ds.Row(x)
 
 	for i := uint(0); i < ds.width; i++ {
-		tree.Push(data[i])
+		tree.Push(data[i], CellIndex{Axis: Row, CellIndex: uint(i), AxisIndex: y})
 	}
 
 	merkleRoot, proof, proofIndex, numLeaves := tree.Prove(int(y))
@@ -214,7 +214,7 @@ func (ds *dataSquare) computeColumnProof(x uint, y uint) ([]byte, [][]byte, uint
 	data := ds.Column(y)
 
 	for i := uint(0); i < ds.width; i++ {
-		tree.Push(data[i])
+		tree.Push(data[i], CellIndex{Axis: Col, CellIndex: uint(i), AxisIndex: y})
 	}
 	// TODO(ismail): check for overflow when casting from uint -> int
 	merkleRoot, proof, proofIndex, numLeaves := tree.Prove(int(x))
