@@ -46,7 +46,7 @@ func NewDefaultTree() Tree {
 }
 
 func (d *DefaultTree) Push(data []byte, idx CellIndex) {
-	// ignore the idx, as this implementation doesn't need know
+	// ignore the idx, as this implementation doesn't need that info
 	d.leaves = append(d.leaves, data)
 }
 
