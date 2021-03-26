@@ -2,7 +2,6 @@ package rsmt2d
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 
 	"gonum.org/v1/gonum/mat"
@@ -170,11 +169,11 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 
 						// Check that rebuilt vector matches given merkle root
 						if mode == row {
-							if !bytes.Equal(eds.RowRoots()[i], rowRoots[i]) {
+							if !bytes.Equal(eds.RowRoot(i), rowRoots[i]) {
 								return &ByzantineRowError{i, edsBackup}
 							}
 						} else if mode == column {
-							if !bytes.Equal(eds.ColumnRoots()[i], columnRoots[i]) {
+							if !bytes.Equal(eds.ColRoot(i), columnRoots[i]) {
 								return &ByzantineColumnError{i, edsBackup}
 							}
 						}
@@ -184,12 +183,12 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 							if vectorMask.AtVec(int(j)) == 0 {
 								if mode == row {
 									adjMask := mask.ColView(int(j))
-									if vecNumTrue(adjMask) == adjMask.Len()-1 && !bytes.Equal(eds.ColumnRoots()[j], columnRoots[j]) {
+									if vecNumTrue(adjMask) == adjMask.Len()-1 && !bytes.Equal(eds.ColRoot(j), columnRoots[j]) {
 										return &ByzantineColumnError{j, edsBackup}
 									}
 								} else if mode == column {
 									adjMask := mask.RowView(int(j))
-									if vecNumTrue(adjMask) == adjMask.Len()-1 && !bytes.Equal(eds.RowRoots()[j], rowRoots[j]) {
+									if vecNumTrue(adjMask) == adjMask.Len()-1 && !bytes.Equal(eds.RowRoot(j), rowRoots[j]) {
 										return &ByzantineRowError{j, edsBackup}
 									}
 								}
@@ -229,11 +228,26 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoo
 	for i := uint(0); i < eds.width; i++ {
 		rowMask := mask.RowView(int(i))
 		columnMask := mask.ColView(int(i))
-		if (vecIsTrue(rowMask) && !bytes.Equal(rowRoots[i], eds.RowRoots()[i])) || (vecIsTrue(columnMask) && !bytes.Equal(columnRoots[i], eds.ColumnRoots()[i])) {
-			return errors.New("bad roots input")
+		rowMaskIsVec := vecIsTrue(rowMask)
+		columnMaskIsVec := vecIsTrue(columnMask)
+
+		// if there's no missing data in the this row
+		if noMissingData(eds.Row(i)) {
+			// ensure that the roots are equal and that rowMask is a vector
+			if rowMaskIsVec && !bytes.Equal(rowRoots[i], eds.RowRoot(i)) {
+				return fmt.Errorf("bad root input: row %d expected %v got %v", i, rowRoots[i], eds.RowRoot(i))
+			}
 		}
 
-		if vecIsTrue(rowMask) {
+		// if there's no missing data in the this col
+		if noMissingData(eds.Column(i)) {
+			// ensure that the roots are equal and that rowMask is a vector
+			if columnMaskIsVec && !bytes.Equal(columnRoots[i], eds.ColRoot(i)) {
+				return fmt.Errorf("bad root input: col %d expected %v got %v", i, columnRoots[i], eds.ColRoot(i))
+			}
+		}
+
+		if rowMaskIsVec {
 			shares, err = Encode(eds.rowSlice(i, 0, eds.originalDataWidth), eds.codec)
 			if err != nil {
 				return err
@@ -243,7 +257,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoo
 			}
 		}
 
-		if vecIsTrue(columnMask) {
+		if columnMaskIsVec {
 			shares, err = Encode(eds.columnSlice(0, i, eds.originalDataWidth), eds.codec)
 			if err != nil {
 				return err
@@ -255,6 +269,15 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoo
 	}
 
 	return nil
+}
+
+func noMissingData(input [][]byte) bool {
+	for _, d := range input {
+		if d == nil {
+			return false
+		}
+	}
+	return true
 }
 
 func vecIsTrue(vec mat.Vector) bool {

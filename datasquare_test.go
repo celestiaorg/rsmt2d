@@ -67,6 +67,51 @@ func TestRoots(t *testing.T) {
 	}
 }
 
+func TestLazyRootGeneration(t *testing.T) {
+	square, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
+	if err != nil {
+		panic(err)
+	}
+
+	var rowRoots [][]byte
+	var colRoots [][]byte
+
+	for i := uint(0); i < square.width; i++ {
+		rowRoots = append(rowRoots, square.RowRoot(i))
+		colRoots = append(rowRoots, square.ColRoot(i))
+	}
+
+	square.computeRoots()
+
+	if !reflect.DeepEqual(square.rowRoots, rowRoots) && !reflect.DeepEqual(square.columnRoots, colRoots) {
+		t.Error("RowRoot or ColumnRoot did not produce identical roots to computeRoots")
+	}
+}
+
+func TestRootAPI(t *testing.T) {
+	square, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
+	if err != nil {
+		panic(err)
+	}
+
+	for i := uint(0); i < square.width; i++ {
+		if !reflect.DeepEqual(square.RowRoots()[i], square.RowRoot(i)) {
+			t.Errorf(
+				"Row root API results in different roots, expected %v go %v",
+				square.RowRoots()[i],
+				square.RowRoot(i),
+			)
+		}
+		if !reflect.DeepEqual(square.ColumnRoots()[i], square.ColRoot(i)) {
+			t.Errorf(
+				"Column root API results in different roots, expected %v go %v",
+				square.ColumnRoots()[i],
+				square.ColRoot(i),
+			)
+		}
+	}
+}
+
 func TestProofs(t *testing.T) {
 	result, err := newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}}, NewDefaultTree)
 	if err != nil {
