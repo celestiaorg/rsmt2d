@@ -10,8 +10,15 @@ import (
 // TreeConstructorFn creates a fresh Tree instance to be used as the Merkle inside of rsmt2d.
 type TreeConstructorFn = func() Tree
 
+// SquareIndex contains all information needed to identify the cell that is being
+// pushed
+type SquareIndex struct {
+	Axis, Cell uint
+}
+
+// Tree wraps merkle tree implementations to work with rsmt2d
 type Tree interface {
-	Push(data []byte)
+	Push(data []byte, idx SquareIndex)
 	// TODO(ismail): is this general enough?
 	Prove(idx int) (merkleRoot []byte, proofSet [][]byte, proofIndex uint64, numLeaves uint64)
 	Root() []byte
@@ -32,7 +39,8 @@ func NewDefaultTree() Tree {
 	}
 }
 
-func (d *DefaultTree) Push(data []byte) {
+func (d *DefaultTree) Push(data []byte, _idx SquareIndex) {
+	// ignore the idx, as this implementation doesn't need that info
 	d.leaves = append(d.leaves, data)
 }
 
