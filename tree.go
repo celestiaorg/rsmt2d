@@ -40,7 +40,7 @@ func NewDefaultTree() Tree {
 	}
 }
 
-func (d *DefaultTree) Push(data []byte, idx CellIndex) {
+func (d *DefaultTree) Push(data []byte, _idx CellIndex) {
 	// ignore the idx, as this implementation doesn't need that info
 	d.leaves = append(d.leaves, data)
 }
