@@ -2,6 +2,7 @@ package rsmt2d
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 
 	"gonum.org/v1/gonum/mat"
@@ -11,6 +12,9 @@ const (
 	row    = 0
 	column = 1
 )
+
+// ErrUnrepairableDataSquare is thrown when there is insufficient chunks to repair the square.
+var ErrUnrepairableDataSquare = errors.New("failed to solve data square")
 
 // ErrByzantineRow is thrown when there is a repaired row does not match the expected row merkle root.
 type ErrByzantineRow struct {
@@ -28,14 +32,6 @@ type ErrByzantineColumn struct {
 
 func (e *ErrByzantineColumn) Error() string {
 	return fmt.Sprintf("byzantine column: %d", e.ColumnNumber)
-}
-
-// UnrepairableDataSquareError is thrown when there is insufficient chunks to repair the square.
-type UnrepairableDataSquareError struct {
-}
-
-func (e *UnrepairableDataSquareError) Error() string {
-	return "failed to solve data square"
 }
 
 // RepairExtendedDataSquare repairs an incomplete extended data square, against its expected row and column merkle roots.
@@ -61,7 +57,7 @@ func RepairExtendedDataSquare(
 	}
 
 	if chunkSize == 0 {
-		return nil, &UnrepairableDataSquareError{}
+		return nil, ErrUnrepairableDataSquare
 	}
 
 	fillerChunk := bytes.Repeat([]byte{0}, chunkSize)
@@ -210,7 +206,7 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 		if solved {
 			break
 		} else if !progressMade {
-			return &UnrepairableDataSquareError{}
+			return ErrUnrepairableDataSquare
 		}
 	}
 
