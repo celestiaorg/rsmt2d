@@ -69,8 +69,8 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		}
 		corrupted.setCell(0, 0, corruptChunk)
 		_, err = RepairExtendedDataSquare(corrupted.RowRoots(), corrupted.ColumnRoots(), corrupted.flattened(), codec, NewDefaultTree)
-		if err, ok = err.(*ByzantineRowError); !ok {
-			t.Errorf("did not return a ByzantineRowError for a bad row; got: %v", err)
+		if err, ok = err.(*ErrByzantineRow); !ok {
+			t.Errorf("did not return a ErrByzantineRow for a bad row; got: %v", err)
 		}
 
 		corrupted, err = original.deepCopy()
@@ -79,8 +79,8 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		}
 		corrupted.setCell(0, 3, corruptChunk)
 		_, err = RepairExtendedDataSquare(corrupted.RowRoots(), corrupted.ColumnRoots(), corrupted.flattened(), codec, NewDefaultTree)
-		if err, ok = err.(*ByzantineRowError); !ok {
-			t.Errorf("did not return a ByzantineRowError for a bad row; got %v", err)
+		if err, ok = err.(*ErrByzantineRow); !ok {
+			t.Errorf("did not return a ErrByzantineRow for a bad row; got %v", err)
 		}
 
 		corrupted, err = original.deepCopy()
@@ -91,8 +91,8 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		flattened = corrupted.flattened()
 		flattened[1], flattened[2], flattened[3] = nil, nil, nil
 		_, err = RepairExtendedDataSquare(corrupted.RowRoots(), corrupted.ColumnRoots(), flattened, codec, NewDefaultTree)
-		if err, ok = err.(*ByzantineColumnError); !ok {
-			t.Errorf("did not return a ByzantineColumnError for a bad column; got %v", err)
+		if err, ok = err.(*ErrByzantineColumn); !ok {
+			t.Errorf("did not return a ErrByzantineColumn for a bad column; got %v", err)
 		}
 
 		corrupted, err = original.deepCopy()
@@ -103,8 +103,8 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		flattened = corrupted.flattened()
 		flattened[1], flattened[2], flattened[3] = nil, nil, nil
 		_, err = RepairExtendedDataSquare(corrupted.RowRoots(), corrupted.ColumnRoots(), flattened, codec, NewDefaultTree)
-		if err, ok = err.(*ByzantineColumnError); !ok {
-			t.Errorf("did not return a ByzantineColumnError for a bad column; got %v", err)
+		if err, ok = err.(*ErrByzantineColumn); !ok {
+			t.Errorf("did not return a ErrByzantineColumn for a bad column; got %v", err)
 		}
 	}
 }
