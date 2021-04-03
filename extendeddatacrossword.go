@@ -2,6 +2,7 @@ package rsmt2d
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 
 	"gonum.org/v1/gonum/mat"
@@ -12,32 +13,25 @@ const (
 	column = 1
 )
 
-// ByzantineRowError is thrown when there is a repaired row does not match the expected row merkle root.
-type ByzantineRowError struct {
-	RowNumber      uint
-	LastGoodSquare ExtendedDataSquare
+// ErrUnrepairableDataSquare is thrown when there is insufficient chunks to repair the square.
+var ErrUnrepairableDataSquare = errors.New("failed to solve data square")
+
+// ErrByzantineRow is thrown when there is a repaired row does not match the expected row merkle root.
+type ErrByzantineRow struct {
+	RowNumber uint
 }
 
-func (e *ByzantineRowError) Error() string {
+func (e *ErrByzantineRow) Error() string {
 	return fmt.Sprintf("byzantine row: %d", e.RowNumber)
 }
 
-// ByzantineColumnError is thrown when there is a repaired column does not match the expected column merkle root.
-type ByzantineColumnError struct {
-	ColumnNumber   uint
-	LastGoodSquare ExtendedDataSquare
+// ErrByzantineColumn is thrown when there is a repaired column does not match the expected column merkle root.
+type ErrByzantineColumn struct {
+	ColumnNumber uint
 }
 
-func (e *ByzantineColumnError) Error() string {
+func (e *ErrByzantineColumn) Error() string {
 	return fmt.Sprintf("byzantine column: %d", e.ColumnNumber)
-}
-
-// UnrepairableDataSquareError is thrown when there is insufficient chunks to repair the square.
-type UnrepairableDataSquareError struct {
-}
-
-func (e *UnrepairableDataSquareError) Error() string {
-	return "failed to solve data square"
 }
 
 // RepairExtendedDataSquare repairs an incomplete extended data square, against its expected row and column merkle roots.
@@ -63,7 +57,7 @@ func RepairExtendedDataSquare(
 	}
 
 	if chunkSize == 0 {
-		return nil, &UnrepairableDataSquareError{}
+		return nil, ErrUnrepairableDataSquare
 	}
 
 	fillerChunk := bytes.Repeat([]byte{0}, chunkSize)
@@ -136,9 +130,6 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 					if err == nil { // repair successful
 						progressMade = true
 
-						// Make backup of square
-						edsBackup, _ := eds.deepCopy()
-
 						// Insert rebuilt shares into square
 						for p, s := range rebuiltShares {
 							if mode == row {
@@ -170,11 +161,11 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 						// Check that rebuilt vector matches given merkle root
 						if mode == row {
 							if !bytes.Equal(eds.RowRoot(i), rowRoots[i]) {
-								return &ByzantineRowError{i, edsBackup}
+								return &ErrByzantineRow{i}
 							}
 						} else if mode == column {
 							if !bytes.Equal(eds.ColRoot(i), columnRoots[i]) {
-								return &ByzantineColumnError{i, edsBackup}
+								return &ErrByzantineColumn{i}
 							}
 						}
 
@@ -184,12 +175,12 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 								if mode == row {
 									adjMask := mask.ColView(int(j))
 									if vecNumTrue(adjMask) == adjMask.Len()-1 && !bytes.Equal(eds.ColRoot(j), columnRoots[j]) {
-										return &ByzantineColumnError{j, edsBackup}
+										return &ErrByzantineColumn{j}
 									}
 								} else if mode == column {
 									adjMask := mask.RowView(int(j))
 									if vecNumTrue(adjMask) == adjMask.Len()-1 && !bytes.Equal(eds.RowRoot(j), rowRoots[j]) {
-										return &ByzantineRowError{j, edsBackup}
+										return &ErrByzantineRow{j}
 									}
 								}
 							}
@@ -215,7 +206,7 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 		if solved {
 			break
 		} else if !progressMade {
-			return &UnrepairableDataSquareError{}
+			return ErrUnrepairableDataSquare
 		}
 	}
 
@@ -253,7 +244,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoo
 				return err
 			}
 			if !bytes.Equal(flattenChunks(shares), flattenChunks(eds.rowSlice(i, eds.originalDataWidth, eds.originalDataWidth))) {
-				return &ByzantineRowError{i, *eds}
+				return &ErrByzantineRow{i}
 			}
 		}
 
@@ -263,7 +254,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoo
 				return err
 			}
 			if !bytes.Equal(flattenChunks(shares), flattenChunks(eds.columnSlice(eds.originalDataWidth, i, eds.originalDataWidth))) {
-				return &ByzantineColumnError{i, *eds}
+				return &ErrByzantineColumn{i}
 			}
 		}
 	}
