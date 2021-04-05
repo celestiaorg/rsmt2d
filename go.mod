@@ -1,17 +1,21 @@
 module github.com/lazyledger/rsmt2d
 
-go 1.14
+go 1.15
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	// only needed if built with go build -tags leopard
-	github.com/lazyledger/go-leopard v0.0.0-20200604113236-298f93361181
+	github.com/lazyledger/go-leopard v0.0.0-20200724211609-50ec4b3fab41
 	github.com/lazyledger/merkletree v0.0.0-20201214195110-6901c4c3c75f
-	github.com/spacemonkeygo/errors v0.0.0-20171212215202-9064522e9fd1 // indirect
-	github.com/stretchr/testify v1.5.1
-	github.com/vivint/infectious v0.0.0-20190108171102-2455b059135b
-	golang.org/x/net v0.0.0-20200520182314-0ba52f642ac2 // indirect
-	golang.org/x/sys v0.0.0-20200519105757-fe76b779f299 // indirect
-	gonum.org/v1/gonum v0.7.0
-	gopkg.in/yaml.v2 v2.3.0 // indirect
+	github.com/stretchr/testify v1.7.0
+	github.com/vivint/infectious v0.0.0-20200605153912-25a574ae18a3
+	gitlab.com/NebulousLabs/errors v0.0.0-20200929122200-06c536cf6975 // indirect
+	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2 // indirect
+	golang.org/x/exp v0.0.0-20210220032938-85be41e4509f // indirect
+	golang.org/x/sys v0.0.0-20210403161142-5e06dd20ab57 // indirect
+	gonum.org/v1/gonum v0.9.1
+	gonum.org/v1/netlib v0.0.0-20210302091547-ede94419cf37 // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
