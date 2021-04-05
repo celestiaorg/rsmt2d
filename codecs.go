@@ -12,8 +12,8 @@ type CodecType int
 const (
 	// RSGF8 represents Reed-Solomon codecType with an 8-bit Finite Galois Field (2^8)
 	RSGF8       CodecType = iota
-	LeopardFF8  CodecType = 1
-	LeopardFF16 CodecType = 2
+	LeopardFF8  CodecType = iota
+	LeopardFF16 CodecType = iota
 )
 
 func (c CodecType) String() string {
