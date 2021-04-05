@@ -18,11 +18,11 @@ const (
 
 func (c CodecType) String() string {
 	switch c {
-	case 0:
+	case RSGF8:
 		return "RSGF8"
-	case 1:
+	case LeopardFF8:
 		return "LeopardFF8"
-	case 2:
+	case LeopardFF16:
 		return "LeopardFF16"
 	default:
 		return "UNSUPPORTED CODEC TYPE"
