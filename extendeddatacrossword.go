@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	row    = iota
-	column = iota
+	row = iota
+	column
 )
 
 // ErrUnrepairableDataSquare is thrown when there is insufficient chunks to repair the square.
