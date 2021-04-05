@@ -7,10 +7,8 @@ type bitMatrix struct {
 	squareSize int
 }
 
-func newBitMatrix(squareSize, bits int) bitMatrix {
-	if squareSize*squareSize != bits {
-		panic(fmt.Sprintf("invalid arguments %v*%v != %v", squareSize, squareSize, bits))
-	}
+func newBitMatrix(squareSize int) bitMatrix {
+	bits := squareSize * squareSize
 	return bitMatrix{mask: make([]uint64, (bits+63)/64), squareSize: squareSize}
 }
 

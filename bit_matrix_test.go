@@ -40,7 +40,7 @@ func Test_bitMatrix_ColRangeIsOne(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bm := newBitMatrix(tt.initParams.squareSize, tt.initParams.bits)
+			bm := newBitMatrix(tt.initParams.squareSize)
 			for _, flatIdx := range tt.setBits {
 				bm.SetFlat(flatIdx)
 			}
@@ -91,7 +91,7 @@ func Test_bitMatrix_ColumnIsOne(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bm := newBitMatrix(tt.initParams.squareSize, tt.initParams.bits)
+			bm := newBitMatrix(tt.initParams.squareSize)
 			for _, flatIdx := range tt.setBits {
 				bm.SetFlat(flatIdx)
 			}
@@ -126,7 +126,7 @@ func Test_bitMatrix_Get(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bm := newBitMatrix(tt.initParams.squareSize, tt.initParams.bits)
+			bm := newBitMatrix(tt.initParams.squareSize)
 			for _, ind := range tt.setIndices {
 				bm.Set(ind.row, ind.col)
 			}
@@ -183,7 +183,7 @@ func Test_bitMatrix_NumOnesInCol(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bm := newBitMatrix(tt.initParams.squareSize, tt.initParams.bits)
+			bm := newBitMatrix(tt.initParams.squareSize)
 			for _, flatIdx := range tt.setBits {
 				bm.SetFlat(flatIdx)
 			}
@@ -233,7 +233,7 @@ func Test_bitMatrix_NumOnesInRow(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bm := newBitMatrix(tt.initParams.squareSize, tt.initParams.bits)
+			bm := newBitMatrix(tt.initParams.squareSize)
 			for _, flatIdx := range tt.setBits {
 				bm.SetFlat(flatIdx)
 			}
@@ -268,7 +268,7 @@ func Test_bitMatrix_RowIsOne(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bm := newBitMatrix(tt.initParams.squareSize, tt.initParams.bits)
+			bm := newBitMatrix(tt.initParams.squareSize)
 			for _, flatIdx := range tt.setBits {
 				bm.SetFlat(flatIdx)
 			}
@@ -315,7 +315,7 @@ func Test_bitMatrix_RowRangeIsOne(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bm := newBitMatrix(tt.initParams.squareSize, tt.initParams.bits)
+			bm := newBitMatrix(tt.initParams.squareSize)
 			for _, flatIdx := range tt.setBits {
 				bm.SetFlat(flatIdx)
 			}
