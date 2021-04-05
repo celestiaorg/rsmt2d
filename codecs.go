@@ -11,9 +11,9 @@ type CodecType int
 // Erasure codes enum:
 const (
 	// RSGF8 represents Reed-Solomon codecType with an 8-bit Finite Galois Field (2^8)
-	RSGF8       CodecType = iota
-	LeopardFF8  CodecType = iota
-	LeopardFF16 CodecType = iota
+	RSGF8 CodecType = iota
+	LeopardFF8
+	LeopardFF16
 )
 
 func (c CodecType) String() string {
