@@ -57,7 +57,7 @@ func generateRandData(count int) [][]byte {
 func BenchmarkDecoding(b *testing.B) {
 	// generate some fake data
 	for codecType := range codecs {
-		data := generateMissigData(128, codecType)
+		data := generateMissingData(128, codecType)
 		b.Run(
 			fmt.Sprintf("Decoding 128 shares using %s", codecType),
 			func(b *testing.B) {
@@ -74,7 +74,7 @@ func BenchmarkDecoding(b *testing.B) {
 	fmt.Println(benchmarkDivider)
 }
 
-func generateMissigData(count int, codecType CodecType) [][]byte {
+func generateMissingData(count int, codecType CodecType) [][]byte {
 	randData := generateRandData(count)
 	encoded, err := Encode(randData, codecType)
 	if err != nil {
