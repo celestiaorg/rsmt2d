@@ -1,4 +1,5 @@
 # rsmt2d
+
 Go implementation of two dimensional Reed-Solomon merkle tree data availability scheme.
 
 [![Build Status](https://travis-ci.org/lazyledger/rsmt2d.svg?branch=master)](https://travis-ci.org/lazyledger/rsmt2d)
