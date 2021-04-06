@@ -12,9 +12,9 @@ func newBitMatrix(squareSize int) bitMatrix {
 	return bitMatrix{mask: make([]uint64, (bits+63)/64), squareSize: squareSize}
 }
 
-// i = rowIndex*squareSize+colIdx
-func (bm bitMatrix) SetFlat(i int) {
-	bm.mask[i/64] |= uint64(1) << uint(i%64)
+// idx = rowIndex*squareSize+colIdx
+func (bm bitMatrix) SetFlat(idx int) {
+	bm.mask[idx/64] |= uint64(1) << uint(idx%64)
 }
 
 func (bm bitMatrix) Get(row, col int) bool {
@@ -49,8 +49,8 @@ func (bm bitMatrix) RowIsOne(r int) bool {
 
 func (bm bitMatrix) NumOnesInRow(r int) int {
 	var counter int
-	for i := 0; i < bm.squareSize; i++ {
-		if bm.Get(r, i) {
+	for c := 0; c < bm.squareSize; c++ {
+		if bm.Get(r, c) {
 			counter++
 		}
 	}
@@ -60,8 +60,8 @@ func (bm bitMatrix) NumOnesInRow(r int) int {
 
 func (bm bitMatrix) NumOnesInCol(c int) int {
 	var counter int
-	for i := 0; i < bm.squareSize; i++ {
-		if bm.Get(i, c) {
+	for r := 0; r < bm.squareSize; r++ {
+		if bm.Get(r, c) {
 			counter++
 		}
 	}

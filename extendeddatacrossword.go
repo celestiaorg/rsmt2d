@@ -87,7 +87,7 @@ func RepairExtendedDataSquare(
 func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][]byte, bitMask bitMatrix) error {
 	// Keep repeating until the square is solved
 	solved := false
-	for !solved {
+	for {
 		solved = true
 		progressMade := false
 
@@ -181,7 +181,9 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 			}
 		}
 
-		if !progressMade {
+		if solved {
+			break
+		} else if !progressMade {
 			return ErrUnrepairableDataSquare
 		}
 	}
