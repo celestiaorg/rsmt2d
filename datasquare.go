@@ -16,7 +16,7 @@ type dataSquare struct {
 
 func newDataSquare(data [][]byte, treeCreator TreeConstructorFn) (*dataSquare, error) {
 	width := int(math.Ceil(math.Sqrt(float64(len(data)))))
-	if int(math.Pow(float64(width), 2)) != len(data) {
+	if width*width != len(data) {
 		return nil, errors.New("number of chunks must be a square number")
 	}
 
