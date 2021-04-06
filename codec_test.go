@@ -27,7 +27,7 @@ func BenchmarkEncoding(b *testing.B) {
 	data := generateRandData(128)
 	for _codecType := range codecs {
 		b.Run(
-			fmt.Sprintf("Encoding 128 shares using %s\n", _codecType),
+			fmt.Sprintf("Encoding 128 shares using %s", _codecType),
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
 					encodedData, err := Encode(data, _codecType)
