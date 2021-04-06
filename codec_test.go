@@ -22,11 +22,12 @@ func TestCodec_String(t *testing.T) {
 }
 
 func BenchmarkEncoding(b *testing.B) {
+	fmt.Println(benchmarkDivider)
 	// generate some fake data
 	data := generateRandData(128)
 	for _codecType := range codecs {
 		b.Run(
-			fmt.Sprintf("Encoding 128 shares using %s", _codecType),
+			fmt.Sprintf("Encoding 128 shares using %s\n", _codecType),
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
 					encodedData, err := Encode(data, _codecType)
@@ -38,7 +39,6 @@ func BenchmarkEncoding(b *testing.B) {
 			},
 		)
 	}
-	fmt.Println(benchmarkDivider)
 }
 
 func generateRandData(count int) [][]byte {
@@ -55,6 +55,7 @@ func generateRandData(count int) [][]byte {
 }
 
 func BenchmarkDecoding(b *testing.B) {
+	fmt.Println(benchmarkDivider)
 	// generate some fake data
 	for codecType := range codecs {
 		data := generateMissingData(128, codecType)
@@ -71,7 +72,6 @@ func BenchmarkDecoding(b *testing.B) {
 			},
 		)
 	}
-	fmt.Println(benchmarkDivider)
 }
 
 func generateMissingData(count int, codecType CodecType) [][]byte {

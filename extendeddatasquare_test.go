@@ -53,6 +53,7 @@ func BenchmarkExtension(b *testing.B) {
 				},
 			)
 		}
+
 	}
 }
 
