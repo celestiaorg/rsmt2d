@@ -48,7 +48,6 @@ jobs:
             **/**.go
             go.mod
             go.sum
-        if: env.GIT_DIFF
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
