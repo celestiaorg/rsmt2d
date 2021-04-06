@@ -112,7 +112,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 	}
 }
 
-func BenchmarkRepairExtendedDataSquare(b *testing.B) {
+func BenchmarkRepair(b *testing.B) {
 	fmt.Println(benchmarkDivider)
 	// generate some fake data
 	data := generateRandData(128)
