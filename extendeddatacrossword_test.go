@@ -3,6 +3,7 @@ package rsmt2d
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -108,5 +109,25 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		if !errors.As(err, &byzColumn) {
 			t.Errorf("did not return a ErrByzantineColumn for a bad column; got %v", err)
 		}
+	}
+}
+
+func BenchmarkRepairExtendedDataSquare(b *testing.B) {
+	fmt.Println(benchmarkDivider)
+	// generate some fake data
+	data := generateRandData(128)
+	for _codecType := range codecs {
+		b.Run(
+			fmt.Sprintf("Encoding 128 shares using %s", _codecType),
+			func(b *testing.B) {
+				for n := 0; n < b.N; n++ {
+					encodedData, err := Encode(data, _codecType)
+					if err != nil {
+						b.Error(err)
+					}
+					encodedDataDump = encodedData
+				}
+			},
+		)
 	}
 }
