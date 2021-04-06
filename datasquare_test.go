@@ -151,7 +151,6 @@ func TestProofs(t *testing.T) {
 }
 
 func BenchmarkRoots(b *testing.B) {
-	fmt.Println(benchmarkDivider)
 	for i := 32; i < 257; i *= 2 {
 		square, err := newDataSquare(genRandDS(i), NewDefaultTree)
 		if err != nil {

@@ -113,7 +113,6 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 }
 
 func BenchmarkRepair(b *testing.B) {
-	fmt.Println(benchmarkDivider)
 	// generate some fake data
 	data := generateRandData(128)
 	for _codecType := range codecs {

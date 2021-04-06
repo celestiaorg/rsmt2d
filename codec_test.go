@@ -13,8 +13,6 @@ var (
 	decodedDataDump [][]byte
 )
 
-const benchmarkDivider = "-------------------------------"
-
 func TestCodec_String(t *testing.T) {
 	for codec := range codecs {
 		assert.NotEqual(t, "", codec.String())
@@ -22,7 +20,6 @@ func TestCodec_String(t *testing.T) {
 }
 
 func BenchmarkEncoding(b *testing.B) {
-	fmt.Println(benchmarkDivider)
 	// generate some fake data
 	data := generateRandData(128)
 	for _codecType := range codecs {
@@ -55,7 +52,6 @@ func generateRandData(count int) [][]byte {
 }
 
 func BenchmarkDecoding(b *testing.B) {
-	fmt.Println(benchmarkDivider)
 	// generate some fake data
 	for codecType := range codecs {
 		data := generateMissingData(128, codecType)
