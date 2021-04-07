@@ -138,7 +138,12 @@ func BenchmarkRepair(b *testing.B) {
 			fmt.Sprintf("Repairing %d*%d ODS using %s", bufferSize, bufferSize, _codecType),
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
-					_, err := RepairExtendedDataSquare(original.RowRoots(), original.ColumnRoots(), flattened, _codecType, NewDefaultTree)
+					_, err := RepairExtendedDataSquare(original.RowRoots(),
+						original.ColumnRoots(),
+						flattened,
+						_codecType,
+						NewDefaultTree,
+					)
 					if err != nil {
 						b.Error(err)
 					}
