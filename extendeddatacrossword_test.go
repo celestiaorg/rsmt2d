@@ -113,18 +113,35 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 }
 
 func BenchmarkRepair(b *testing.B) {
-	// generate some fake data
-	data := generateRandData(128)
 	for _codecType := range codecs {
+		bufferSize := 64
+		ones := bytes.Repeat([]byte{1}, bufferSize)
+		twos := bytes.Repeat([]byte{2}, bufferSize)
+		threes := bytes.Repeat([]byte{3}, bufferSize)
+		fours := bytes.Repeat([]byte{4}, bufferSize)
+
+		original, err := ComputeExtendedDataSquare([][]byte{
+			ones, twos,
+			threes, fours,
+		}, _codecType, NewDefaultTree)
+		if err != nil {
+			panic(err)
+		}
+
+		flattened := original.flattened()
+		flattened[0], flattened[2], flattened[3] = nil, nil, nil
+		flattened[4], flattened[5], flattened[6], flattened[7] = nil, nil, nil, nil
+		flattened[8], flattened[9], flattened[10] = nil, nil, nil
+		flattened[12], flattened[13] = nil, nil
+
 		b.Run(
-			fmt.Sprintf("Encoding 128 shares using %s", _codecType),
+			fmt.Sprintf("Repairing %d*%d ODS using %s", bufferSize, bufferSize, _codecType),
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
-					encodedData, err := Encode(data, _codecType)
+					_, err := RepairExtendedDataSquare(original.RowRoots(), original.ColumnRoots(), flattened, _codecType, NewDefaultTree)
 					if err != nil {
 						b.Error(err)
 					}
-					encodedDataDump = encodedData
 				}
 			},
 		)
