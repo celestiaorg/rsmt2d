@@ -3,6 +3,8 @@ package rsmt2d
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -107,6 +109,48 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		_, err = RepairExtendedDataSquare(corrupted.RowRoots(), corrupted.ColumnRoots(), flattened, codec, NewDefaultTree)
 		if !errors.As(err, &byzColumn) {
 			t.Errorf("did not return a ErrByzantineColumn for a bad column; got %v", err)
+		}
+	}
+}
+
+func BenchmarkRepair(b *testing.B) {
+	// For different ODS sizes
+	for i := 16; i <= 128; i *= 2 {
+		for _codecType := range codecs {
+			// Generate a new range original data square then extend it
+			square := genRandDS(i)
+			eds, err := ComputeExtendedDataSquare(square, _codecType, NewDefaultTree)
+			if err != nil {
+				b.Error(err)
+			}
+
+			flattened := eds.flattened()
+			// Randomly remove half the shares
+			for i := 0; i < i*i*2; {
+				ind := rand.Intn(i)
+				if len(flattened[ind]) == 0 {
+					continue
+				}
+				flattened[ind] = []byte{}
+				i++
+			}
+
+			b.Run(
+				fmt.Sprintf("Repairing %dx%d ODS using %s", i, i, _codecType),
+				func(b *testing.B) {
+					for n := 0; n < b.N; n++ {
+						_, err := RepairExtendedDataSquare(eds.RowRoots(),
+							eds.ColumnRoots(),
+							flattened,
+							_codecType,
+							NewDefaultTree,
+						)
+						if err != nil {
+							b.Error(err)
+						}
+					}
+				},
+			)
 		}
 	}
 }

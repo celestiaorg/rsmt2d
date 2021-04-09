@@ -7,3 +7,11 @@ Go implementation of two dimensional Reed-Solomon merkle tree data availability 
 [![GoDoc](https://godoc.org/github.com/lazyledger/rsmt2d?status.svg)](https://godoc.org/github.com/lazyledger/rsmt2d)
 
 Experimental software. Use at your own risk!
+
+## Usage
+
+Run benchmarks
+
+```sh
+go test -tags leopard -bench=.
+```

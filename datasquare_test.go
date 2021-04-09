@@ -164,6 +164,5 @@ func BenchmarkRoots(b *testing.B) {
 				}
 			},
 		)
-
 	}
 }

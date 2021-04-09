@@ -37,7 +37,6 @@ func BenchmarkExtension(b *testing.B) {
 		codecTypes = append(codecTypes, codec)
 	}
 	for i := 4; i < 129; i *= 2 {
-		fmt.Printf("%s Square Width: %d (shares) (extended = %d)\n", benchmarkDivider, i, i*2)
 		for _, _codecType := range codecTypes {
 			square := genRandDS(i)
 			b.Run(
@@ -53,6 +52,7 @@ func BenchmarkExtension(b *testing.B) {
 				},
 			)
 		}
+
 	}
 }
 
