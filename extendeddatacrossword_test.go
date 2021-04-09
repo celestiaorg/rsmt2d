@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -113,42 +114,43 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 }
 
 func BenchmarkRepair(b *testing.B) {
-	for _codecType := range codecs {
-		bufferSize := 64
-		ones := bytes.Repeat([]byte{1}, bufferSize)
-		twos := bytes.Repeat([]byte{2}, bufferSize)
-		threes := bytes.Repeat([]byte{3}, bufferSize)
-		fours := bytes.Repeat([]byte{4}, bufferSize)
+	// For different ODS sizes
+	for i := 16; i <= 64; i *= 2 {
+		for _codecType := range codecs {
+			// Generate a new range original data square then extend it
+			square := genRandDS(i)
+			eds, err := ComputeExtendedDataSquare(square, _codecType, NewDefaultTree)
+			if err != nil {
+				b.Error(err)
+			}
 
-		original, err := ComputeExtendedDataSquare([][]byte{
-			ones, twos,
-			threes, fours,
-		}, _codecType, NewDefaultTree)
-		if err != nil {
-			panic(err)
-		}
-
-		flattened := original.flattened()
-		flattened[0], flattened[2], flattened[3] = nil, nil, nil
-		flattened[4], flattened[5], flattened[6], flattened[7] = nil, nil, nil, nil
-		flattened[8], flattened[9], flattened[10] = nil, nil, nil
-		flattened[12], flattened[13] = nil, nil
-
-		b.Run(
-			fmt.Sprintf("Repairing %d*%d ODS using %s", bufferSize, bufferSize, _codecType),
-			func(b *testing.B) {
-				for n := 0; n < b.N; n++ {
-					_, err := RepairExtendedDataSquare(original.RowRoots(),
-						original.ColumnRoots(),
-						flattened,
-						_codecType,
-						NewDefaultTree,
-					)
-					if err != nil {
-						b.Error(err)
-					}
+			flattened := eds.flattened()
+			// Randomly remove half the shares
+			for i := 0; i < i*i*2; {
+				ind := rand.Intn(i)
+				if len(flattened[ind]) == 0 {
+					continue
 				}
-			},
-		)
+				flattened[ind] = []byte{}
+				i++
+			}
+
+			b.Run(
+				fmt.Sprintf("Repairing %dx%d ODS using %s", i, i, _codecType),
+				func(b *testing.B) {
+					for n := 0; n < b.N; n++ {
+						_, err := RepairExtendedDataSquare(eds.RowRoots(),
+							eds.ColumnRoots(),
+							flattened,
+							_codecType,
+							NewDefaultTree,
+						)
+						if err != nil {
+							b.Error(err)
+						}
+					}
+				},
+			)
+		}
 	}
 }
