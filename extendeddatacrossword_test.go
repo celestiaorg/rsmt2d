@@ -115,7 +115,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 
 func BenchmarkRepair(b *testing.B) {
 	// For different ODS sizes
-	for i := 16; i <= 64; i *= 2 {
+	for i := 16; i <= 128; i *= 2 {
 		for _codecType := range codecs {
 			// Generate a new range original data square then extend it
 			square := genRandDS(i)
