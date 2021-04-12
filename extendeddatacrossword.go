@@ -85,6 +85,7 @@ func RepairExtendedDataSquare(
 }
 
 func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][]byte, bitMask bitMatrix) error {
+	// TODO(john): re-add eds
 	// Keep repeating until the square is solved
 	solved := false
 	for {
