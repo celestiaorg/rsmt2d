@@ -13,5 +13,5 @@ Experimental software. Use at your own risk!
 Run benchmarks
 
 ```sh
-go test -tags leopard -bench=.
+go test -tags leopard -benchmem -bench=.
 ```
