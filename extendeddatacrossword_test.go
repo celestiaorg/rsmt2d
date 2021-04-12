@@ -128,10 +128,10 @@ func BenchmarkRepair(b *testing.B) {
 			// Randomly remove 3/4 of the shares
 			for j := 0; j < i*i*3; {
 				ind := rand.Intn(j + 1)
-				if len(flattened[ind]) == 0 {
+				if flattened[ind] == nil {
 					continue
 				}
-				flattened[ind] = []byte{}
+				flattened[ind] = nil
 				j++
 			}
 
