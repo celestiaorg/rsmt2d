@@ -125,21 +125,24 @@ func BenchmarkRepair(b *testing.B) {
 			}
 
 			flattened := eds.flattened()
-			// Randomly remove 3/4 of the shares
-			for i := 0; i < i*i*3; {
-				ind := rand.Intn(i)
-				if len(flattened[ind]) == 0 {
-					continue
+			// Randomly remove 1/2 of the shares of each row
+			for r := 0; r < i*2; r++ {
+				for c := 0; c < i; {
+					ind := rand.Intn(i + 1)
+					if flattened[r*i+ind] == nil {
+						continue
+					}
+					flattened[r*i+ind] = nil
+					c++
 				}
-				flattened[ind] = []byte{}
-				i++
 			}
 
 			b.Run(
 				fmt.Sprintf("Repairing %dx%d ODS using %s", i, i, _codecType),
 				func(b *testing.B) {
 					for n := 0; n < b.N; n++ {
-						_, err := RepairExtendedDataSquare(eds.RowRoots(),
+						_, err := RepairExtendedDataSquare(
+							eds.RowRoots(),
 							eds.ColumnRoots(),
 							flattened,
 							_codecType,
