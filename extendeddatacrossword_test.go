@@ -124,14 +124,15 @@ func BenchmarkRepair(b *testing.B) {
 				b.Error(err)
 			}
 
+			flattened := eds.flattened()
 			// Randomly remove 1/2 of the shares of each row
 			for r := 0; r < i*2; {
 				for c := 0; c < i; {
 					ind := rand.Intn(i + 1)
-					if eds.Cell(uint(r), uint(ind)) == nil {
+					if flattened[r*i+ind] == nil {
 						continue
 					}
-					eds.setCell(uint(r), uint(ind), nil)
+					flattened[r*i+ind] = nil
 					c++
 				}
 			}
@@ -142,7 +143,7 @@ func BenchmarkRepair(b *testing.B) {
 					for n := 0; n < b.N; n++ {
 						_, err := RepairExtendedDataSquare(eds.RowRoots(),
 							eds.ColumnRoots(),
-							eds.flattened(),
+							flattened,
 							_codecType,
 							NewDefaultTree,
 						)
