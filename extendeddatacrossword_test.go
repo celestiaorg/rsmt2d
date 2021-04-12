@@ -127,7 +127,7 @@ func BenchmarkRepair(b *testing.B) {
 			flattened := eds.flattened()
 			// Randomly remove 3/4 of the shares
 			for j := 0; j < i*i*3; {
-				ind := rand.Intn(j)
+				ind := rand.Intn(j + 1)
 				if len(flattened[ind]) == 0 {
 					continue
 				}
