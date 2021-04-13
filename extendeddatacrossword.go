@@ -215,34 +215,44 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 }
 
 func (eds *ExtendedDataSquare) verifyRoots(rowRoots [][]byte, columnRoots [][]byte, mode int, i uint) error {
-	if mode == row {
+	switch mode {
+	case row:
 		if !bytes.Equal(eds.RowRoot(i), rowRoots[i]) {
 			return &ErrByzantineRow{i}
 		}
-	} else if mode == column {
+	case column:
 		if !bytes.Equal(eds.ColRoot(i), columnRoots[i]) {
 			return &ErrByzantineColumn{i}
 		}
+	default:
+		panic(fmt.Sprintf("invalid mode %d", mode))
 	}
 	return nil
 }
 
 func (eds *ExtendedDataSquare) rebuildExtendedPart(mode int, rowOrColIdx uint) error {
 	var data [][]byte
-	if mode == row {
+	switch mode {
+	case row:
 		data = eds.rowSlice(rowOrColIdx, 0, eds.originalDataWidth)
-	} else if mode == column {
+	case column:
 		data = eds.columnSlice(0, rowOrColIdx, eds.originalDataWidth)
+
+	default:
+		panic(fmt.Sprintf("invalid mode %d", mode))
 	}
 	rebuiltExtendedShares, err := Encode(data, eds.codec)
 	if err != nil {
 		return err
 	}
 	for p, s := range rebuiltExtendedShares {
-		if mode == row {
+		switch mode {
+		case row:
 			eds.setCell(rowOrColIdx, eds.originalDataWidth+uint(p), s)
-		} else if mode == column {
+		case column:
 			eds.setCell(eds.originalDataWidth+uint(p), rowOrColIdx, s)
+		default:
+			panic(fmt.Sprintf("invalid mode %d", mode))
 		}
 	}
 
