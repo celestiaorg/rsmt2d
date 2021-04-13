@@ -98,12 +98,15 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 
 				var isIncomplete bool
 				var isExtendedPartIncomplete bool
-				if mode == row {
+				switch mode {
+				case row:
 					isIncomplete = !bitMask.RowIsOne(i)
 					isExtendedPartIncomplete = !bitMask.RowRangeIsOne(i, int(eds.originalDataWidth), int(eds.width))
-				} else if mode == column {
+				case column:
 					isIncomplete = !bitMask.ColumnIsOne(i)
 					isExtendedPartIncomplete = !bitMask.ColRangeIsOne(i, int(eds.originalDataWidth), int(eds.width))
+				default:
+					panic(fmt.Sprintf("invalid mode %d", mode))
 				}
 
 				if isIncomplete { // row/column incomplete
@@ -112,14 +115,17 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 					for j := 0; j < int(eds.width); j++ {
 						var vectorData [][]byte
 						var rowIdx, colIdx int
-						if mode == row {
+						switch mode {
+						case row:
 							rowIdx = i
 							colIdx = j
 							vectorData = eds.Row(uint(i))
-						} else if mode == column {
+						case column:
 							rowIdx = j
 							colIdx = i
 							vectorData = eds.Column(uint(i))
+						default:
+							panic(fmt.Sprintf("invalid mode %d", mode))
 						}
 						if bitMask.Get(rowIdx, colIdx) {
 							// As guaranteed by the bitMask, vectorData can't be nil here:
@@ -135,10 +141,13 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 						progressMade = true
 						// Insert rebuilt shares into square
 						for p, s := range rebuiltShares {
-							if mode == row {
+							switch mode {
+							case row:
 								eds.setCell(uint(i), uint(p), s)
-							} else if mode == column {
+							case column:
 								eds.setCell(uint(p), uint(i), s)
+							default:
+								panic(fmt.Sprintf("invalid mode %d", mode))
 							}
 						}
 						if isExtendedPartIncomplete {
@@ -156,26 +165,38 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 
 						// Check that newly completed orthogonal vectors match their new merkle roots
 						for j := 0; j < int(eds.width); j++ {
-							if mode == row && !bitMask.Get(i, j) {
-								if bitMask.ColumnIsOne(j) && !bytes.Equal(eds.ColRoot(uint(j)), columnRoots[j]) {
+							switch mode {
+							case row:
+								if !bitMask.Get(i, j) &&
+									bitMask.ColumnIsOne(j) &&
+									!bytes.Equal(eds.ColRoot(uint(j)), columnRoots[j]) {
 									return &ErrByzantineColumn{uint(j)}
 								}
-							} else if mode == column && !bitMask.Get(j, i) {
-								if bitMask.RowIsOne(j) && !bytes.Equal(eds.RowRoot(uint(j)), rowRoots[j]) {
+
+							case column:
+								if !bitMask.Get(j, i) &&
+									bitMask.RowIsOne(j) &&
+									!bytes.Equal(eds.RowRoot(uint(j)), rowRoots[j]) {
 									return &ErrByzantineRow{uint(j)}
 								}
+
+							default:
+								panic(fmt.Sprintf("invalid mode %d", mode))
 							}
 						}
 
 						// Set vector mask to true
-						if mode == row {
+						switch mode {
+						case row:
 							for j := 0; j < int(eds.width); j++ {
 								bitMask.Set(i, j)
 							}
-						} else if mode == column {
+						case column:
 							for j := 0; j < int(eds.width); j++ {
 								bitMask.Set(j, i)
 							}
+						default:
+							panic(fmt.Sprintf("invalid mode %d", mode))
 						}
 					}
 				}
