@@ -154,27 +154,30 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 					}
 
 					// Check that rebuilt shares matches appropriate root
-					root, err := eds.verifyAgainstRoots(rowRoots, columnRoots, mode, uint(i), rebuiltShares)
+					_, err = eds.verifyAgainstRoots(rowRoots, columnRoots, mode, uint(i), rebuiltShares)
 					if err != nil {
 						return err
 					}
 
 					// Check that newly completed orthogonal vectors match their new merkle roots
-					// TODO
 					for j := 0; j < int(eds.width); j++ {
 						switch mode {
 						case row:
 							if !bitMask.Get(i, j) &&
-								bitMask.ColumnIsOne(j) &&
-								!bytes.Equal(eds.ColRoot(uint(j)), columnRoots[j]) {
-								return &ErrByzantineColumn{uint(j)}
+								bitMask.ColumnIsOne(j) {
+								_, err := eds.verifyAgainstRoots(rowRoots, columnRoots, column, uint(j), rebuiltShares)
+								if err != nil {
+									return &ErrByzantineColumn{uint(j)}
+								}
 							}
 
 						case column:
 							if !bitMask.Get(j, i) &&
-								bitMask.RowIsOne(j) &&
-								!bytes.Equal(eds.RowRoot(uint(j)), rowRoots[j]) {
-								return &ErrByzantineRow{uint(j)}
+								bitMask.RowIsOne(j) {
+								_, err := eds.verifyAgainstRoots(rowRoots, columnRoots, row, uint(j), rebuiltShares)
+								if err != nil {
+									return &ErrByzantineRow{uint(j)}
+								}
 							}
 
 						default:
