@@ -230,13 +230,13 @@ func (eds *ExtendedDataSquare) verifyRoots(rowRoots [][]byte, columnRoots [][]by
 	return nil
 }
 
-func (eds *ExtendedDataSquare) rebuildExtendedPart(mode int, rowOrColIdx uint) error {
+func (eds *ExtendedDataSquare) rebuildExtendedPart(mode int, i uint) error {
 	var data [][]byte
 	switch mode {
 	case row:
-		data = eds.rowSlice(rowOrColIdx, 0, eds.originalDataWidth)
+		data = eds.rowSlice(i, 0, eds.originalDataWidth)
 	case column:
-		data = eds.columnSlice(0, rowOrColIdx, eds.originalDataWidth)
+		data = eds.columnSlice(0, i, eds.originalDataWidth)
 
 	default:
 		panic(fmt.Sprintf("invalid mode %d", mode))
@@ -248,9 +248,9 @@ func (eds *ExtendedDataSquare) rebuildExtendedPart(mode int, rowOrColIdx uint) e
 	for p, s := range rebuiltExtendedShares {
 		switch mode {
 		case row:
-			eds.setCell(rowOrColIdx, eds.originalDataWidth+uint(p), s)
+			eds.setCell(i, eds.originalDataWidth+uint(p), s)
 		case column:
-			eds.setCell(eds.originalDataWidth+uint(p), rowOrColIdx, s)
+			eds.setCell(eds.originalDataWidth+uint(p), i, s)
 		default:
 			panic(fmt.Sprintf("invalid mode %d", mode))
 		}
