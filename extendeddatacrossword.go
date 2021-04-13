@@ -144,10 +144,11 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 
 					if isExtendedPartIncomplete {
 						// If needed, rebuild the parity shares too.
-						rebuiltShares, err = Encode(rebuiltShares, eds.codec)
+						rebuiltExtendedShares, err := Encode(rebuiltShares, eds.codec)
 						if err != nil {
 							return err
 						}
+						rebuiltShares = append(rebuiltShares, rebuiltExtendedShares...)
 					} else {
 						// Otherwise copy them from the EDS.
 						rebuiltShares = append(rebuiltShares, shares[eds.width:]...)
