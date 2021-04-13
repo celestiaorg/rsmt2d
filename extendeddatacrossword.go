@@ -113,20 +113,20 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 					shares := make([][]byte, eds.width)
 					for j := 0; j < int(eds.width); j++ {
 						var vectorData [][]byte
-						var rowIdx, colIdx int
+						var r, c int
 						switch mode {
 						case row:
-							rowIdx = i
-							colIdx = j
+							r = i
+							c = j
 							vectorData = eds.Row(uint(i))
 						case column:
-							rowIdx = j
-							colIdx = i
+							r = j
+							c = i
 							vectorData = eds.Column(uint(i))
 						default:
 							panic(fmt.Sprintf("invalid mode %d", mode))
 						}
-						if bitMask.Get(rowIdx, colIdx) {
+						if bitMask.Get(r, c) {
 							// As guaranteed by the bitMask, vectorData can't be nil here:
 							shares[j] = vectorData[j]
 						}
