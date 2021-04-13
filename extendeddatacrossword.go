@@ -141,31 +141,26 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 					}
 
 					progressMade = true
-					// Insert rebuilt shares into square
-					for p, s := range rebuiltShares {
-						switch mode {
-						case row:
-							eds.setCell(uint(i), uint(p), s)
-						case column:
-							eds.setCell(uint(p), uint(i), s)
-						default:
-							panic(fmt.Sprintf("invalid mode %d", mode))
-						}
-					}
+
 					if isExtendedPartIncomplete {
-						err := eds.rebuildExtendedPart(mode, uint(i))
+						// If needed, rebuild the parity shares too.
+						rebuiltShares, err = Encode(rebuiltShares, eds.codec)
 						if err != nil {
 							return err
 						}
+					} else {
+						// Otherwise copy them from the EDS.
+						rebuiltShares = append(rebuiltShares, shares[eds.width:]...)
 					}
 
-					// Check that rebuilt vector matches given merkle root
-					err = eds.verifyRoots(rowRoots, columnRoots, mode, uint(i))
+					// Check that rebuilt shares matches appropriate root
+					root, err := eds.verifyAgainstRoots(rowRoots, columnRoots, mode, uint(i), rebuiltShares)
 					if err != nil {
 						return err
 					}
 
 					// Check that newly completed orthogonal vectors match their new merkle roots
+					// TODO
 					for j := 0; j < int(eds.width); j++ {
 						switch mode {
 						case row:
@@ -200,6 +195,18 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 					default:
 						panic(fmt.Sprintf("invalid mode %d", mode))
 					}
+
+					// Insert rebuilt shares into square.
+					for p, s := range rebuiltShares {
+						switch mode {
+						case row:
+							eds.setCell(uint(i), uint(p), s)
+						case column:
+							eds.setCell(uint(p), uint(i), s)
+						default:
+							panic(fmt.Sprintf("invalid mode %d", mode))
+						}
+					}
 				}
 			}
 		}
@@ -214,49 +221,27 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 	return nil
 }
 
-func (eds *ExtendedDataSquare) verifyRoots(rowRoots [][]byte, columnRoots [][]byte, mode int, i uint) error {
+func (eds *ExtendedDataSquare) verifyAgainstRoots(rowRoots [][]byte, columnRoots [][]byte, mode int, i uint, shares [][]byte) ([]byte, error) {
+	tree := eds.createTreeFn()
+	for cell, d := range shares {
+		tree.Push(d, SquareIndex{Cell: uint(cell), Axis: i})
+	}
+
+	root := tree.Root()
+
 	switch mode {
 	case row:
-		if !bytes.Equal(eds.RowRoot(i), rowRoots[i]) {
-			return &ErrByzantineRow{i}
+		if !bytes.Equal(root, rowRoots[i]) {
+			return nil, &ErrByzantineRow{i}
 		}
 	case column:
-		if !bytes.Equal(eds.ColRoot(i), columnRoots[i]) {
-			return &ErrByzantineColumn{i}
+		if !bytes.Equal(root, columnRoots[i]) {
+			return nil, &ErrByzantineColumn{i}
 		}
 	default:
 		panic(fmt.Sprintf("invalid mode %d", mode))
 	}
-	return nil
-}
-
-func (eds *ExtendedDataSquare) rebuildExtendedPart(mode int, i uint) error {
-	var data [][]byte
-	switch mode {
-	case row:
-		data = eds.rowSlice(i, 0, eds.originalDataWidth)
-	case column:
-		data = eds.columnSlice(0, i, eds.originalDataWidth)
-
-	default:
-		panic(fmt.Sprintf("invalid mode %d", mode))
-	}
-	rebuiltExtendedShares, err := Encode(data, eds.codec)
-	if err != nil {
-		return err
-	}
-	for p, s := range rebuiltExtendedShares {
-		switch mode {
-		case row:
-			eds.setCell(i, eds.originalDataWidth+uint(p), s)
-		case column:
-			eds.setCell(eds.originalDataWidth+uint(p), i, s)
-		default:
-			panic(fmt.Sprintf("invalid mode %d", mode))
-		}
-	}
-
-	return nil
+	return root, nil
 }
 
 func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoots [][]byte, bitMask bitMatrix) error {
