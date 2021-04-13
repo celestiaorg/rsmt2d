@@ -135,69 +135,71 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 
 					// Attempt rebuild
 					rebuiltShares, err := Decode(shares, eds.codec)
-					if err != nil { // repair unsuccessful
+					if err != nil {
+						// repair unsuccessful
 						solved = false
-					} else { // repair successful
-						progressMade = true
-						// Insert rebuilt shares into square
-						for p, s := range rebuiltShares {
-							switch mode {
-							case row:
-								eds.setCell(uint(i), uint(p), s)
-							case column:
-								eds.setCell(uint(p), uint(i), s)
-							default:
-								panic(fmt.Sprintf("invalid mode %d", mode))
-							}
-						}
-						if isExtendedPartIncomplete {
-							err := eds.rebuildExtendedPart(mode, uint(i))
-							if err != nil {
-								return err
-							}
-						}
+						continue
+					}
 
-						// Check that rebuilt vector matches given merkle root
-						err := eds.verifyRoots(rowRoots, columnRoots, mode, uint(i))
-						if err != nil {
-							return err
-						}
-
-						// Check that newly completed orthogonal vectors match their new merkle roots
-						for j := 0; j < int(eds.width); j++ {
-							switch mode {
-							case row:
-								if !bitMask.Get(i, j) &&
-									bitMask.ColumnIsOne(j) &&
-									!bytes.Equal(eds.ColRoot(uint(j)), columnRoots[j]) {
-									return &ErrByzantineColumn{uint(j)}
-								}
-
-							case column:
-								if !bitMask.Get(j, i) &&
-									bitMask.RowIsOne(j) &&
-									!bytes.Equal(eds.RowRoot(uint(j)), rowRoots[j]) {
-									return &ErrByzantineRow{uint(j)}
-								}
-
-							default:
-								panic(fmt.Sprintf("invalid mode %d", mode))
-							}
-						}
-
-						// Set vector mask to true
+					progressMade = true
+					// Insert rebuilt shares into square
+					for p, s := range rebuiltShares {
 						switch mode {
 						case row:
-							for j := 0; j < int(eds.width); j++ {
-								bitMask.Set(i, j)
-							}
+							eds.setCell(uint(i), uint(p), s)
 						case column:
-							for j := 0; j < int(eds.width); j++ {
-								bitMask.Set(j, i)
-							}
+							eds.setCell(uint(p), uint(i), s)
 						default:
 							panic(fmt.Sprintf("invalid mode %d", mode))
 						}
+					}
+					if isExtendedPartIncomplete {
+						err := eds.rebuildExtendedPart(mode, uint(i))
+						if err != nil {
+							return err
+						}
+					}
+
+					// Check that rebuilt vector matches given merkle root
+					err = eds.verifyRoots(rowRoots, columnRoots, mode, uint(i))
+					if err != nil {
+						return err
+					}
+
+					// Check that newly completed orthogonal vectors match their new merkle roots
+					for j := 0; j < int(eds.width); j++ {
+						switch mode {
+						case row:
+							if !bitMask.Get(i, j) &&
+								bitMask.ColumnIsOne(j) &&
+								!bytes.Equal(eds.ColRoot(uint(j)), columnRoots[j]) {
+								return &ErrByzantineColumn{uint(j)}
+							}
+
+						case column:
+							if !bitMask.Get(j, i) &&
+								bitMask.RowIsOne(j) &&
+								!bytes.Equal(eds.RowRoot(uint(j)), rowRoots[j]) {
+								return &ErrByzantineRow{uint(j)}
+							}
+
+						default:
+							panic(fmt.Sprintf("invalid mode %d", mode))
+						}
+					}
+
+					// Set vector mask to true
+					switch mode {
+					case row:
+						for j := 0; j < int(eds.width); j++ {
+							bitMask.Set(i, j)
+						}
+					case column:
+						for j := 0; j < int(eds.width); j++ {
+							bitMask.Set(j, i)
+						}
+					default:
+						panic(fmt.Sprintf("invalid mode %d", mode))
 					}
 				}
 			}
