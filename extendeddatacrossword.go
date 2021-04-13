@@ -151,7 +151,7 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 						rebuiltShares = append(rebuiltShares, rebuiltExtendedShares...)
 					} else {
 						// Otherwise copy them from the EDS.
-						rebuiltShares = append(rebuiltShares, shares[eds.width:]...)
+						rebuiltShares = append(rebuiltShares, shares[eds.originalDataWidth:]...)
 					}
 
 					// Check that rebuilt shares matches appropriate root
