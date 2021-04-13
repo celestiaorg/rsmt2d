@@ -249,8 +249,6 @@ func (eds *ExtendedDataSquare) verifyAgainstRoots(rowRoots [][]byte, columnRoots
 }
 
 func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoots [][]byte, bitMask bitMatrix) error {
-	var shares [][]byte
-	var err error
 	for i := uint(0); i < eds.width; i++ {
 		rowIsComplete := bitMask.RowIsOne(int(i))
 		colIsComplete := bitMask.ColumnIsOne(int(i))
