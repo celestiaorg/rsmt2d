@@ -95,7 +95,6 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 		// Loop through every row and column, attempt to rebuild each row or column if incomplete
 		for i := 0; i < int(eds.width); i++ {
 			for mode := range []int{row, column} {
-
 				var isIncomplete bool
 				var isExtendedPartIncomplete bool
 				switch mode {
