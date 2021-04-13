@@ -272,21 +272,21 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoo
 		}
 
 		if rowIsComplete {
-			shares, err = Encode(eds.rowSlice(i, 0, eds.originalDataWidth), eds.codec)
+			parityShares, err := Encode(eds.rowSlice(i, 0, eds.originalDataWidth), eds.codec)
 			if err != nil {
 				return err
 			}
-			if !bytes.Equal(flattenChunks(shares), flattenChunks(eds.rowSlice(i, eds.originalDataWidth, eds.originalDataWidth))) {
+			if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.rowSlice(i, eds.originalDataWidth, eds.originalDataWidth))) {
 				return &ErrByzantineRow{i}
 			}
 		}
 
 		if colIsComplete {
-			shares, err = Encode(eds.columnSlice(0, i, eds.originalDataWidth), eds.codec)
+			parityShares, err := Encode(eds.columnSlice(0, i, eds.originalDataWidth), eds.codec)
 			if err != nil {
 				return err
 			}
-			if !bytes.Equal(flattenChunks(shares), flattenChunks(eds.columnSlice(eds.originalDataWidth, i, eds.originalDataWidth))) {
+			if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.columnSlice(eds.originalDataWidth, i, eds.originalDataWidth))) {
 				return &ErrByzantineColumn{i}
 			}
 		}
