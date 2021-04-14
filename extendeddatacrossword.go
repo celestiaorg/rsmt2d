@@ -18,6 +18,8 @@ var ErrUnrepairableDataSquare = errors.New("failed to solve data square")
 // ErrByzantineRow is thrown when there is a repaired row does not match the expected row merkle root.
 type ErrByzantineRow struct {
 	RowNumber uint
+	Root      []byte
+	Shares    [][]byte
 }
 
 func (e *ErrByzantineRow) Error() string {
@@ -27,6 +29,8 @@ func (e *ErrByzantineRow) Error() string {
 // ErrByzantineColumn is thrown when there is a repaired column does not match the expected column merkle root.
 type ErrByzantineColumn struct {
 	ColumnNumber uint
+	Root         []byte
+	Shares       [][]byte
 }
 
 func (e *ErrByzantineColumn) Error() string {
@@ -175,7 +179,7 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 								bitMask.ColumnIsOne(j) {
 								err := eds.verifyAgainstRoots(rowRoots, columnRoots, column, uint(j), rebuiltShares)
 								if err != nil {
-									return &ErrByzantineColumn{uint(j)}
+									return err
 								}
 							}
 
@@ -184,7 +188,7 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 								bitMask.RowIsOne(j) {
 								err := eds.verifyAgainstRoots(rowRoots, columnRoots, row, uint(j), rebuiltShares)
 								if err != nil {
-									return &ErrByzantineRow{uint(j)}
+									return err
 								}
 							}
 
@@ -243,11 +247,11 @@ func (eds *ExtendedDataSquare) verifyAgainstRoots(rowRoots [][]byte, columnRoots
 	switch mode {
 	case row:
 		if !bytes.Equal(root, rowRoots[i]) {
-			return &ErrByzantineRow{i}
+			return &ErrByzantineRow{i, root, shares}
 		}
 	case column:
 		if !bytes.Equal(root, columnRoots[i]) {
-			return &ErrByzantineColumn{i}
+			return &ErrByzantineColumn{i, root, shares}
 		}
 	default:
 		panic(fmt.Sprintf("invalid mode %d", mode))
@@ -282,7 +286,13 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoo
 				return err
 			}
 			if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.rowSlice(i, eds.originalDataWidth, eds.originalDataWidth))) {
-				return &ErrByzantineRow{i}
+				tree := eds.createTreeFn()
+				for cell, d := range parityShares {
+					tree.Push(d, SquareIndex{Cell: uint(cell), Axis: i})
+				}
+				root := tree.Root()
+
+				return &ErrByzantineRow{i, root, parityShares}
 			}
 		}
 
@@ -292,7 +302,13 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoo
 				return err
 			}
 			if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.columnSlice(eds.originalDataWidth, i, eds.originalDataWidth))) {
-				return &ErrByzantineColumn{i}
+				tree := eds.createTreeFn()
+				for cell, d := range parityShares {
+					tree.Push(d, SquareIndex{Cell: uint(cell), Axis: i})
+				}
+				root := tree.Root()
+
+				return &ErrByzantineColumn{i, root, parityShares}
 			}
 		}
 	}
