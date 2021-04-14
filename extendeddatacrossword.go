@@ -237,12 +237,7 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 }
 
 func (eds *ExtendedDataSquare) verifyAgainstRoots(rowRoots [][]byte, columnRoots [][]byte, mode int, i uint, shares [][]byte) error {
-	tree := eds.createTreeFn()
-	for cell, d := range shares {
-		tree.Push(d, SquareIndex{Cell: uint(cell), Axis: i})
-	}
-
-	root := tree.Root()
+	root := eds.computeSharesRoot(shares, i)
 
 	switch mode {
 	case row:
@@ -286,12 +281,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoo
 				return err
 			}
 			if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.rowSlice(i, eds.originalDataWidth, eds.originalDataWidth))) {
-				tree := eds.createTreeFn()
-				for cell, d := range parityShares {
-					tree.Push(d, SquareIndex{Cell: uint(cell), Axis: i})
-				}
-				root := tree.Root()
-
+				root := eds.computeSharesRoot(parityShares, i)
 				return &ErrByzantineRow{i, root, parityShares}
 			}
 		}
@@ -302,12 +292,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoo
 				return err
 			}
 			if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.columnSlice(eds.originalDataWidth, i, eds.originalDataWidth))) {
-				tree := eds.createTreeFn()
-				for cell, d := range parityShares {
-					tree.Push(d, SquareIndex{Cell: uint(cell), Axis: i})
-				}
-				root := tree.Root()
-
+				root := eds.computeSharesRoot(parityShares, i)
 				return &ErrByzantineColumn{i, root, parityShares}
 			}
 		}
@@ -323,4 +308,12 @@ func noMissingData(input [][]byte) bool {
 		}
 	}
 	return true
+}
+
+func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, i uint) []byte {
+	tree := eds.createTreeFn()
+	for cell, d := range shares {
+		tree.Push(d, SquareIndex{Cell: uint(cell), Axis: i})
+	}
+	return tree.Root()
 }
