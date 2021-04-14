@@ -162,7 +162,7 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 					}
 
 					// Check that rebuilt shares matches appropriate root
-					_, err = eds.verifyAgainstRoots(rowRoots, columnRoots, mode, uint(i), rebuiltShares)
+					err = eds.verifyAgainstRoots(rowRoots, columnRoots, mode, uint(i), rebuiltShares)
 					if err != nil {
 						return err
 					}
@@ -173,7 +173,7 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 						case row:
 							if !bitMask.Get(i, j) &&
 								bitMask.ColumnIsOne(j) {
-								_, err := eds.verifyAgainstRoots(rowRoots, columnRoots, column, uint(j), rebuiltShares)
+								err := eds.verifyAgainstRoots(rowRoots, columnRoots, column, uint(j), rebuiltShares)
 								if err != nil {
 									return &ErrByzantineColumn{uint(j)}
 								}
@@ -182,7 +182,7 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 						case column:
 							if !bitMask.Get(j, i) &&
 								bitMask.RowIsOne(j) {
-								_, err := eds.verifyAgainstRoots(rowRoots, columnRoots, row, uint(j), rebuiltShares)
+								err := eds.verifyAgainstRoots(rowRoots, columnRoots, row, uint(j), rebuiltShares)
 								if err != nil {
 									return &ErrByzantineRow{uint(j)}
 								}
@@ -232,7 +232,7 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 	return nil
 }
 
-func (eds *ExtendedDataSquare) verifyAgainstRoots(rowRoots [][]byte, columnRoots [][]byte, mode int, i uint, shares [][]byte) ([]byte, error) {
+func (eds *ExtendedDataSquare) verifyAgainstRoots(rowRoots [][]byte, columnRoots [][]byte, mode int, i uint, shares [][]byte) error {
 	tree := eds.createTreeFn()
 	for cell, d := range shares {
 		tree.Push(d, SquareIndex{Cell: uint(cell), Axis: i})
@@ -243,16 +243,16 @@ func (eds *ExtendedDataSquare) verifyAgainstRoots(rowRoots [][]byte, columnRoots
 	switch mode {
 	case row:
 		if !bytes.Equal(root, rowRoots[i]) {
-			return nil, &ErrByzantineRow{i}
+			return &ErrByzantineRow{i}
 		}
 	case column:
 		if !bytes.Equal(root, columnRoots[i]) {
-			return nil, &ErrByzantineColumn{i}
+			return &ErrByzantineColumn{i}
 		}
 	default:
 		panic(fmt.Sprintf("invalid mode %d", mode))
 	}
-	return root, nil
+	return nil
 }
 
 func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoots [][]byte, bitMask bitMatrix) error {
