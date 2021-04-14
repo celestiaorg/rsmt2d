@@ -37,8 +37,20 @@ func (e *ErrByzantineColumn) Error() string {
 	return fmt.Sprintf("byzantine column: %d", e.ColumnNumber)
 }
 
-// RepairExtendedDataSquare repairs an incomplete extended data square, against its expected row and column merkle roots.
+// RepairExtendedDataSquare attempts to repair an incomplete extended data
+// square (EDS), comparing repaired rows and columns against expected Merkle
+// roots.
+//
+// Input
+//
 // Missing data chunks should be represented as nil.
+//
+// Output
+//
+// The EDS is modified in-place. If repairing is successful, the EDS will be
+// complete. If repairing is unsuccessful, the EDS will be the most-repaired
+// prior to the Byzantine row or column being repaired, and the repaired
+// Byzantine row or column is returned in the error.
 func RepairExtendedDataSquare(
 	rowRoots [][]byte,
 	columnRoots [][]byte,
