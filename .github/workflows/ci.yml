@@ -54,7 +54,7 @@ jobs:
           go-version: 1.15
       - name: test & coverage report creation
         run: |
-          GOARCH=${{ matrix.goarch }} go test -mod=readonly -timeout 8m -race -coverprofile=coverage.txt -covermode=atomic
+          GOARCH=${{ matrix.goarch }} go test -tags leopard -mod=readonly -timeout 8m -race -coverprofile=coverage.txt -covermode=atomic
         if: env.GIT_DIFF
       - uses: codecov/codecov-action@v1.0.15
         with:
