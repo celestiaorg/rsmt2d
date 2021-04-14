@@ -15,22 +15,22 @@ const (
 // ErrUnrepairableDataSquare is thrown when there is insufficient chunks to repair the square.
 var ErrUnrepairableDataSquare = errors.New("failed to solve data square")
 
-// ErrByzantineRow is thrown when there is a repaired row does not match the expected row merkle root.
+// ErrByzantineRow is thrown when there is a repaired row does not match the expected row Merkle root.
 type ErrByzantineRow struct {
-	RowNumber uint
-	Root      []byte
-	Shares    [][]byte
+	RowNumber uint     // Row index
+	Root      []byte   // Merkle root of repaired row
+	Shares    [][]byte // Repaired row shares
 }
 
 func (e *ErrByzantineRow) Error() string {
 	return fmt.Sprintf("byzantine row: %d", e.RowNumber)
 }
 
-// ErrByzantineColumn is thrown when there is a repaired column does not match the expected column merkle root.
+// ErrByzantineColumn is thrown when there is a repaired column does not match the expected column Merkle root.
 type ErrByzantineColumn struct {
-	ColumnNumber uint
-	Root         []byte
-	Shares       [][]byte
+	ColumnNumber uint     // Column index
+	Root         []byte   // Merkle root of repaired column
+	Shares       [][]byte // Repaired column shares
 }
 
 func (e *ErrByzantineColumn) Error() string {
