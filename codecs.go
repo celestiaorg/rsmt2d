@@ -30,12 +30,12 @@ func NewLeoRSFF16Codec() Codec {
 	if codec, has := codecs[LeopardFF16]; has {
 		return codec
 	}
-	panic("cannot use codec LeopardFF16 without 'leopard' build tag")
+	panic("cannot use codec LeopardFF16 without the 'leopard' build tag")
 }
 
 func NewLeoRSFF8Codec() Codec {
 	if codec, has := codecs[LeopardFF8]; has {
 		return codec
 	}
-	panic("cannot use codec LeopardFF8 without 'leopard' build tag")
+	panic("cannot use codec LeopardFF8 without the 'leopard' build tag")
 }
