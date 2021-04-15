@@ -54,7 +54,7 @@ func RepairExtendedDataSquare(
 	rowRoots [][]byte,
 	columnRoots [][]byte,
 	data [][]byte,
-	codec CodecType,
+	codec Codec,
 	treeCreatorFn TreeConstructorFn,
 ) (*ExtendedDataSquare, error) {
 	width := int(math.Ceil(math.Sqrt(float64(len(data)))))
@@ -86,12 +86,12 @@ func RepairExtendedDataSquare(
 		return nil, err
 	}
 
-	err = eds.prerepairSanityCheck(rowRoots, columnRoots, bitMat)
+	err = eds.prerepairSanityCheck(rowRoots, columnRoots, bitMat, codec)
 	if err != nil {
 		return nil, err
 	}
 
-	err = eds.solveCrossword(rowRoots, columnRoots, bitMat)
+	err = eds.solveCrossword(rowRoots, columnRoots, bitMat, codec)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func RepairExtendedDataSquare(
 	return eds, err
 }
 
-func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][]byte, bitMask bitMatrix) error {
+func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][]byte, bitMask bitMatrix, codec Codec) error {
 	// Keep repeating until the square is solved
 	solved := false
 	for {
@@ -147,7 +147,7 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 					}
 
 					// Attempt rebuild
-					rebuiltShares, err := Decode(shares, eds.codec)
+					rebuiltShares, err := codec.Decode(shares)
 					if err != nil {
 						// repair unsuccessful
 						solved = false
@@ -158,7 +158,7 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 
 					if isExtendedPartIncomplete {
 						// If needed, rebuild the parity shares too.
-						rebuiltExtendedShares, err := Encode(rebuiltShares[0:eds.originalDataWidth], eds.codec)
+						rebuiltExtendedShares, err := codec.Encode(rebuiltShares[0:eds.originalDataWidth])
 						if err != nil {
 							return err
 						}
@@ -275,7 +275,7 @@ func (eds *ExtendedDataSquare) verifyAgainstRoots(rowRoots [][]byte, columnRoots
 	return nil
 }
 
-func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoots [][]byte, bitMask bitMatrix) error {
+func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoots [][]byte, bitMask bitMatrix, codec Codec) error {
 	for i := uint(0); i < eds.width; i++ {
 		rowIsComplete := bitMask.RowIsOne(int(i))
 		colIsComplete := bitMask.ColumnIsOne(int(i))
@@ -297,7 +297,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoo
 		}
 
 		if rowIsComplete {
-			parityShares, err := Encode(eds.rowSlice(i, 0, eds.originalDataWidth), eds.codec)
+			parityShares, err := codec.Encode(eds.rowSlice(i, 0, eds.originalDataWidth))
 			if err != nil {
 				return err
 			}
@@ -307,7 +307,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoo
 		}
 
 		if colIsComplete {
-			parityShares, err := Encode(eds.columnSlice(0, i, eds.originalDataWidth), eds.codec)
+			parityShares, err := codec.Encode(eds.columnSlice(0, i, eds.originalDataWidth))
 			if err != nil {
 				return err
 			}

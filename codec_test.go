@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"math/rand"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -13,21 +11,15 @@ var (
 	decodedDataDump [][]byte
 )
 
-func TestCodec_String(t *testing.T) {
-	for codec := range codecs {
-		assert.NotEqual(t, "", codec.String())
-	}
-}
-
 func BenchmarkEncoding(b *testing.B) {
 	// generate some fake data
 	data := generateRandData(128)
-	for _codecType := range codecs {
+	for codecName, codec := range codecs {
 		b.Run(
-			fmt.Sprintf("Encoding 128 shares using %s", _codecType),
+			fmt.Sprintf("Encoding 128 shares using %s", codecName),
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
-					encodedData, err := Encode(data, _codecType)
+					encodedData, err := codec.Encode(data)
 					if err != nil {
 						b.Error(err)
 					}
@@ -53,13 +45,13 @@ func generateRandData(count int) [][]byte {
 
 func BenchmarkDecoding(b *testing.B) {
 	// generate some fake data
-	for codecType := range codecs {
-		data := generateMissingData(128, codecType)
+	for codecName, codec := range codecs {
+		data := generateMissingData(128, codec)
 		b.Run(
-			fmt.Sprintf("Decoding 128 shares using %s", codecType),
+			fmt.Sprintf("Decoding 128 shares using %s", codecName),
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
-					encodedData, err := Decode(data, codecType)
+					encodedData, err := codec.Decode(data)
 					if err != nil {
 						b.Error(err)
 					}
@@ -70,9 +62,9 @@ func BenchmarkDecoding(b *testing.B) {
 	}
 }
 
-func generateMissingData(count int, codecType CodecType) [][]byte {
+func generateMissingData(count int, codec Codec) [][]byte {
 	randData := generateRandData(count)
-	encoded, err := Encode(randData, codecType)
+	encoded, err := codec.Encode(randData)
 	if err != nil {
 		panic(err)
 	}

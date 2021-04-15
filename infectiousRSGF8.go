@@ -7,18 +7,20 @@ import (
 var _ Codec = &rsGF8Codec{}
 
 func init() {
-	registerCodec(RSGF8, newRSGF8Codec())
+	registerCodec("RSGF8", NewRSGF8Codec())
 }
 
 type rsGF8Codec struct {
 	infectiousCache map[int]*infectious.FEC
 }
 
-func newRSGF8Codec() *rsGF8Codec {
+// NewRSGF8Codec issues a new cached RSGF8Codec
+func NewRSGF8Codec() *rsGF8Codec {
 	return &rsGF8Codec{make(map[int]*infectious.FEC)}
 }
 
-func (c *rsGF8Codec) encode(data [][]byte) ([][]byte, error) {
+// Encode uses uses the infectous RSGF8 codec to encode the provided data
+func (c *rsGF8Codec) Encode(data [][]byte) ([][]byte, error) {
 	var fec *infectious.FEC
 	var err error
 	if value, ok := c.infectiousCache[len(data)]; ok {
@@ -46,7 +48,9 @@ func (c *rsGF8Codec) encode(data [][]byte) ([][]byte, error) {
 
 	return shares, err
 }
-func (c *rsGF8Codec) decode(data [][]byte) ([][]byte, error) {
+
+// Decode uses uses the infectous RSGF8 codec to decode the provided data
+func (c *rsGF8Codec) Decode(data [][]byte) ([][]byte, error) {
 	var fec *infectious.FEC
 	var err error
 	if value, ok := c.infectiousCache[len(data)/2]; ok {
@@ -74,10 +78,6 @@ func (c *rsGF8Codec) decode(data [][]byte) ([][]byte, error) {
 	err = fec.Rebuild(shares, rebuiltSharesOutput)
 
 	return rebuiltShares, err
-}
-
-func (c *rsGF8Codec) codecType() CodecType {
-	return RSGF8
 }
 
 // maxChunks returns the max. number of chunks each code supports in a 2D square.

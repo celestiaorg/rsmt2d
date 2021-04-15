@@ -20,7 +20,6 @@ type PseudoFraudProof struct {
 
 func TestRepairExtendedDataSquare(t *testing.T) {
 	for _, codec := range codecs {
-		codec := codec.codecType()
 
 		bufferSize := 64
 		ones := bytes.Repeat([]byte{1}, bufferSize)
@@ -62,7 +61,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 			t.Errorf("did not return an error on trying to repair an unrepairable square")
 		}
 		var corrupted ExtendedDataSquare
-		corrupted, err = original.deepCopy()
+		corrupted, err = original.deepCopy(codec)
 		if err != nil {
 			t.Fatalf("unexpected err while copying original data: %v, codec: :%v", err, codec)
 		}
@@ -73,7 +72,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 			t.Errorf("did not return an error on trying to repair a square with bad roots")
 		}
 
-		corrupted, err = original.deepCopy()
+		corrupted, err = original.deepCopy(codec)
 		if err != nil {
 			t.Fatalf("unexpected err while copying original data: %v, codec: :%v", err, codec)
 		}
@@ -88,14 +87,14 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		fraudProof := PseudoFraudProof{row, byzRow.RowNumber, byzRow.Shares}
 		// Verify the fraud proof
 		// TODO in a real fraud proof, also verify Merkle proof for each non-nil share.
-		rebuiltShares, err := Decode(fraudProof.Shares, codec)
+		rebuiltShares, err := codec.Decode(fraudProof.Shares)
 		if err != nil {
 			t.Errorf("could not decode fraud proof shares; got: %v", err)
 		}
 		root := corrupted.computeSharesRoot(rebuiltShares, fraudProof.Index)
 		if bytes.Equal(root, corrupted.RowRoot(fraudProof.Index)) {
 			// If the roots match, then the fraud proof should be for invalid erasure coding.
-			parityShares, err := Encode(rebuiltShares[0:corrupted.originalDataWidth], codec)
+			parityShares, err := codec.Encode(rebuiltShares[0:corrupted.originalDataWidth])
 			if err != nil {
 				t.Errorf("could not encode fraud proof shares; %v", fraudProof)
 			}
@@ -105,7 +104,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 			}
 		}
 
-		corrupted, err = original.deepCopy()
+		corrupted, err = original.deepCopy(codec)
 		if err != nil {
 			t.Fatalf("unexpected err while copying original data: %v, codec: :%v", err, codec)
 		}
@@ -115,7 +114,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 			t.Errorf("did not return a ErrByzantineRow for a bad row; got %v", err)
 		}
 
-		corrupted, err = original.deepCopy()
+		corrupted, err = original.deepCopy(codec)
 		if err != nil {
 			t.Fatalf("unexpected err while copying original data: %v, codec: :%v", err, codec)
 		}
@@ -128,7 +127,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 			t.Errorf("did not return a ErrByzantineColumn for a bad column; got %v", err)
 		}
 
-		corrupted, err = original.deepCopy()
+		corrupted, err = original.deepCopy(codec)
 		if err != nil {
 			t.Fatalf("unexpected err while copying original data: %v, codec: :%v", err, codec)
 		}
@@ -145,10 +144,10 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 func BenchmarkRepair(b *testing.B) {
 	// For different ODS sizes
 	for i := 16; i <= 128; i *= 2 {
-		for _codecType := range codecs {
+		for _, codec := range codecs {
 			// Generate a new range original data square then extend it
 			square := genRandDS(i)
-			eds, err := ComputeExtendedDataSquare(square, _codecType, NewDefaultTree)
+			eds, err := ComputeExtendedDataSquare(square, codec, NewDefaultTree)
 			if err != nil {
 				b.Error(err)
 			}
@@ -167,14 +166,14 @@ func BenchmarkRepair(b *testing.B) {
 			}
 
 			b.Run(
-				fmt.Sprintf("Repairing %dx%d ODS using %s", i, i, _codecType),
+				fmt.Sprintf("Repairing %dx%d ODS using %s", i, i, codec),
 				func(b *testing.B) {
 					for n := 0; n < b.N; n++ {
 						_, err := RepairExtendedDataSquare(
 							eds.RowRoots(),
 							eds.ColumnRoots(),
 							flattened,
-							_codecType,
+							codec,
 							NewDefaultTree,
 						)
 						if err != nil {

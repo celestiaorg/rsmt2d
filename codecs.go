@@ -1,63 +1,40 @@
 package rsmt2d
 
-import (
-	"errors"
-	"fmt"
-)
+import "fmt"
 
-// codecType type
-type CodecType int
-
-// Erasure codes enum:
 const (
-	// RSGF8 represents Reed-Solomon codecType with an 8-bit Finite Galois Field (2^8)
-	RSGF8 CodecType = iota
-	LeopardFF8
-	LeopardFF16
+	LeopardFF16 = "LeopardFF16"
+	LeopardFF8  = "LeopardFF8"
+	RSGF8       = "RSFG8"
 )
-
-func (c CodecType) String() string {
-	switch c {
-	case RSGF8:
-		return "RSGF8"
-	case LeopardFF8:
-		return "LeopardFF8"
-	case LeopardFF16:
-		return "LeopardFF16"
-	default:
-		return "UNSUPPORTED CODEC TYPE"
-	}
-}
 
 type Codec interface {
-	encode(data [][]byte) ([][]byte, error)
-	decode(data [][]byte) ([][]byte, error)
-	codecType() CodecType
+	Encode(data [][]byte) ([][]byte, error)
+	Decode(data [][]byte) ([][]byte, error)
 	// maxChunks returns the max. number of chunks each code supports in a 2D square.
 	maxChunks() int
 }
 
-var codecs = make(map[CodecType]Codec)
+// codecs is a global map used for keeping track of which codecs are included during testing
+var codecs = make(map[string]Codec)
 
-func registerCodec(ct CodecType, codec Codec) {
+func registerCodec(ct string, codec Codec) {
 	if codecs[ct] != nil {
 		panic(fmt.Sprintf("%v already registered", codec))
 	}
 	codecs[ct] = codec
 }
 
-func Encode(data [][]byte, codec CodecType) ([][]byte, error) {
-	if codec, ok := codecs[codec]; !ok {
-		return nil, errors.New("invalid codec")
-	} else {
-		return codec.encode(data)
+func NewLeoRSFF16Codec() Codec {
+	if codec, has := codecs[LeopardFF16]; has {
+		return codec
 	}
+	panic("cannot use codec LeopardFF16 without the 'leopard' build tag")
 }
 
-func Decode(data [][]byte, codec CodecType) ([][]byte, error) {
-	if codec, ok := codecs[codec]; !ok {
-		return nil, errors.New("invalid codec")
-	} else {
-		return codec.decode(data)
+func NewLeoRSFF8Codec() Codec {
+	if codec, has := codecs[LeopardFF8]; has {
+		return codec
 	}
+	panic("cannot use codec LeopardFF8 without the 'leopard' build tag")
 }

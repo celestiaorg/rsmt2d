@@ -17,17 +17,13 @@ func init() {
 
 type leoRSFF8Codec struct{}
 
-func (l leoRSFF8Codec) encode(data [][]byte) ([][]byte, error) {
+func (l leoRSFF8Codec) Encode(data [][]byte) ([][]byte, error) {
 	return leopard.Encode(data)
 }
 
-func (l leoRSFF8Codec) decode(data [][]byte) ([][]byte, error) {
+func (l leoRSFF8Codec) Decode(data [][]byte) ([][]byte, error) {
 	half := len(data) / 2
 	return leopard.Decode(data[:half], data[half:])
-}
-
-func (l leoRSFF8Codec) codecType() CodecType {
-	return LeopardFF8
 }
 
 func (l leoRSFF8Codec) maxChunks() int {
@@ -40,17 +36,13 @@ func newLeoRSFF8Codec() leoRSFF8Codec {
 
 type leoRSFF16Codec struct{}
 
-func (leo leoRSFF16Codec) encode(data [][]byte) ([][]byte, error) {
+func (leo leoRSFF16Codec) Encode(data [][]byte) ([][]byte, error) {
 	return leopard.Encode(data)
 }
 
-func (leo leoRSFF16Codec) decode(data [][]byte) ([][]byte, error) {
+func (leo leoRSFF16Codec) Decode(data [][]byte) ([][]byte, error) {
 	half := len(data) / 2
 	return leopard.Decode(data[:half], data[half:])
-}
-
-func (leo leoRSFF16Codec) codecType() CodecType {
-	return LeopardFF16
 }
 
 func (leo leoRSFF16Codec) maxChunks() int {

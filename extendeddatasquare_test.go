@@ -8,7 +8,7 @@ import (
 )
 
 func TestComputeExtendedDataSquare(t *testing.T) {
-	codec := codecs[RSGF8].codecType()
+	codec := NewRSGF8Codec()
 	result, err := ComputeExtendedDataSquare([][]byte{
 		{1}, {2},
 		{3}, {4},
@@ -32,18 +32,14 @@ var dump *ExtendedDataSquare
 
 // BenchmarkExtension benchmarks extending datasquares sizes 4-128 using all supported codecs
 func BenchmarkExtension(b *testing.B) {
-	var codecTypes []CodecType
-	for codec := range codecs {
-		codecTypes = append(codecTypes, codec)
-	}
 	for i := 4; i < 129; i *= 2 {
-		for _, _codecType := range codecTypes {
+		for codecName, codec := range codecs {
 			square := genRandDS(i)
 			b.Run(
-				fmt.Sprintf("%s size %d", _codecType, i),
+				fmt.Sprintf("%s size %d", codecName, i),
 				func(b *testing.B) {
 					for n := 0; n < b.N; n++ {
-						eds, err := ComputeExtendedDataSquare(square, _codecType, NewDefaultTree)
+						eds, err := ComputeExtendedDataSquare(square, codec, NewDefaultTree)
 						if err != nil {
 							b.Error(err)
 						}
