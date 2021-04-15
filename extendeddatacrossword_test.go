@@ -10,6 +10,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// PseudoFraudProof is an example fraud proof.
+// TODO a real fraud proof would have a Merkle proof for each share.
+type PseudoFraudProof struct {
+	Mode   int      // Row (0) or column (1)
+	Index  uint     // Row or column index
+	Shares [][]byte // Bad shares (nil are missing)
+}
+
 func TestRepairExtendedDataSquare(t *testing.T) {
 	for _, codec := range codecs {
 		codec := codec.codecType()
@@ -74,6 +82,27 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		var byzRow *ErrByzantineRow
 		if !errors.As(err, &byzRow) {
 			t.Errorf("did not return a ErrByzantineRow for a bad row; got: %v", err)
+		}
+
+		// Construct the fraud proof
+		fraudProof := PseudoFraudProof{row, byzRow.RowNumber, byzRow.Shares}
+		// Verify the fraud proof
+		// TODO in a real fraud proof, also verify Merkle proof for each non-nil share.
+		rebuiltShares, err := Decode(fraudProof.Shares, codec)
+		if err != nil {
+			t.Errorf("could not decode fraud proof shares; got: %v", err)
+		}
+		root := corrupted.computeSharesRoot(rebuiltShares, fraudProof.Index)
+		if bytes.Equal(root, corrupted.RowRoot(fraudProof.Index)) {
+			// If the roots match, then the fraud proof should be for invalid erasure coding.
+			parityShares, err := Encode(rebuiltShares[0:corrupted.originalDataWidth], codec)
+			if err != nil {
+				t.Errorf("could not encode fraud proof shares; %v", fraudProof)
+			}
+			startIndex := len(rebuiltShares) - int(corrupted.originalDataWidth)
+			if bytes.Equal(flattenChunks(parityShares), flattenChunks(rebuiltShares[startIndex:])) {
+				t.Errorf("invalid fraud proof %v", fraudProof)
+			}
 		}
 
 		corrupted, err = original.deepCopy()
