@@ -26,10 +26,6 @@ func (l leoRSFF8Codec) Decode(data [][]byte) ([][]byte, error) {
 	return leopard.Decode(data[:half], data[half:])
 }
 
-func (l leoRSFF8Codec) New() Codec {
-	return newLeoRSFF8Codec()
-}
-
 func (l leoRSFF8Codec) maxChunks() int {
 	return 128 * 128
 }
@@ -47,10 +43,6 @@ func (leo leoRSFF16Codec) Encode(data [][]byte) ([][]byte, error) {
 func (leo leoRSFF16Codec) Decode(data [][]byte) ([][]byte, error) {
 	half := len(data) / 2
 	return leopard.Decode(data[:half], data[half:])
-}
-
-func (leo leoRSFF16Codec) New() Codec {
-	return newLeoRSFF16Codec()
 }
 
 func (leo leoRSFF16Codec) maxChunks() int {

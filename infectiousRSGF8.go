@@ -80,12 +80,6 @@ func (c *rsGF8Codec) Decode(data [][]byte) ([][]byte, error) {
 	return rebuiltShares, err
 }
 
-// New is used to create a fresh cached RSGF8 cached codec. This is necessary
-// for thread safe operation
-func (c *rsGF8Codec) New() Codec {
-	return NewRSGF8Codec()
-}
-
 // maxChunks returns the max. number of chunks each code supports in a 2D square.
 func (c *rsGF8Codec) maxChunks() int {
 	return 128 * 128

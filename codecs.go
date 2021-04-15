@@ -11,7 +11,6 @@ const (
 type Codec interface {
 	Encode(data [][]byte) ([][]byte, error)
 	Decode(data [][]byte) ([][]byte, error)
-	New() Codec
 	// maxChunks returns the max. number of chunks each code supports in a 2D square.
 	maxChunks() int
 }
