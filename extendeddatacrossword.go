@@ -18,8 +18,7 @@ var ErrUnrepairableDataSquare = errors.New("failed to solve data square")
 // ErrByzantineRow is thrown when there is a repaired row does not match the expected row Merkle root.
 type ErrByzantineRow struct {
 	RowNumber uint     // Row index
-	Root      []byte   // Merkle root of repaired row
-	Shares    [][]byte // Repaired row shares
+	Shares    [][]byte // Pre-repaired row shares
 }
 
 func (e *ErrByzantineRow) Error() string {
@@ -29,8 +28,7 @@ func (e *ErrByzantineRow) Error() string {
 // ErrByzantineColumn is thrown when there is a repaired column does not match the expected column Merkle root.
 type ErrByzantineColumn struct {
 	ColumnNumber uint     // Column index
-	Root         []byte   // Merkle root of repaired column
-	Shares       [][]byte // Repaired column shares
+	Shares       [][]byte // Pre-repaired column shares
 }
 
 func (e *ErrByzantineColumn) Error() string {
@@ -49,8 +47,9 @@ func (e *ErrByzantineColumn) Error() string {
 //
 // The EDS is modified in-place. If repairing is successful, the EDS will be
 // complete. If repairing is unsuccessful, the EDS will be the most-repaired
-// prior to the Byzantine row or column being repaired, and the repaired
-// Byzantine row or column is returned in the error.
+// prior to the Byzantine row or column being repaired, and the Byzantine row
+// or column prior to repair is returned in the error with missing shares as
+// nil.
 func RepairExtendedDataSquare(
 	rowRoots [][]byte,
 	columnRoots [][]byte,
@@ -178,7 +177,7 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 					}
 
 					// Check that rebuilt shares matches appropriate root
-					err = eds.verifyAgainstRoots(rowRoots, columnRoots, mode, uint(i), rebuiltShares)
+					err = eds.verifyAgainstRoots(rowRoots, columnRoots, mode, uint(i), bitMask, rebuiltShares)
 					if err != nil {
 						return err
 					}
@@ -189,7 +188,7 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 						case row:
 							if !bitMask.Get(i, j) &&
 								bitMask.ColumnIsOne(j) {
-								err := eds.verifyAgainstRoots(rowRoots, columnRoots, column, uint(j), rebuiltShares)
+								err := eds.verifyAgainstRoots(rowRoots, columnRoots, column, uint(j), bitMask, rebuiltShares)
 								if err != nil {
 									return err
 								}
@@ -198,7 +197,7 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 						case column:
 							if !bitMask.Get(j, i) &&
 								bitMask.RowIsOne(j) {
-								err := eds.verifyAgainstRoots(rowRoots, columnRoots, row, uint(j), rebuiltShares)
+								err := eds.verifyAgainstRoots(rowRoots, columnRoots, row, uint(j), bitMask, rebuiltShares)
 								if err != nil {
 									return err
 								}
@@ -248,17 +247,27 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 	return nil
 }
 
-func (eds *ExtendedDataSquare) verifyAgainstRoots(rowRoots [][]byte, columnRoots [][]byte, mode int, i uint, shares [][]byte) error {
+func (eds *ExtendedDataSquare) verifyAgainstRoots(rowRoots [][]byte, columnRoots [][]byte, mode int, i uint, bitMask bitMatrix, shares [][]byte) error {
 	root := eds.computeSharesRoot(shares, i)
 
 	switch mode {
 	case row:
 		if !bytes.Equal(root, rowRoots[i]) {
-			return &ErrByzantineRow{i, root, shares}
+			for c := 0; c < int(eds.width); c++ {
+				if !bitMask.Get(int(i), c) {
+					shares[c] = nil
+				}
+			}
+			return &ErrByzantineRow{i, shares}
 		}
 	case column:
 		if !bytes.Equal(root, columnRoots[i]) {
-			return &ErrByzantineColumn{i, root, shares}
+			for r := 0; r < int(eds.width); r++ {
+				if !bitMask.Get(r, int(i)) {
+					shares[r] = nil
+				}
+			}
+			return &ErrByzantineColumn{i, shares}
 		}
 	default:
 		panic(fmt.Sprintf("invalid mode %d", mode))
@@ -293,8 +302,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoo
 				return err
 			}
 			if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.rowSlice(i, eds.originalDataWidth, eds.originalDataWidth))) {
-				root := eds.computeSharesRoot(parityShares, i)
-				return &ErrByzantineRow{i, root, parityShares}
+				return &ErrByzantineRow{i, eds.Row(i)}
 			}
 		}
 
@@ -304,8 +312,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoo
 				return err
 			}
 			if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.columnSlice(eds.originalDataWidth, i, eds.originalDataWidth))) {
-				root := eds.computeSharesRoot(parityShares, i)
-				return &ErrByzantineColumn{i, root, parityShares}
+				return &ErrByzantineColumn{i, eds.Column(i)}
 			}
 		}
 	}
