@@ -156,11 +156,11 @@ func BenchmarkRepair(b *testing.B) {
 			// Randomly remove 1/2 of the shares of each row
 			for r := 0; r < i*2; r++ {
 				for c := 0; c < i; {
-					ind := rand.Intn(i + 1)
-					if flattened[r*i+ind] == nil {
+					ind := rand.Intn(i * 2)
+					if flattened[r*i*2+ind] == nil {
 						continue
 					}
-					flattened[r*i+ind] = nil
+					flattened[r*i*2+ind] = nil
 					c++
 				}
 			}
