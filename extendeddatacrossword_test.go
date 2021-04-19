@@ -143,30 +143,36 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 
 func BenchmarkRepair(b *testing.B) {
 	// For different ODS sizes
-	for i := 16; i <= 128; i *= 2 {
+	for originalDataWidth := 16; originalDataWidth <= 128; originalDataWidth *= 2 {
 		for codecName, codec := range codecs {
 			// Generate a new range original data square then extend it
-			square := genRandDS(i)
+			square := genRandDS(originalDataWidth)
 			eds, err := ComputeExtendedDataSquare(square, codec, NewDefaultTree)
 			if err != nil {
 				b.Error(err)
 			}
 
+			extendedDataWidth := originalDataWidth * 2
 			flattened := eds.flattened()
 			// Randomly remove 1/2 of the shares of each row
-			for r := 0; r < i*2; r++ {
-				for c := 0; c < i; {
-					ind := rand.Intn(i * 2)
-					if flattened[r*i*2+ind] == nil {
+			for r := 0; r < extendedDataWidth; r++ {
+				for c := 0; c < originalDataWidth; {
+					ind := rand.Intn(extendedDataWidth)
+					if flattened[r*extendedDataWidth+ind] == nil {
 						continue
 					}
-					flattened[r*i*2+ind] = nil
+					flattened[r*extendedDataWidth+ind] = nil
 					c++
 				}
 			}
 
 			b.Run(
-				fmt.Sprintf("Repairing %dx%d ODS using %s", i, i, codecName),
+				fmt.Sprintf(
+					"Repairing %dx%d ODS using %s",
+					originalDataWidth,
+					originalDataWidth,
+					codecName,
+				),
 				func(b *testing.B) {
 					for n := 0; n < b.N; n++ {
 						_, err := RepairExtendedDataSquare(
