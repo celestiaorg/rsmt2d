@@ -153,18 +153,6 @@ func BenchmarkRepair(b *testing.B) {
 			}
 
 			extendedDataWidth := originalDataWidth * 2
-			flattened := eds.flattened()
-			// Randomly remove 1/2 of the shares of each row
-			for r := 0; r < extendedDataWidth; r++ {
-				for c := 0; c < originalDataWidth; {
-					ind := rand.Intn(extendedDataWidth)
-					if flattened[r*extendedDataWidth+ind] == nil {
-						continue
-					}
-					flattened[r*extendedDataWidth+ind] = nil
-					c++
-				}
-			}
 
 			b.Run(
 				fmt.Sprintf(
@@ -175,6 +163,23 @@ func BenchmarkRepair(b *testing.B) {
 				),
 				func(b *testing.B) {
 					for n := 0; n < b.N; n++ {
+						b.StopTimer()
+
+						flattened := eds.flattened()
+						// Randomly remove 1/2 of the shares of each row
+						for r := 0; r < extendedDataWidth; r++ {
+							for c := 0; c < originalDataWidth; {
+								ind := rand.Intn(extendedDataWidth)
+								if flattened[r*extendedDataWidth+ind] == nil {
+									continue
+								}
+								flattened[r*extendedDataWidth+ind] = nil
+								c++
+							}
+						}
+
+						b.StartTimer()
+
 						_, err := RepairExtendedDataSquare(
 							eds.RowRoots(),
 							eds.ColumnRoots(),
