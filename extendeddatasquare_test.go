@@ -16,7 +16,7 @@ func TestComputeExtendedDataSquare(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	if !reflect.DeepEqual(result.square, [][][]byte{
+	if !reflect.DeepEqual(result.squareRow, [][][]byte{
 		{{1}, {2}, {7}, {13}},
 		{{3}, {4}, {13}, {31}},
 		{{5}, {14}, {19}, {41}},

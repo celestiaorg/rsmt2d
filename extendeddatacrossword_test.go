@@ -45,10 +45,10 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		if err != nil {
 			t.Errorf("unexpected err while repairing data square: %v, codec: :%v", err, codec)
 		} else {
-			assert.Equal(t, result.square[0][0], ones)
-			assert.Equal(t, result.square[0][1], twos)
-			assert.Equal(t, result.square[1][0], threes)
-			assert.Equal(t, result.square[1][1], fours)
+			assert.Equal(t, result.Cell(0, 0), ones)
+			assert.Equal(t, result.Cell(0, 1), twos)
+			assert.Equal(t, result.Cell(1, 0), threes)
+			assert.Equal(t, result.Cell(1, 1), fours)
 		}
 
 		flattened = original.flattened()
