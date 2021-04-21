@@ -26,7 +26,13 @@ jobs:
             **/**.go
             go.mod
             go.sum
-      - name: install
+      - name: install leopard
+        run: |
+          git clone https://github.com/lazyledger/go-leopard.git
+          pushd go-leopard
+          make install-cleo
+          popd
+      - name: build
         run: GOOS=linux GOARCH=${{ matrix.goarch }} go build
 
   tests:
