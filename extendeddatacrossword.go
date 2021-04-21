@@ -139,7 +139,6 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(r int, rowRoots [][]byte, colum
 		return true, false, nil
 	}
 
-	isExtendedPartIncomplete := !bitMask.RowRangeIsOne(r, int(eds.originalDataWidth), int(eds.width))
 	// Prepare shares
 	shares := make([][]byte, eds.width)
 	for c := 0; c < int(eds.width); c++ {
@@ -151,31 +150,14 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(r int, rowRoots [][]byte, colum
 		}
 	}
 
+	isExtendedPartIncomplete := !bitMask.RowRangeIsOne(r, int(eds.originalDataWidth), int(eds.width))
 	// Attempt rebuild
-	rebuiltShares, err := codec.Decode(shares)
+	rebuiltShares, isDecoded, err := eds.rebuildShares(isExtendedPartIncomplete, shares, codec)
 	if err != nil {
-		// repair unsuccessful
-		return false, false, nil
+		return false, false, err
 	}
-
-	if isExtendedPartIncomplete {
-		// If needed, rebuild the parity shares too.
-		rebuiltExtendedShares, err := codec.Encode(rebuiltShares[0:eds.originalDataWidth])
-		if err != nil {
-			return false, false, err
-		}
-		startIndex := len(rebuiltExtendedShares) - int(eds.originalDataWidth)
-		rebuiltShares = append(
-			rebuiltShares[0:eds.originalDataWidth],
-			rebuiltExtendedShares[startIndex:]...,
-		)
-	} else {
-		// Otherwise copy them from the EDS.
-		startIndex := len(shares) - int(eds.originalDataWidth)
-		rebuiltShares = append(
-			rebuiltShares[0:eds.originalDataWidth],
-			shares[startIndex:]...,
-		)
+	if !isDecoded {
+		return false, false, nil
 	}
 
 	// Check that rebuilt shares matches appropriate root
@@ -213,7 +195,6 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(c int, rowRoots [][]byte, colum
 		return true, false, nil
 	}
 
-	isExtendedPartIncomplete := !bitMask.ColRangeIsOne(c, int(eds.originalDataWidth), int(eds.width))
 	// Prepare shares
 	shares := make([][]byte, eds.width)
 	for r := 0; r < int(eds.width); r++ {
@@ -225,31 +206,14 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(c int, rowRoots [][]byte, colum
 		}
 	}
 
+	isExtendedPartIncomplete := !bitMask.ColRangeIsOne(c, int(eds.originalDataWidth), int(eds.width))
 	// Attempt rebuild
-	rebuiltShares, err := codec.Decode(shares)
+	rebuiltShares, isDecoded, err := eds.rebuildShares(isExtendedPartIncomplete, shares, codec)
 	if err != nil {
-		// repair unsuccessful
-		return false, false, nil
+		return false, false, err
 	}
-
-	if isExtendedPartIncomplete {
-		// If needed, rebuild the parity shares too.
-		rebuiltExtendedShares, err := codec.Encode(rebuiltShares[0:eds.originalDataWidth])
-		if err != nil {
-			return false, false, err
-		}
-		startIndex := len(rebuiltExtendedShares) - int(eds.originalDataWidth)
-		rebuiltShares = append(
-			rebuiltShares[0:eds.originalDataWidth],
-			rebuiltExtendedShares[startIndex:]...,
-		)
-	} else {
-		// Otherwise copy them from the EDS.
-		startIndex := len(shares) - int(eds.originalDataWidth)
-		rebuiltShares = append(
-			rebuiltShares[0:eds.originalDataWidth],
-			shares[startIndex:]...,
-		)
+	if !isDecoded {
+		return false, false, nil
 	}
 
 	// Check that rebuilt shares matches appropriate root
@@ -280,6 +244,36 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(c int, rowRoots [][]byte, colum
 	}
 
 	return true, true, nil
+}
+
+func (eds *ExtendedDataSquare) rebuildShares(isExtendedPartIncomplete bool, shares [][]byte, codec Codec) ([][]byte, bool, error) {
+	rebuiltShares, err := codec.Decode(shares)
+	if err != nil {
+		// repair unsuccessful
+		return nil, false, nil
+	}
+
+	if isExtendedPartIncomplete {
+		// If needed, rebuild the parity shares too.
+		rebuiltExtendedShares, err := codec.Encode(rebuiltShares[0:eds.originalDataWidth])
+		if err != nil {
+			return nil, true, err
+		}
+		startIndex := len(rebuiltExtendedShares) - int(eds.originalDataWidth)
+		rebuiltShares = append(
+			rebuiltShares[0:eds.originalDataWidth],
+			rebuiltExtendedShares[startIndex:]...,
+		)
+	} else {
+		// Otherwise copy them from the EDS.
+		startIndex := len(shares) - int(eds.originalDataWidth)
+		rebuiltShares = append(
+			rebuiltShares[0:eds.originalDataWidth],
+			shares[startIndex:]...,
+		)
+	}
+
+	return rebuiltShares, true, nil
 }
 
 func (eds *ExtendedDataSquare) verifyAgainstRowRoots(rowRoots [][]byte, r uint, bitMask bitMatrix, shares [][]byte) error {
