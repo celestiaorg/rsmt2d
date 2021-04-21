@@ -101,145 +101,31 @@ func RepairExtendedDataSquare(
 
 func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][]byte, bitMask bitMatrix, codec Codec) error {
 	// Keep repeating until the square is solved
-	solved := false
 	for {
-		solved = true
+		// Track if the entire square is completely solved
+		solved := true
+		// Track if a single iteration of this loop made progress
 		progressMade := false
 
 		// Loop through every row and column, attempt to rebuild each row or column if incomplete
 		for i := 0; i < int(eds.width); i++ {
-			for mode := range []int{row, column} {
-				var isIncomplete bool
-				var isExtendedPartIncomplete bool
-				switch mode {
-				case row:
-					isIncomplete = !bitMask.RowIsOne(i)
-					isExtendedPartIncomplete = !bitMask.RowRangeIsOne(i, int(eds.originalDataWidth), int(eds.width))
-				case column:
-					isIncomplete = !bitMask.ColumnIsOne(i)
-					isExtendedPartIncomplete = !bitMask.ColRangeIsOne(i, int(eds.originalDataWidth), int(eds.width))
-				default:
-					panic(fmt.Sprintf("invalid mode %d", mode))
-				}
-
-				if isIncomplete { // row/column incomplete
-					// Prepare shares
-					shares := make([][]byte, eds.width)
-					for j := 0; j < int(eds.width); j++ {
-						var vectorData [][]byte
-						var r, c int
-						switch mode {
-						case row:
-							r = i
-							c = j
-							vectorData = eds.Row(uint(i))
-						case column:
-							r = j
-							c = i
-							vectorData = eds.Column(uint(i))
-						default:
-							panic(fmt.Sprintf("invalid mode %d", mode))
-						}
-						if bitMask.Get(r, c) {
-							// As guaranteed by the bitMask, vectorData can't be nil here:
-							shares[j] = vectorData[j]
-						}
-					}
-
-					// Attempt rebuild
-					rebuiltShares, err := codec.Decode(shares)
-					if err != nil {
-						// repair unsuccessful
-						solved = false
-						continue
-					}
-
-					progressMade = true
-
-					if isExtendedPartIncomplete {
-						// If needed, rebuild the parity shares too.
-						rebuiltExtendedShares, err := codec.Encode(rebuiltShares[0:eds.originalDataWidth])
-						if err != nil {
-							return err
-						}
-						startIndex := len(rebuiltExtendedShares) - int(eds.originalDataWidth)
-						rebuiltShares = append(
-							rebuiltShares[0:eds.originalDataWidth],
-							rebuiltExtendedShares[startIndex:]...,
-						)
-					} else {
-						// Otherwise copy them from the EDS.
-						startIndex := len(shares) - int(eds.originalDataWidth)
-						rebuiltShares = append(
-							rebuiltShares[0:eds.originalDataWidth],
-							shares[startIndex:]...,
-						)
-					}
-
-					// Check that rebuilt shares matches appropriate root
-					err = eds.verifyAgainstRoots(rowRoots, columnRoots, mode, uint(i), bitMask, rebuiltShares)
-					if err != nil {
-						return err
-					}
-
-					// Check that newly completed orthogonal vectors match their new merkle roots
-					for j := 0; j < int(eds.width); j++ {
-						switch mode {
-						case row:
-							if !bitMask.Get(i, j) &&
-								bitMask.ColumnIsOne(j) {
-								err := eds.verifyAgainstRoots(rowRoots, columnRoots, column, uint(j), bitMask, rebuiltShares)
-								if err != nil {
-									return err
-								}
-							}
-
-						case column:
-							if !bitMask.Get(j, i) &&
-								bitMask.RowIsOne(j) {
-								err := eds.verifyAgainstRoots(rowRoots, columnRoots, row, uint(j), bitMask, rebuiltShares)
-								if err != nil {
-									return err
-								}
-							}
-
-						default:
-							panic(fmt.Sprintf("invalid mode %d", mode))
-						}
-					}
-
-					// Set vector mask to true
-					switch mode {
-					case row:
-						for j := 0; j < int(eds.width); j++ {
-							bitMask.Set(i, j)
-						}
-					case column:
-						for j := 0; j < int(eds.width); j++ {
-							bitMask.Set(j, i)
-						}
-					default:
-						panic(fmt.Sprintf("invalid mode %d", mode))
-					}
-
-					// Insert rebuilt shares into square.
-					for p, s := range rebuiltShares {
-						switch mode {
-						case row:
-							eds.setCell(uint(i), uint(p), s)
-						case column:
-							eds.setCell(uint(p), uint(i), s)
-						default:
-							panic(fmt.Sprintf("invalid mode %d", mode))
-						}
-					}
-				}
+			solvedRow, progressMadeRow, err := eds.solveCrosswordRow(i, rowRoots, columnRoots, bitMask, codec)
+			if err != nil {
+				return err
 			}
+			solvedCol, progressMadeCol, err := eds.solveCrosswordCol(i, rowRoots, columnRoots, bitMask, codec)
+			if err != nil {
+				return err
+			}
+
+			solved = solved && solvedRow && solvedCol
+			progressMade = progressMade || progressMadeRow || progressMadeCol
 		}
 
 		if solved {
 			break
-		} else if !progressMade {
+		}
+		if !progressMade {
 			return ErrUnrepairableDataSquare
 		}
 	}
@@ -247,31 +133,176 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 	return nil
 }
 
-func (eds *ExtendedDataSquare) verifyAgainstRoots(rowRoots [][]byte, columnRoots [][]byte, mode int, i uint, bitMask bitMatrix, shares [][]byte) error {
-	root := eds.computeSharesRoot(shares, i)
-
-	switch mode {
-	case row:
-		if !bytes.Equal(root, rowRoots[i]) {
-			for c := 0; c < int(eds.width); c++ {
-				if !bitMask.Get(int(i), c) {
-					shares[c] = nil
-				}
-			}
-			return &ErrByzantineRow{i, shares}
-		}
-	case column:
-		if !bytes.Equal(root, columnRoots[i]) {
-			for r := 0; r < int(eds.width); r++ {
-				if !bitMask.Get(r, int(i)) {
-					shares[r] = nil
-				}
-			}
-			return &ErrByzantineColumn{i, shares}
-		}
-	default:
-		panic(fmt.Sprintf("invalid mode %d", mode))
+func (eds *ExtendedDataSquare) solveCrosswordRow(r int, rowRoots [][]byte, columnRoots [][]byte, bitMask bitMatrix, codec Codec) (bool, bool, error) {
+	isComplete := bitMask.RowIsOne(r)
+	if isComplete {
+		return true, false, nil
 	}
+
+	// Prepare shares
+	shares := make([][]byte, eds.width)
+	for c := 0; c < int(eds.width); c++ {
+		vectorData := eds.Row(uint(r))
+
+		if bitMask.Get(r, c) {
+			// As guaranteed by the bitMask, vectorData can't be nil here:
+			shares[c] = vectorData[c]
+		}
+	}
+
+	isExtendedPartIncomplete := !bitMask.RowRangeIsOne(r, int(eds.originalDataWidth), int(eds.width))
+	// Attempt rebuild
+	rebuiltShares, isDecoded, err := eds.rebuildShares(isExtendedPartIncomplete, shares, codec)
+	if err != nil {
+		return false, false, err
+	}
+	if !isDecoded {
+		return false, false, nil
+	}
+
+	// Check that rebuilt shares matches appropriate root
+	err = eds.verifyAgainstRowRoots(rowRoots, uint(r), bitMask, rebuiltShares)
+	if err != nil {
+		return false, false, err
+	}
+
+	// Check that newly completed orthogonal vectors match their new merkle roots
+	for c := 0; c < int(eds.width); c++ {
+		if !bitMask.Get(r, c) &&
+			bitMask.ColumnIsOne(c) {
+			err := eds.verifyAgainstColRoots(columnRoots, uint(c), bitMask, rebuiltShares)
+			if err != nil {
+				return false, false, err
+			}
+		}
+	}
+
+	// Set vector mask to true
+	for c := 0; c < int(eds.width); c++ {
+		bitMask.Set(r, c)
+	}
+
+	// Insert rebuilt shares into square.
+	for c, s := range rebuiltShares {
+		eds.setCell(uint(r), uint(c), s)
+	}
+
+	return true, true, nil
+}
+func (eds *ExtendedDataSquare) solveCrosswordCol(c int, rowRoots [][]byte, columnRoots [][]byte, bitMask bitMatrix, codec Codec) (bool, bool, error) {
+	isComplete := bitMask.ColumnIsOne(c)
+	if isComplete {
+		return true, false, nil
+	}
+
+	// Prepare shares
+	shares := make([][]byte, eds.width)
+	for r := 0; r < int(eds.width); r++ {
+		vectorData := eds.Column(uint(c))
+
+		if bitMask.Get(r, c) {
+			// As guaranteed by the bitMask, vectorData can't be nil here:
+			shares[r] = vectorData[r]
+		}
+	}
+
+	isExtendedPartIncomplete := !bitMask.ColRangeIsOne(c, int(eds.originalDataWidth), int(eds.width))
+	// Attempt rebuild
+	rebuiltShares, isDecoded, err := eds.rebuildShares(isExtendedPartIncomplete, shares, codec)
+	if err != nil {
+		return false, false, err
+	}
+	if !isDecoded {
+		return false, false, nil
+	}
+
+	// Check that rebuilt shares matches appropriate root
+	err = eds.verifyAgainstColRoots(columnRoots, uint(c), bitMask, rebuiltShares)
+	if err != nil {
+		return false, false, err
+	}
+
+	// Check that newly completed orthogonal vectors match their new merkle roots
+	for r := 0; r < int(eds.width); r++ {
+		if !bitMask.Get(r, c) &&
+			bitMask.RowIsOne(r) {
+			err := eds.verifyAgainstRowRoots(rowRoots, uint(r), bitMask, rebuiltShares)
+			if err != nil {
+				return false, false, err
+			}
+		}
+	}
+
+	// Set vector mask to true
+	for r := 0; r < int(eds.width); r++ {
+		bitMask.Set(r, c)
+	}
+
+	// Insert rebuilt shares into square.
+	for r, s := range rebuiltShares {
+		eds.setCell(uint(r), uint(c), s)
+	}
+
+	return true, true, nil
+}
+
+func (eds *ExtendedDataSquare) rebuildShares(isExtendedPartIncomplete bool, shares [][]byte, codec Codec) ([][]byte, bool, error) {
+	rebuiltShares, err := codec.Decode(shares)
+	if err != nil {
+		// repair unsuccessful
+		return nil, false, nil
+	}
+
+	if isExtendedPartIncomplete {
+		// If needed, rebuild the parity shares too.
+		rebuiltExtendedShares, err := codec.Encode(rebuiltShares[0:eds.originalDataWidth])
+		if err != nil {
+			return nil, true, err
+		}
+		startIndex := len(rebuiltExtendedShares) - int(eds.originalDataWidth)
+		rebuiltShares = append(
+			rebuiltShares[0:eds.originalDataWidth],
+			rebuiltExtendedShares[startIndex:]...,
+		)
+	} else {
+		// Otherwise copy them from the EDS.
+		startIndex := len(shares) - int(eds.originalDataWidth)
+		rebuiltShares = append(
+			rebuiltShares[0:eds.originalDataWidth],
+			shares[startIndex:]...,
+		)
+	}
+
+	return rebuiltShares, true, nil
+}
+
+func (eds *ExtendedDataSquare) verifyAgainstRowRoots(rowRoots [][]byte, r uint, bitMask bitMatrix, shares [][]byte) error {
+	root := eds.computeSharesRoot(shares, r)
+
+	if !bytes.Equal(root, rowRoots[r]) {
+		for c := 0; c < int(eds.width); c++ {
+			if !bitMask.Get(int(r), c) {
+				shares[c] = nil
+			}
+		}
+		return &ErrByzantineRow{r, shares}
+	}
+
+	return nil
+}
+
+func (eds *ExtendedDataSquare) verifyAgainstColRoots(columnRoots [][]byte, c uint, bitMask bitMatrix, shares [][]byte) error {
+	root := eds.computeSharesRoot(shares, c)
+
+	if !bytes.Equal(root, columnRoots[c]) {
+		for r := 0; r < int(eds.width); r++ {
+			if !bitMask.Get(r, int(c)) {
+				shares[r] = nil
+			}
+		}
+		return &ErrByzantineColumn{c, shares}
+	}
+
 	return nil
 }
 

@@ -19,7 +19,7 @@ type PseudoFraudProof struct {
 }
 
 func TestRepairExtendedDataSquare(t *testing.T) {
-	for _, codec := range codecs {
+	for codecName, codec := range codecs {
 
 		bufferSize := 64
 		ones := bytes.Repeat([]byte{1}, bufferSize)
@@ -43,7 +43,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		var result *ExtendedDataSquare
 		result, err = RepairExtendedDataSquare(original.RowRoots(), original.ColumnRoots(), flattened, codec, NewDefaultTree)
 		if err != nil {
-			t.Errorf("unexpected err while repairing data square: %v, codec: :%v", err, codec)
+			t.Errorf("unexpected err while repairing data square: %v, codec: :%s", err, codecName)
 		} else {
 			assert.Equal(t, result.Cell(0, 0), ones)
 			assert.Equal(t, result.Cell(0, 1), twos)
@@ -63,7 +63,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		var corrupted ExtendedDataSquare
 		corrupted, err = original.deepCopy(codec)
 		if err != nil {
-			t.Fatalf("unexpected err while copying original data: %v, codec: :%v", err, codec)
+			t.Fatalf("unexpected err while copying original data: %v, codec: :%s", err, codecName)
 		}
 		corruptChunk := bytes.Repeat([]byte{66}, bufferSize)
 		corrupted.setCell(0, 0, corruptChunk)
@@ -74,7 +74,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 
 		corrupted, err = original.deepCopy(codec)
 		if err != nil {
-			t.Fatalf("unexpected err while copying original data: %v, codec: :%v", err, codec)
+			t.Fatalf("unexpected err while copying original data: %v, codec: :%s", err, codecName)
 		}
 		corrupted.setCell(0, 0, corruptChunk)
 		_, err = RepairExtendedDataSquare(corrupted.RowRoots(), corrupted.ColumnRoots(), corrupted.flattened(), codec, NewDefaultTree)
@@ -106,7 +106,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 
 		corrupted, err = original.deepCopy(codec)
 		if err != nil {
-			t.Fatalf("unexpected err while copying original data: %v, codec: :%v", err, codec)
+			t.Fatalf("unexpected err while copying original data: %v, codec: :%s", err, codecName)
 		}
 		corrupted.setCell(0, 3, corruptChunk)
 		_, err = RepairExtendedDataSquare(corrupted.RowRoots(), corrupted.ColumnRoots(), corrupted.flattened(), codec, NewDefaultTree)
@@ -116,7 +116,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 
 		corrupted, err = original.deepCopy(codec)
 		if err != nil {
-			t.Fatalf("unexpected err while copying original data: %v, codec: :%v", err, codec)
+			t.Fatalf("unexpected err while copying original data: %v, codec: :%s", err, codecName)
 		}
 		corrupted.setCell(0, 0, corruptChunk)
 		flattened = corrupted.flattened()
@@ -129,7 +129,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 
 		corrupted, err = original.deepCopy(codec)
 		if err != nil {
-			t.Fatalf("unexpected err while copying original data: %v, codec: :%v", err, codec)
+			t.Fatalf("unexpected err while copying original data: %v, codec: :%s", err, codecName)
 		}
 		corrupted.setCell(3, 0, corruptChunk)
 		flattened = corrupted.flattened()
