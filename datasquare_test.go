@@ -11,7 +11,7 @@ func TestNewDataSquare(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	if !reflect.DeepEqual(result.square, [][][]byte{{{1, 2}}}) {
+	if !reflect.DeepEqual(result.squareRow, [][][]byte{{{1, 2}}}) {
 		t.Errorf("newDataSquare failed for 1x1 square")
 	}
 
@@ -19,7 +19,7 @@ func TestNewDataSquare(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	if !reflect.DeepEqual(result.square, [][][]byte{{{1, 2}, {3, 4}}, {{5, 6}, {7, 8}}}) {
+	if !reflect.DeepEqual(result.squareRow, [][][]byte{{{1, 2}, {3, 4}}, {{5, 6}, {7, 8}}}) {
 		t.Errorf("newDataSquare failed for 2x2 square")
 	}
 
@@ -52,7 +52,7 @@ func TestExtendSquare(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	if !reflect.DeepEqual(ds.square, [][][]byte{{{1, 2}, {0, 0}}, {{0, 0}, {0, 0}}}) {
+	if !reflect.DeepEqual(ds.squareRow, [][][]byte{{{1, 2}, {0, 0}}, {{0, 0}, {0, 0}}}) {
 		t.Errorf("extendSquare failed; unexpected result when extending 1x1 square to 2x2 square")
 	}
 }

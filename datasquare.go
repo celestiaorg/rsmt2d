@@ -6,7 +6,8 @@ import (
 )
 
 type dataSquare struct {
-	square       [][][]byte
+	squareRow    [][][]byte // row-major
+	squareCol    [][][]byte // col-major
 	width        uint
 	chunkSize    uint
 	rowRoots     [][]byte
@@ -20,20 +21,30 @@ func newDataSquare(data [][]byte, treeCreator TreeConstructorFn) (*dataSquare, e
 		return nil, errors.New("number of chunks must be a square number")
 	}
 
-	square := make([][][]byte, width)
 	chunkSize := len(data[0])
+
+	squareRow := make([][][]byte, width)
 	for i := 0; i < width; i++ {
-		square[i] = data[i*width : i*width+width]
+		squareRow[i] = data[i*width : i*width+width]
 
 		for j := 0; j < width; j++ {
-			if len(square[i][j]) != chunkSize {
+			if len(squareRow[i][j]) != chunkSize {
 				return nil, errors.New("all chunks must be of equal size")
 			}
 		}
 	}
 
+	squareCol := make([][][]byte, width)
+	for j := 0; j < width; j++ {
+		squareCol[j] = make([][]byte, width)
+		for i := 0; i < width; i++ {
+			squareCol[j][i] = data[i*width+j]
+		}
+	}
+
 	return &dataSquare{
-		square:       square,
+		squareRow:    squareRow,
+		squareCol:    squareCol,
 		width:        uint(width),
 		chunkSize:    uint(chunkSize),
 		createTreeFn: treeCreator,
@@ -46,7 +57,7 @@ func (ds *dataSquare) extendSquare(extendedWidth uint, fillerChunk []byte) error
 	}
 
 	newWidth := ds.width + extendedWidth
-	newSquare := make([][][]byte, newWidth)
+	newSquareRow := make([][][]byte, newWidth)
 
 	fillerExtendedRow := make([][]byte, extendedWidth)
 	for i := uint(0); i < extendedWidth; i++ {
@@ -60,16 +71,25 @@ func (ds *dataSquare) extendSquare(extendedWidth uint, fillerChunk []byte) error
 
 	row := make([][]byte, ds.width)
 	for i := uint(0); i < ds.width; i++ {
-		copy(row, ds.square[i])
-		newSquare[i] = append(row, fillerExtendedRow...)
+		copy(row, ds.squareRow[i])
+		newSquareRow[i] = append(row, fillerExtendedRow...)
 	}
 
 	for i := ds.width; i < newWidth; i++ {
-		newSquare[i] = make([][]byte, newWidth)
-		copy(newSquare[i], fillerRow)
+		newSquareRow[i] = make([][]byte, newWidth)
+		copy(newSquareRow[i], fillerRow)
 	}
 
-	ds.square = newSquare
+	ds.squareRow = newSquareRow
+
+	newSquareCol := make([][][]byte, newWidth)
+	for j := uint(0); j < newWidth; j++ {
+		newSquareCol[j] = make([][]byte, newWidth)
+		for i := uint(0); i < newWidth; i++ {
+			newSquareCol[j][i] = newSquareRow[i][j]
+		}
+	}
+	ds.squareCol = newSquareCol
 	ds.width = newWidth
 
 	ds.resetRoots()
@@ -78,7 +98,7 @@ func (ds *dataSquare) extendSquare(extendedWidth uint, fillerChunk []byte) error
 }
 
 func (ds *dataSquare) rowSlice(x uint, y uint, length uint) [][]byte {
-	return ds.square[x][y : y+length]
+	return ds.squareRow[x][y : y+length]
 }
 
 // Row returns the data in a row.
@@ -94,7 +114,8 @@ func (ds *dataSquare) setRowSlice(x uint, y uint, newRow [][]byte) error {
 	}
 
 	for i := uint(0); i < uint(len(newRow)); i++ {
-		ds.square[x][y+i] = newRow[i]
+		ds.squareRow[x][y+i] = newRow[i]
+		ds.squareCol[y+i][x] = newRow[i]
 	}
 
 	ds.resetRoots()
@@ -103,12 +124,7 @@ func (ds *dataSquare) setRowSlice(x uint, y uint, newRow [][]byte) error {
 }
 
 func (ds *dataSquare) columnSlice(x uint, y uint, length uint) [][]byte {
-	columnSlice := make([][]byte, length)
-	for i := uint(0); i < length; i++ {
-		columnSlice[i] = ds.square[x+i][y]
-	}
-
-	return columnSlice
+	return ds.squareCol[y][x : x+length]
 }
 
 // Column returns the data in a column.
@@ -124,7 +140,8 @@ func (ds *dataSquare) setColumnSlice(x uint, y uint, newColumn [][]byte) error {
 	}
 
 	for i := uint(0); i < uint(len(newColumn)); i++ {
-		ds.square[x+i][y] = newColumn[i]
+		ds.squareRow[x+i][y] = newColumn[i]
+		ds.squareCol[y][x+i] = newColumn[i]
 	}
 
 	ds.resetRoots()
@@ -224,18 +241,19 @@ func (ds *dataSquare) computeColumnProof(x uint, y uint) ([]byte, [][]byte, uint
 // Cell returns a single chunk at a specific cell.
 func (ds *dataSquare) Cell(x uint, y uint) []byte {
 	cell := make([]byte, ds.chunkSize)
-	copy(cell, ds.square[x][y])
+	copy(cell, ds.squareRow[x][y])
 	return cell
 }
 
 func (ds *dataSquare) setCell(x uint, y uint, newChunk []byte) {
-	ds.square[x][y] = newChunk
+	ds.squareRow[x][y] = newChunk
+	ds.squareCol[y][x] = newChunk
 	ds.resetRoots()
 }
 
 func (ds *dataSquare) flattened() [][]byte {
 	flattened := [][]byte(nil)
-	for _, data := range ds.square {
+	for _, data := range ds.squareRow {
 		flattened = append(flattened, data...)
 	}
 
