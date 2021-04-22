@@ -30,7 +30,8 @@ jobs:
         run: |
           git clone https://github.com/lazyledger/go-leopard.git
           pushd go-leopard
-          make install-cleo
+          make build-cleo
+          sudo make install-cleo
           popd
       - name: build
         run: GOOS=linux GOARCH=${{ matrix.goarch }} go build
