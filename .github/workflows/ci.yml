@@ -8,12 +8,12 @@ on:
       - release/**
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        goarch: ["arm64", "amd64"]
+        goarch: ["amd64"]
     timeout-minutes: 5
     steps:
       - uses: actions/setup-go@v2
@@ -26,37 +26,23 @@ jobs:
             **/**.go
             go.mod
             go.sum
-      - name: install
-        run: GOOS=linux GOARCH=${{ matrix.goarch }} go build
-        if: "env.GIT_DIFF != ''"
-
-  tests:
-    runs-on: ubuntu-latest
-    needs: build
-    strategy:
-      fail-fast: false
-      matrix:
-        goarch: ["amd64"]
-    steps:
-      - uses: actions/setup-go@v2
-        with:
-          go-version: "1.15"
-      - uses: actions/checkout@v2
-      - uses: technote-space/get-diff-action@v4
-        with:
-          PATTERNS: |
-            **/**.go
-            go.mod
-            go.sum
-      - name: Set up Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.15
+      - name: install leopard
+        run: |
+          git clone https://github.com/lazyledger/go-leopard.git
+          pushd go-leopard
+          make build-cleo
+          sudo make install-cleo
+          popd
+        if: env.GIT_DIFF
+      - name: build
+        run: GOOS=linux GOARCH=${{ matrix.goarch }} go build -tags leopard
+        if: env.GIT_DIFF
       - name: test & coverage report creation
         run: |
-          GOARCH=${{ matrix.goarch }} go test -mod=readonly -timeout 8m -race -coverprofile=coverage.txt -covermode=atomic
+          GOARCH=${{ matrix.goarch }} go test -tags leopard -mod=readonly -timeout 8m -race -coverprofile=coverage.txt -covermode=atomic
         if: env.GIT_DIFF
       - uses: codecov/codecov-action@v1.0.15
         with:
           file: ./coverage.txt
         if: env.GIT_DIFF
+
