@@ -8,7 +8,7 @@ on:
       - release/**
 
 jobs:
-  build and test:
+  test:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
