@@ -60,6 +60,8 @@ jobs:
           go-version: 1.15
       - name: test & coverage report creation
         run: |
+          # Export to pick up libleopard
+          export LD_LIBRARY_PATH=/usr/local/lib
           GOARCH=${{ matrix.goarch }} go test -tags leopard -mod=readonly -timeout 8m -race -coverprofile=coverage.txt -covermode=atomic
       - uses: codecov/codecov-action@v1.0.15
         with:
