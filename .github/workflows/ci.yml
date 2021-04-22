@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        goarch: ["arm64", "amd64"]
+        goarch: ["amd64"]
     timeout-minutes: 5
     steps:
       - uses: actions/setup-go@v2
