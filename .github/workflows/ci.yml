@@ -34,7 +34,7 @@ jobs:
           sudo make install-cleo
           popd
       - name: build
-        run: GOOS=linux GOARCH=${{ matrix.goarch }} go build
+        run: GOOS=linux GOARCH=${{ matrix.goarch }} go build -tags leopard
 
   tests:
     runs-on: ubuntu-latest
