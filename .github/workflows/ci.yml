@@ -33,11 +33,14 @@ jobs:
           make build-cleo
           sudo make install-cleo
           popd
+        if: env.GIT_DIFF
       - name: build
         run: GOOS=linux GOARCH=${{ matrix.goarch }} go build -tags leopard
+        if: env.GIT_DIFF
       - name: test & coverage report creation
         run: |
           GOARCH=${{ matrix.goarch }} go test -tags leopard -mod=readonly -timeout 8m -race -coverprofile=coverage.txt -covermode=atomic
+        if: env.GIT_DIFF
       - uses: codecov/codecov-action@v1.0.15
         with:
           file: ./coverage.txt
