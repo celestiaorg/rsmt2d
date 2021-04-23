@@ -5,6 +5,9 @@ import (
 	"math"
 )
 
+// dataSquare stores all data for an original data square (ODS) or extended
+// data square (EDS). Data is duplicated in both row-major and column-major
+// order in order to be able to provide zero-allocation column slices.
 type dataSquare struct {
 	squareRow    [][][]byte // row-major
 	squareCol    [][][]byte // col-major
