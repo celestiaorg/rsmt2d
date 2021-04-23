@@ -99,7 +99,13 @@ func RepairExtendedDataSquare(
 	return eds, err
 }
 
-func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][]byte, bitMask bitMatrix, codec Codec) error {
+// solveCrossword attempts to iteratively repair an EDS.
+func (eds *ExtendedDataSquare) solveCrossword(
+	rowRoots [][]byte,
+	columnRoots [][]byte,
+	bitMask bitMatrix,
+	codec Codec,
+) error {
 	// Keep repeating until the square is solved
 	for {
 		// Track if the entire square is completely solved
@@ -133,7 +139,18 @@ func (eds *ExtendedDataSquare) solveCrossword(rowRoots [][]byte, columnRoots [][
 	return nil
 }
 
-func (eds *ExtendedDataSquare) solveCrosswordRow(r int, rowRoots [][]byte, columnRoots [][]byte, bitMask bitMatrix, codec Codec) (bool, bool, error) {
+// solveCrosswordRow attempts to repair a single row.
+// Returns
+// - if the row is solved (i.e. complete)
+// - if the row was previously unsolved and now solved
+// - an error if the repair is unsuccessful
+func (eds *ExtendedDataSquare) solveCrosswordRow(
+	r int,
+	rowRoots [][]byte,
+	columnRoots [][]byte,
+	bitMask bitMatrix,
+	codec Codec,
+) (bool, bool, error) {
 	isComplete := bitMask.RowIsOne(r)
 	if isComplete {
 		return true, false, nil
@@ -189,7 +206,19 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(r int, rowRoots [][]byte, colum
 
 	return true, true, nil
 }
-func (eds *ExtendedDataSquare) solveCrosswordCol(c int, rowRoots [][]byte, columnRoots [][]byte, bitMask bitMatrix, codec Codec) (bool, bool, error) {
+
+// solveCrosswordCol attempts to repair a single column.
+// Returns
+// - if the column is solved (i.e. complete)
+// - if the column was previously unsolved and now solved
+// - an error if the repair is unsuccessful
+func (eds *ExtendedDataSquare) solveCrosswordCol(
+	c int,
+	rowRoots [][]byte,
+	columnRoots [][]byte,
+	bitMask bitMatrix,
+	codec Codec,
+) (bool, bool, error) {
 	isComplete := bitMask.ColumnIsOne(c)
 	if isComplete {
 		return true, false, nil
