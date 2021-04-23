@@ -15,20 +15,20 @@ const (
 // ErrUnrepairableDataSquare is thrown when there is insufficient chunks to repair the square.
 var ErrUnrepairableDataSquare = errors.New("failed to solve data square")
 
-// ErrByzantineRow is thrown when there is a repaired row does not match the expected row Merkle root.
+// ErrByzantineRow is thrown when a repaired row does not match the expected row Merkle root.
 type ErrByzantineRow struct {
 	RowNumber uint     // Row index
-	Shares    [][]byte // Pre-repaired row shares
+	Shares    [][]byte // Pre-repaired row shares. Missing shares are nil.
 }
 
 func (e *ErrByzantineRow) Error() string {
 	return fmt.Sprintf("byzantine row: %d", e.RowNumber)
 }
 
-// ErrByzantineColumn is thrown when there is a repaired column does not match the expected column Merkle root.
+// ErrByzantineColumn is thrown when a repaired column does not match the expected column Merkle root.
 type ErrByzantineColumn struct {
 	ColumnNumber uint     // Column index
-	Shares       [][]byte // Pre-repaired column shares
+	Shares       [][]byte // Pre-repaired column shares. Missing shares are nil.
 }
 
 func (e *ErrByzantineColumn) Error() string {
@@ -41,7 +41,7 @@ func (e *ErrByzantineColumn) Error() string {
 //
 // Input
 //
-// Missing data chunks should be represented as nil.
+// Missing shares must be nil.
 //
 // Output
 //
