@@ -275,7 +275,11 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	return true, true, nil
 }
 
-func (eds *ExtendedDataSquare) rebuildShares(isExtendedPartIncomplete bool, shares [][]byte, codec Codec) ([][]byte, bool, error) {
+func (eds *ExtendedDataSquare) rebuildShares(
+	isExtendedPartIncomplete bool,
+	shares [][]byte,
+	codec Codec,
+) ([][]byte, bool, error) {
 	rebuiltShares, err := codec.Decode(shares)
 	if err != nil {
 		// repair unsuccessful
@@ -305,7 +309,12 @@ func (eds *ExtendedDataSquare) rebuildShares(isExtendedPartIncomplete bool, shar
 	return rebuiltShares, true, nil
 }
 
-func (eds *ExtendedDataSquare) verifyAgainstRowRoots(rowRoots [][]byte, r uint, bitMask bitMatrix, shares [][]byte) error {
+func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
+	rowRoots [][]byte,
+	r uint,
+	bitMask bitMatrix,
+	shares [][]byte,
+) error {
 	root := eds.computeSharesRoot(shares, r)
 
 	if !bytes.Equal(root, rowRoots[r]) {
@@ -320,7 +329,11 @@ func (eds *ExtendedDataSquare) verifyAgainstRowRoots(rowRoots [][]byte, r uint, 
 	return nil
 }
 
-func (eds *ExtendedDataSquare) verifyAgainstColRoots(columnRoots [][]byte, c uint, bitMask bitMatrix, shares [][]byte) error {
+func (eds *ExtendedDataSquare) verifyAgainstColRoots(
+	columnRoots [][]byte,
+	c uint, bitMask bitMatrix,
+	shares [][]byte,
+) error {
 	root := eds.computeSharesRoot(shares, c)
 
 	if !bytes.Equal(root, columnRoots[c]) {
@@ -335,7 +348,12 @@ func (eds *ExtendedDataSquare) verifyAgainstColRoots(columnRoots [][]byte, c uin
 	return nil
 }
 
-func (eds *ExtendedDataSquare) prerepairSanityCheck(rowRoots [][]byte, columnRoots [][]byte, bitMask bitMatrix, codec Codec) error {
+func (eds *ExtendedDataSquare) prerepairSanityCheck(
+	rowRoots [][]byte,
+	columnRoots [][]byte,
+	bitMask bitMatrix,
+	codec Codec,
+) error {
 	for i := uint(0); i < eds.width; i++ {
 		rowIsComplete := bitMask.RowIsOne(int(i))
 		colIsComplete := bitMask.ColumnIsOne(int(i))
