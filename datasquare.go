@@ -105,6 +105,7 @@ func (ds *dataSquare) rowSlice(x uint, y uint, length uint) [][]byte {
 }
 
 // Row returns the data in a row.
+// Do not modify this slice directly, instead use SetCell.
 func (ds *dataSquare) Row(x uint) [][]byte {
 	return ds.rowSlice(x, 0, ds.width)
 }
@@ -131,6 +132,7 @@ func (ds *dataSquare) columnSlice(x uint, y uint, length uint) [][]byte {
 }
 
 // Column returns the data in a column.
+// Do not modify this slice directly, instead use SetCell.
 func (ds *dataSquare) Column(y uint) [][]byte {
 	return ds.columnSlice(0, y, ds.width)
 }
