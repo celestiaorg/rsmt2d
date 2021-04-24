@@ -105,7 +105,7 @@ func (ds *dataSquare) rowSlice(x uint, y uint, length uint) [][]byte {
 }
 
 // Row returns the data in a row.
-// Do not modify this slice directly, instead use SetCell.
+// Do not modify this slice directly.
 func (ds *dataSquare) Row(x uint) [][]byte {
 	return ds.rowSlice(x, 0, ds.width)
 }
@@ -132,7 +132,7 @@ func (ds *dataSquare) columnSlice(x uint, y uint, length uint) [][]byte {
 }
 
 // Column returns the data in a column.
-// Do not modify this slice directly, instead use SetCell.
+// Do not modify this slice directly.
 func (ds *dataSquare) Column(y uint) [][]byte {
 	return ds.columnSlice(0, y, ds.width)
 }
@@ -205,7 +205,7 @@ func (ds *dataSquare) ColumnRoots() [][]byte {
 }
 
 // ColRoot calculates and returns the root of the selected row. Note: unlike the
-// ColRoots method, ColRoot does not use the built in cache
+// ColRoots method, ColRoot uses the built-in cache when available.
 func (ds *dataSquare) ColRoot(y uint) []byte {
 	if ds.columnRoots != nil {
 		return ds.columnRoots[y]
