@@ -5,6 +5,9 @@ import (
 	"math"
 )
 
+// dataSquare stores all data for an original data square (ODS) or extended
+// data square (EDS). Data is duplicated in both row-major and column-major
+// order in order to be able to provide zero-allocation column slices.
 type dataSquare struct {
 	squareRow    [][][]byte // row-major
 	squareCol    [][][]byte // col-major
@@ -102,6 +105,7 @@ func (ds *dataSquare) rowSlice(x uint, y uint, length uint) [][]byte {
 }
 
 // Row returns the data in a row.
+// Do not modify this slice directly.
 func (ds *dataSquare) Row(x uint) [][]byte {
 	return ds.rowSlice(x, 0, ds.width)
 }
@@ -128,6 +132,7 @@ func (ds *dataSquare) columnSlice(x uint, y uint, length uint) [][]byte {
 }
 
 // Column returns the data in a column.
+// Do not modify this slice directly.
 func (ds *dataSquare) Column(y uint) [][]byte {
 	return ds.columnSlice(0, y, ds.width)
 }
@@ -200,7 +205,7 @@ func (ds *dataSquare) ColumnRoots() [][]byte {
 }
 
 // ColRoot calculates and returns the root of the selected row. Note: unlike the
-// ColRoots method, ColRoot does not use the built in cache
+// ColRoots method, ColRoot uses the built-in cache when available.
 func (ds *dataSquare) ColRoot(y uint) []byte {
 	if ds.columnRoots != nil {
 		return ds.columnRoots[y]
