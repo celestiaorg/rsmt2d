@@ -21,7 +21,7 @@ func main() {
     // Size of each share, in bytes
     bufferSize := 64
     // Init new codec
-    codec := rsmt2d.NewLeoRSFF16Codec()
+    codec := rsmt2d.NewLeoRSFF8Codec()
 
     ones := bytes.Repeat([]byte{1}, bufferSize)
     twos := bytes.Repeat([]byte{2}, bufferSize)
