@@ -172,7 +172,6 @@ func (ds *dataSquare) computeRoots() {
 }
 
 // getRowRoots returns the Merkle roots of all the rows in the square.
-// Note: do not modify this slice directly, use setCell instead.
 func (ds *dataSquare) getRowRoots() [][]byte {
 	if ds.rowRoots == nil {
 		ds.computeRoots()
@@ -197,7 +196,6 @@ func (ds *dataSquare) getRowRoot(x uint) []byte {
 }
 
 // getColRoots returns the Merkle roots of all the columns in the square.
-// Note: do not modify this slice directly, use setCell instead.
 func (ds *dataSquare) getColRoots() [][]byte {
 	if ds.columnRoots == nil {
 		ds.computeRoots()
