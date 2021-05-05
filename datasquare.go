@@ -221,30 +221,6 @@ func (ds *dataSquare) getColRoot(y uint) []byte {
 	return tree.Root()
 }
 
-func (ds *dataSquare) computeRowProof(x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
-	tree := ds.createTreeFn()
-	data := ds.row(x)
-
-	for i := uint(0); i < ds.width; i++ {
-		tree.Push(data[i], SquareIndex{Axis: y, Cell: uint(i)})
-	}
-
-	merkleRoot, proof, proofIndex, numLeaves := tree.Prove(int(y))
-	return merkleRoot, proof, uint(proofIndex), uint(numLeaves), nil
-}
-
-func (ds *dataSquare) computeColumnProof(x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
-	tree := ds.createTreeFn()
-	data := ds.column(y)
-
-	for i := uint(0); i < ds.width; i++ {
-		tree.Push(data[i], SquareIndex{Axis: y, Cell: uint(i)})
-	}
-	// TODO(ismail): check for overflow when casting from uint -> int
-	merkleRoot, proof, proofIndex, numLeaves := tree.Prove(int(x))
-	return merkleRoot, proof, uint(proofIndex), uint(numLeaves), nil
-}
-
 // getCell returns a single chunk at a specific cell.
 func (ds *dataSquare) getCell(x uint, y uint) []byte {
 	cell := make([]byte, ds.chunkSize)

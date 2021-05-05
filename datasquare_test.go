@@ -112,12 +112,12 @@ func TestRootAPI(t *testing.T) {
 	}
 }
 
-func TestProofs(t *testing.T) {
+func TestDefaultTreeProofs(t *testing.T) {
 	result, err := newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}}, NewDefaultTree)
 	if err != nil {
 		panic(err)
 	}
-	_, proof, proofIndex, numLeaves, err := result.computeRowProof(1, 1)
+	_, proof, proofIndex, numLeaves, err := computeRowProof(result, 1, 1)
 	if err != nil {
 		t.Errorf("Got unexpected error: %v", err)
 	}
@@ -135,7 +135,7 @@ func TestProofs(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	_, proof, proofIndex, numLeaves, err = result.computeColumnProof(1, 1)
+	_, proof, proofIndex, numLeaves, err = computeColumnProof(result, 1, 1)
 	if err != nil {
 		t.Errorf("Got unexpected error: %v", err)
 	}
@@ -165,4 +165,38 @@ func BenchmarkRoots(b *testing.B) {
 			},
 		)
 	}
+}
+
+func computeRowProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
+	tree := ds.createTreeFn()
+	data := ds.row(x)
+
+	for i := uint(0); i < ds.width; i++ {
+		tree.Push(data[i], SquareIndex{Axis: y, Cell: uint(i)})
+	}
+
+	merkleRoot, proof, proofIndex, numLeaves := treeProve(tree.(*DefaultTree), int(y))
+	return merkleRoot, proof, uint(proofIndex), uint(numLeaves), nil
+}
+
+func computeColumnProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
+	tree := ds.createTreeFn()
+	data := ds.column(y)
+
+	for i := uint(0); i < ds.width; i++ {
+		tree.Push(data[i], SquareIndex{Axis: y, Cell: uint(i)})
+	}
+	// TODO(ismail): check for overflow when casting from uint -> int
+	merkleRoot, proof, proofIndex, numLeaves := treeProve(tree.(*DefaultTree), int(x))
+	return merkleRoot, proof, uint(proofIndex), uint(numLeaves), nil
+}
+
+func treeProve(d *DefaultTree, idx int) (merkleRoot []byte, proofSet [][]byte, proofIndex uint64, numLeaves uint64) {
+	if err := d.Tree.SetIndex(uint64(idx)); err != nil {
+		panic(fmt.Sprintf("don't call prove on a already used tree: %v", err))
+	}
+	for _, l := range d.leaves {
+		d.Tree.Push(l)
+	}
+	return d.Tree.Prove()
 }
