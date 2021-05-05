@@ -83,8 +83,8 @@ func TestLazyRootGeneration(t *testing.T) {
 
 	square.computeRoots()
 
-	if !reflect.DeepEqual(square.rowRoots, rowRoots) && !reflect.DeepEqual(square.columnRoots, colRoots) {
-		t.Error("RowRoot or ColumnRoot did not produce identical roots to computeRoots")
+	if !reflect.DeepEqual(square.rowRoots, rowRoots) && !reflect.DeepEqual(square.colRoots, colRoots) {
+		t.Error("getRowRoot or getColRoot did not produce identical roots to computeRoots")
 	}
 }
 
@@ -135,7 +135,7 @@ func TestDefaultTreeProofs(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	_, proof, proofIndex, numLeaves, err = computeColumnProof(result, 1, 1)
+	_, proof, proofIndex, numLeaves, err = computeColProof(result, 1, 1)
 	if err != nil {
 		t.Errorf("Got unexpected error: %v", err)
 	}
@@ -179,9 +179,9 @@ func computeRowProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, ui
 	return merkleRoot, proof, uint(proofIndex), uint(numLeaves), nil
 }
 
-func computeColumnProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
+func computeColProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
 	tree := ds.createTreeFn()
-	data := ds.column(y)
+	data := ds.col(y)
 
 	for i := uint(0); i < ds.width; i++ {
 		tree.Push(data[i], SquareIndex{Axis: y, Cell: uint(i)})

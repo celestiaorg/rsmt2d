@@ -41,8 +41,7 @@ func main() {
         // ComputeExtendedDataSquare failed
     }
 
-    // Save all shares in flattended form.
-    // Note: slices returned from Row() an Column() are read-only.
+    // Save all shares in flattened form.
     // If you need to write to them, copy first.
     flattened := make([][]byte, 0, eds.Width()*eds.Width())
     for i := uint(0); i < eds.Width(); i++ {

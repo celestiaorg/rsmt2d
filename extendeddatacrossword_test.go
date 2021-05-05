@@ -122,9 +122,9 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		flattened = corrupted.flattened()
 		flattened[1], flattened[2], flattened[3] = nil, nil, nil
 		_, err = RepairExtendedDataSquare(corrupted.getRowRoots(), corrupted.getColRoots(), flattened, codec, NewDefaultTree)
-		var byzColumn *ErrByzantineColumn
-		if !errors.As(err, &byzColumn) {
-			t.Errorf("did not return a ErrByzantineColumn for a bad column; got %v", err)
+		var byzCol *ErrByzantineCol
+		if !errors.As(err, &byzCol) {
+			t.Errorf("did not return a ErrByzantineCol for a bad column; got %v", err)
 		}
 
 		corrupted, err = original.deepCopy(codec)
@@ -135,8 +135,8 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		flattened = corrupted.flattened()
 		flattened[1], flattened[2], flattened[3] = nil, nil, nil
 		_, err = RepairExtendedDataSquare(corrupted.getRowRoots(), corrupted.getColRoots(), flattened, codec, NewDefaultTree)
-		if !errors.As(err, &byzColumn) {
-			t.Errorf("did not return a ErrByzantineColumn for a bad column; got %v", err)
+		if !errors.As(err, &byzCol) {
+			t.Errorf("did not return a ErrByzantineCol for a bad column; got %v", err)
 		}
 	}
 }

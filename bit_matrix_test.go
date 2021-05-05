@@ -15,11 +15,11 @@ func Test_bitMatrix_ColRangeIsOne(t *testing.T) {
 		end   int
 	}
 	tests := []struct {
-		name          string
-		initParams    initParams
-		setBits       []int
-		rangeInColumn colRange
-		want          bool
+		name       string
+		initParams initParams
+		setBits    []int
+		rangeInCol colRange
+		want       bool
 	}{
 		{"empty", initParams{4, 16}, nil, colRange{0, 0, 4}, false},
 		{"empty", initParams{4, 16}, nil, colRange{1, 0, 4}, false},
@@ -44,14 +44,14 @@ func Test_bitMatrix_ColRangeIsOne(t *testing.T) {
 			for _, flatIdx := range tt.setBits {
 				bm.SetFlat(flatIdx)
 			}
-			if got := bm.ColRangeIsOne(tt.rangeInColumn.c, tt.rangeInColumn.start, tt.rangeInColumn.end); got != tt.want {
+			if got := bm.ColRangeIsOne(tt.rangeInCol.c, tt.rangeInCol.start, tt.rangeInCol.end); got != tt.want {
 				t.Errorf("ColRangeIsOne() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func Test_bitMatrix_ColumnIsOne(t *testing.T) {
+func Test_bitMatrix_ColIsOne(t *testing.T) {
 	type initParams struct {
 		squareSize int
 		bits       int
@@ -61,7 +61,7 @@ func Test_bitMatrix_ColumnIsOne(t *testing.T) {
 		name       string
 		initParams initParams
 		setBits    []int
-		column     int
+		col        int
 		want       bool
 	}{
 		{"empty", initParams{4, 16}, []int{}, 0, false},
@@ -95,8 +95,8 @@ func Test_bitMatrix_ColumnIsOne(t *testing.T) {
 			for _, flatIdx := range tt.setBits {
 				bm.SetFlat(flatIdx)
 			}
-			if got := bm.ColumnIsOne(tt.column); got != tt.want {
-				t.Errorf("ColumnIsOne() = %v, want %v", got, tt.want)
+			if got := bm.ColIsOne(tt.col); got != tt.want {
+				t.Errorf("ColIsOne() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -160,7 +160,7 @@ func Test_bitMatrix_NumOnesInCol(t *testing.T) {
 		name       string
 		initParams initParams
 		setBits    []int
-		column     int
+		col        int
 		want       int
 	}{
 		{"empty", initParams{4, 16}, []int{}, 0, 0},
@@ -187,7 +187,7 @@ func Test_bitMatrix_NumOnesInCol(t *testing.T) {
 			for _, flatIdx := range tt.setBits {
 				bm.SetFlat(flatIdx)
 			}
-			if got := bm.NumOnesInCol(tt.column); got != tt.want {
+			if got := bm.NumOnesInCol(tt.col); got != tt.want {
 				t.Errorf("NumOnesInCol() = %v, want %v", got, tt.want)
 			}
 		})

@@ -91,11 +91,11 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 		}
 
 		// Extend vertically
-		shares, err = codec.Encode(eds.columnSlice(0, i, eds.originalDataWidth))
+		shares, err = codec.Encode(eds.colSlice(0, i, eds.originalDataWidth))
 		if err != nil {
 			return err
 		}
-		if err := eds.setColumnSlice(eds.originalDataWidth, i, shares[len(shares)-int(eds.originalDataWidth):]); err != nil {
+		if err := eds.setColSlice(eds.originalDataWidth, i, shares[len(shares)-int(eds.originalDataWidth):]); err != nil {
 			return err
 		}
 	}
@@ -133,7 +133,7 @@ func (eds *ExtendedDataSquare) deepCopy(codec Codec) (ExtendedDataSquare, error)
 // This slice is a copy of the internal column slice.
 func (eds *ExtendedDataSquare) Col(y uint) [][]byte {
 	s := make([][]byte, eds.width)
-	copy(s, eds.columnSlice(0, y, eds.width))
+	copy(s, eds.colSlice(0, y, eds.width))
 	return s
 }
 
