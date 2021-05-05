@@ -14,7 +14,7 @@ type dataSquare struct {
 	width        uint
 	chunkSize    uint
 	rowRoots     [][]byte
-	columnRoots  [][]byte
+	colRoots     [][]byte
 	createTreeFn TreeConstructorFn
 }
 
@@ -104,9 +104,9 @@ func (ds *dataSquare) rowSlice(x uint, y uint, length uint) [][]byte {
 	return ds.squareRow[x][y : y+length]
 }
 
-// Row returns the data in a row.
-// Do not modify this slice directly.
-func (ds *dataSquare) Row(x uint) [][]byte {
+// row returns a row slice.
+// Do not modify this slice directly, instead use setCell.
+func (ds *dataSquare) row(x uint) [][]byte {
 	return ds.rowSlice(x, 0, ds.width)
 }
 
@@ -127,26 +127,26 @@ func (ds *dataSquare) setRowSlice(x uint, y uint, newRow [][]byte) error {
 	return nil
 }
 
-func (ds *dataSquare) columnSlice(x uint, y uint, length uint) [][]byte {
+func (ds *dataSquare) colSlice(x uint, y uint, length uint) [][]byte {
 	return ds.squareCol[y][x : x+length]
 }
 
-// Column returns the data in a column.
-// Do not modify this slice directly.
-func (ds *dataSquare) Column(y uint) [][]byte {
-	return ds.columnSlice(0, y, ds.width)
+// col returns a column slice.
+// Do not modify this slice directly, instead use setCell.
+func (ds *dataSquare) col(y uint) [][]byte {
+	return ds.colSlice(0, y, ds.width)
 }
 
-func (ds *dataSquare) setColumnSlice(x uint, y uint, newColumn [][]byte) error {
-	for i := uint(0); i < uint(len(newColumn)); i++ {
-		if len(newColumn[i]) != int(ds.chunkSize) {
+func (ds *dataSquare) setColSlice(x uint, y uint, newCol [][]byte) error {
+	for i := uint(0); i < uint(len(newCol)); i++ {
+		if len(newCol[i]) != int(ds.chunkSize) {
 			return errors.New("invalid chunk size")
 		}
 	}
 
-	for i := uint(0); i < uint(len(newColumn)); i++ {
-		ds.squareRow[x+i][y] = newColumn[i]
-		ds.squareCol[y][x+i] = newColumn[i]
+	for i := uint(0); i < uint(len(newCol)); i++ {
+		ds.squareRow[x+i][y] = newCol[i]
+		ds.squareCol[y][x+i] = newCol[i]
 	}
 
 	ds.resetRoots()
@@ -156,23 +156,23 @@ func (ds *dataSquare) setColumnSlice(x uint, y uint, newColumn [][]byte) error {
 
 func (ds *dataSquare) resetRoots() {
 	ds.rowRoots = nil
-	ds.columnRoots = nil
+	ds.colRoots = nil
 }
 
 func (ds *dataSquare) computeRoots() {
 	rowRoots := make([][]byte, ds.width)
-	columnRoots := make([][]byte, ds.width)
+	colRoots := make([][]byte, ds.width)
 	for i := uint(0); i < ds.width; i++ {
-		rowRoots[i] = ds.RowRoot(i)
-		columnRoots[i] = ds.ColRoot(i)
+		rowRoots[i] = ds.getRowRoot(i)
+		colRoots[i] = ds.getColRoot(i)
 	}
 
 	ds.rowRoots = rowRoots
-	ds.columnRoots = columnRoots
+	ds.colRoots = colRoots
 }
 
-// RowRoots returns the Merkle roots of all the rows in the square.
-func (ds *dataSquare) RowRoots() [][]byte {
+// getRowRoots returns the Merkle roots of all the rows in the square.
+func (ds *dataSquare) getRowRoots() [][]byte {
 	if ds.rowRoots == nil {
 		ds.computeRoots()
 	}
@@ -180,71 +180,47 @@ func (ds *dataSquare) RowRoots() [][]byte {
 	return ds.rowRoots
 }
 
-// RowRoot calculates and returns the root of the selected row. Note: unlike the
-// RowRoots method, RowRoot uses the built-in cache when available.
-func (ds *dataSquare) RowRoot(x uint) []byte {
+// getRowRoot calculates and returns the root of the selected row. Note: unlike the
+// getRowRoots method, getRowRoot uses the built-in cache when available.
+func (ds *dataSquare) getRowRoot(x uint) []byte {
 	if ds.rowRoots != nil {
 		return ds.rowRoots[x]
 	}
 
 	tree := ds.createTreeFn()
-	for i, d := range ds.Row(x) {
+	for i, d := range ds.row(x) {
 		tree.Push(d, SquareIndex{Cell: uint(i), Axis: x})
 	}
 
 	return tree.Root()
 }
 
-// ColumnRoots returns the Merkle roots of all the columns in the square.
-func (ds *dataSquare) ColumnRoots() [][]byte {
-	if ds.columnRoots == nil {
+// getColRoots returns the Merkle roots of all the columns in the square.
+func (ds *dataSquare) getColRoots() [][]byte {
+	if ds.colRoots == nil {
 		ds.computeRoots()
 	}
 
-	return ds.columnRoots
+	return ds.colRoots
 }
 
-// ColRoot calculates and returns the root of the selected row. Note: unlike the
-// ColRoots method, ColRoot uses the built-in cache when available.
-func (ds *dataSquare) ColRoot(y uint) []byte {
-	if ds.columnRoots != nil {
-		return ds.columnRoots[y]
+// getColRoot calculates and returns the root of the selected row. Note: unlike the
+// getColRoots method, getColRoot uses the built-in cache when available.
+func (ds *dataSquare) getColRoot(y uint) []byte {
+	if ds.colRoots != nil {
+		return ds.colRoots[y]
 	}
 
 	tree := ds.createTreeFn()
-	for i, d := range ds.Column(y) {
+	for i, d := range ds.col(y) {
 		tree.Push(d, SquareIndex{Axis: y, Cell: uint(i)})
 	}
 
 	return tree.Root()
 }
 
-func (ds *dataSquare) computeRowProof(x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
-	tree := ds.createTreeFn()
-	data := ds.Row(x)
-
-	for i := uint(0); i < ds.width; i++ {
-		tree.Push(data[i], SquareIndex{Axis: y, Cell: uint(i)})
-	}
-
-	merkleRoot, proof, proofIndex, numLeaves := tree.Prove(int(y))
-	return merkleRoot, proof, uint(proofIndex), uint(numLeaves), nil
-}
-
-func (ds *dataSquare) computeColumnProof(x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
-	tree := ds.createTreeFn()
-	data := ds.Column(y)
-
-	for i := uint(0); i < ds.width; i++ {
-		tree.Push(data[i], SquareIndex{Axis: y, Cell: uint(i)})
-	}
-	// TODO(ismail): check for overflow when casting from uint -> int
-	merkleRoot, proof, proofIndex, numLeaves := tree.Prove(int(x))
-	return merkleRoot, proof, uint(proofIndex), uint(numLeaves), nil
-}
-
-// Cell returns a single chunk at a specific cell.
-func (ds *dataSquare) Cell(x uint, y uint) []byte {
+// getCell returns a single chunk at a specific cell.
+func (ds *dataSquare) getCell(x uint, y uint) []byte {
 	cell := make([]byte, ds.chunkSize)
 	copy(cell, ds.squareRow[x][y])
 	return cell
@@ -263,9 +239,4 @@ func (ds *dataSquare) flattened() [][]byte {
 	}
 
 	return flattened
-}
-
-// Width returns the width of the square.
-func (ds *dataSquare) Width() uint {
-	return ds.width
 }

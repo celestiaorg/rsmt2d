@@ -29,7 +29,7 @@ func main() {
     fours := bytes.Repeat([]byte{4}, bufferSize)
 
     // Compute parity shares
-    eds, _ := rsmt2d.ComputeExtendedDataSquare(
+    eds, err := rsmt2d.ComputeExtendedDataSquare(
         [][]byte{
             ones, twos,
             threes, fours,
@@ -37,14 +37,15 @@ func main() {
         codec,
         rsmt2d.NewDefaultTree,
     )
+    if err != nil {
+        // ComputeExtendedDataSquare failed
+    }
 
-    // Save all shares in flattended form.
-    // Note: slices returned from Row() an Column() are read-only.
+    // Save all shares in flattened form.
     // If you need to write to them, copy first.
     flattened := make([][]byte, 0, eds.Width()*eds.Width())
     for i := uint(0); i < eds.Width(); i++ {
-        startIndex := i * eds.Width()
-        copy(flattened[startIndex:startIndex+eds.Width()], eds.Row(i))
+        flattened = append(flattened, eds.Row(i)...)
     }
 
     // Delete some shares, just enough so that repairing is possible.
@@ -56,7 +57,7 @@ func main() {
     // Repair square.
     repaired, err := rsmt2d.RepairExtendedDataSquare(
         eds.RowRoots(),
-        eds.ColumnRoots(),
+        eds.ColRoots(),
         flattened,
         codec,
         rsmt2d.NewDefaultTree,

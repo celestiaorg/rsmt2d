@@ -29,7 +29,7 @@ func (bm *bitMatrix) Set(row, col int) {
 	bm.mask[idx/64] |= uint64(1) << uint(idx%64)
 }
 
-func (bm bitMatrix) ColumnIsOne(c int) bool {
+func (bm bitMatrix) ColIsOne(c int) bool {
 	for r := 0; r < bm.squareSize; r++ {
 		if !bm.Get(r, c) {
 			return false

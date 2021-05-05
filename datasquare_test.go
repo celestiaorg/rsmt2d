@@ -62,7 +62,7 @@ func TestRoots(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	if !reflect.DeepEqual(result.RowRoots(), result.ColumnRoots()) {
+	if !reflect.DeepEqual(result.getRowRoots(), result.getColRoots()) {
 		t.Errorf("computing roots failed; expecting row and column roots for 1x1 square to be equal")
 	}
 }
@@ -77,14 +77,14 @@ func TestLazyRootGeneration(t *testing.T) {
 	var colRoots [][]byte
 
 	for i := uint(0); i < square.width; i++ {
-		rowRoots = append(rowRoots, square.RowRoot(i))
-		colRoots = append(rowRoots, square.ColRoot(i))
+		rowRoots = append(rowRoots, square.getRowRoot(i))
+		colRoots = append(rowRoots, square.getColRoot(i))
 	}
 
 	square.computeRoots()
 
-	if !reflect.DeepEqual(square.rowRoots, rowRoots) && !reflect.DeepEqual(square.columnRoots, colRoots) {
-		t.Error("RowRoot or ColumnRoot did not produce identical roots to computeRoots")
+	if !reflect.DeepEqual(square.rowRoots, rowRoots) && !reflect.DeepEqual(square.colRoots, colRoots) {
+		t.Error("getRowRoot or getColRoot did not produce identical roots to computeRoots")
 	}
 }
 
@@ -95,29 +95,29 @@ func TestRootAPI(t *testing.T) {
 	}
 
 	for i := uint(0); i < square.width; i++ {
-		if !reflect.DeepEqual(square.RowRoots()[i], square.RowRoot(i)) {
+		if !reflect.DeepEqual(square.getRowRoots()[i], square.getRowRoot(i)) {
 			t.Errorf(
 				"Row root API results in different roots, expected %v go %v",
-				square.RowRoots()[i],
-				square.RowRoot(i),
+				square.getRowRoots()[i],
+				square.getRowRoot(i),
 			)
 		}
-		if !reflect.DeepEqual(square.ColumnRoots()[i], square.ColRoot(i)) {
+		if !reflect.DeepEqual(square.getColRoots()[i], square.getColRoot(i)) {
 			t.Errorf(
 				"Column root API results in different roots, expected %v go %v",
-				square.ColumnRoots()[i],
-				square.ColRoot(i),
+				square.getColRoots()[i],
+				square.getColRoot(i),
 			)
 		}
 	}
 }
 
-func TestProofs(t *testing.T) {
+func TestDefaultTreeProofs(t *testing.T) {
 	result, err := newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}}, NewDefaultTree)
 	if err != nil {
 		panic(err)
 	}
-	_, proof, proofIndex, numLeaves, err := result.computeRowProof(1, 1)
+	_, proof, proofIndex, numLeaves, err := computeRowProof(result, 1, 1)
 	if err != nil {
 		t.Errorf("Got unexpected error: %v", err)
 	}
@@ -135,7 +135,7 @@ func TestProofs(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	_, proof, proofIndex, numLeaves, err = result.computeColumnProof(1, 1)
+	_, proof, proofIndex, numLeaves, err = computeColProof(result, 1, 1)
 	if err != nil {
 		t.Errorf("Got unexpected error: %v", err)
 	}
@@ -165,4 +165,38 @@ func BenchmarkRoots(b *testing.B) {
 			},
 		)
 	}
+}
+
+func computeRowProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
+	tree := ds.createTreeFn()
+	data := ds.row(x)
+
+	for i := uint(0); i < ds.width; i++ {
+		tree.Push(data[i], SquareIndex{Axis: y, Cell: uint(i)})
+	}
+
+	merkleRoot, proof, proofIndex, numLeaves := treeProve(tree.(*DefaultTree), int(y))
+	return merkleRoot, proof, uint(proofIndex), uint(numLeaves), nil
+}
+
+func computeColProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
+	tree := ds.createTreeFn()
+	data := ds.col(y)
+
+	for i := uint(0); i < ds.width; i++ {
+		tree.Push(data[i], SquareIndex{Axis: y, Cell: uint(i)})
+	}
+	// TODO(ismail): check for overflow when casting from uint -> int
+	merkleRoot, proof, proofIndex, numLeaves := treeProve(tree.(*DefaultTree), int(x))
+	return merkleRoot, proof, uint(proofIndex), uint(numLeaves), nil
+}
+
+func treeProve(d *DefaultTree, idx int) (merkleRoot []byte, proofSet [][]byte, proofIndex uint64, numLeaves uint64) {
+	if err := d.Tree.SetIndex(uint64(idx)); err != nil {
+		panic(fmt.Sprintf("don't call prove on a already used tree: %v", err))
+	}
+	for _, l := range d.leaves {
+		d.Tree.Push(l)
+	}
+	return d.Tree.Prove()
 }

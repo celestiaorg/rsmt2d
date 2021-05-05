@@ -41,14 +41,14 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		flattened[8], flattened[9], flattened[10] = nil, nil, nil
 		flattened[12], flattened[13] = nil, nil
 		var result *ExtendedDataSquare
-		result, err = RepairExtendedDataSquare(original.RowRoots(), original.ColumnRoots(), flattened, codec, NewDefaultTree)
+		result, err = RepairExtendedDataSquare(original.getRowRoots(), original.getColRoots(), flattened, codec, NewDefaultTree)
 		if err != nil {
 			t.Errorf("unexpected err while repairing data square: %v, codec: :%s", err, codecName)
 		} else {
-			assert.Equal(t, result.Cell(0, 0), ones)
-			assert.Equal(t, result.Cell(0, 1), twos)
-			assert.Equal(t, result.Cell(1, 0), threes)
-			assert.Equal(t, result.Cell(1, 1), fours)
+			assert.Equal(t, result.getCell(0, 0), ones)
+			assert.Equal(t, result.getCell(0, 1), twos)
+			assert.Equal(t, result.getCell(1, 0), threes)
+			assert.Equal(t, result.getCell(1, 1), fours)
 		}
 
 		flattened = original.flattened()
@@ -56,7 +56,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		flattened[4], flattened[5], flattened[6], flattened[7] = nil, nil, nil, nil
 		flattened[8], flattened[9], flattened[10] = nil, nil, nil
 		flattened[12], flattened[13], flattened[14] = nil, nil, nil
-		_, err = RepairExtendedDataSquare(original.RowRoots(), original.ColumnRoots(), flattened, codec, NewDefaultTree)
+		_, err = RepairExtendedDataSquare(original.getRowRoots(), original.getColRoots(), flattened, codec, NewDefaultTree)
 		if err == nil {
 			t.Errorf("did not return an error on trying to repair an unrepairable square")
 		}
@@ -67,7 +67,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		}
 		corruptChunk := bytes.Repeat([]byte{66}, bufferSize)
 		corrupted.setCell(0, 0, corruptChunk)
-		_, err = RepairExtendedDataSquare(original.RowRoots(), original.ColumnRoots(), corrupted.flattened(), codec, NewDefaultTree)
+		_, err = RepairExtendedDataSquare(original.getRowRoots(), original.getColRoots(), corrupted.flattened(), codec, NewDefaultTree)
 		if err == nil {
 			t.Errorf("did not return an error on trying to repair a square with bad roots")
 		}
@@ -77,7 +77,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 			t.Fatalf("unexpected err while copying original data: %v, codec: :%s", err, codecName)
 		}
 		corrupted.setCell(0, 0, corruptChunk)
-		_, err = RepairExtendedDataSquare(corrupted.RowRoots(), corrupted.ColumnRoots(), corrupted.flattened(), codec, NewDefaultTree)
+		_, err = RepairExtendedDataSquare(corrupted.getRowRoots(), corrupted.getColRoots(), corrupted.flattened(), codec, NewDefaultTree)
 		var byzRow *ErrByzantineRow
 		if !errors.As(err, &byzRow) {
 			t.Errorf("did not return a ErrByzantineRow for a bad row; got: %v", err)
@@ -92,7 +92,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 			t.Errorf("could not decode fraud proof shares; got: %v", err)
 		}
 		root := corrupted.computeSharesRoot(rebuiltShares, fraudProof.Index)
-		if bytes.Equal(root, corrupted.RowRoot(fraudProof.Index)) {
+		if bytes.Equal(root, corrupted.getRowRoot(fraudProof.Index)) {
 			// If the roots match, then the fraud proof should be for invalid erasure coding.
 			parityShares, err := codec.Encode(rebuiltShares[0:corrupted.originalDataWidth])
 			if err != nil {
@@ -109,7 +109,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 			t.Fatalf("unexpected err while copying original data: %v, codec: :%s", err, codecName)
 		}
 		corrupted.setCell(0, 3, corruptChunk)
-		_, err = RepairExtendedDataSquare(corrupted.RowRoots(), corrupted.ColumnRoots(), corrupted.flattened(), codec, NewDefaultTree)
+		_, err = RepairExtendedDataSquare(corrupted.getRowRoots(), corrupted.getColRoots(), corrupted.flattened(), codec, NewDefaultTree)
 		if !errors.As(err, &byzRow) {
 			t.Errorf("did not return a ErrByzantineRow for a bad row; got %v", err)
 		}
@@ -121,10 +121,10 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		corrupted.setCell(0, 0, corruptChunk)
 		flattened = corrupted.flattened()
 		flattened[1], flattened[2], flattened[3] = nil, nil, nil
-		_, err = RepairExtendedDataSquare(corrupted.RowRoots(), corrupted.ColumnRoots(), flattened, codec, NewDefaultTree)
-		var byzColumn *ErrByzantineColumn
-		if !errors.As(err, &byzColumn) {
-			t.Errorf("did not return a ErrByzantineColumn for a bad column; got %v", err)
+		_, err = RepairExtendedDataSquare(corrupted.getRowRoots(), corrupted.getColRoots(), flattened, codec, NewDefaultTree)
+		var byzCol *ErrByzantineCol
+		if !errors.As(err, &byzCol) {
+			t.Errorf("did not return a ErrByzantineCol for a bad column; got %v", err)
 		}
 
 		corrupted, err = original.deepCopy(codec)
@@ -134,9 +134,9 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		corrupted.setCell(3, 0, corruptChunk)
 		flattened = corrupted.flattened()
 		flattened[1], flattened[2], flattened[3] = nil, nil, nil
-		_, err = RepairExtendedDataSquare(corrupted.RowRoots(), corrupted.ColumnRoots(), flattened, codec, NewDefaultTree)
-		if !errors.As(err, &byzColumn) {
-			t.Errorf("did not return a ErrByzantineColumn for a bad column; got %v", err)
+		_, err = RepairExtendedDataSquare(corrupted.getRowRoots(), corrupted.getColRoots(), flattened, codec, NewDefaultTree)
+		if !errors.As(err, &byzCol) {
+			t.Errorf("did not return a ErrByzantineCol for a bad column; got %v", err)
 		}
 	}
 }
@@ -181,8 +181,8 @@ func BenchmarkRepair(b *testing.B) {
 						b.StartTimer()
 
 						_, err := RepairExtendedDataSquare(
-							eds.RowRoots(),
-							eds.ColumnRoots(),
+							eds.getRowRoots(),
+							eds.getColRoots(),
 							flattened,
 							codec,
 							NewDefaultTree,

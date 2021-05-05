@@ -2,7 +2,6 @@ package rsmt2d
 
 import (
 	"crypto/sha256"
-	"fmt"
 
 	"github.com/lazyledger/merkletree"
 )
@@ -16,11 +15,9 @@ type SquareIndex struct {
 	Axis, Cell uint
 }
 
-// Tree wraps merkle tree implementations to work with rsmt2d
+// Tree wraps Merkle tree implementations to work with rsmt2d
 type Tree interface {
 	Push(data []byte, idx SquareIndex)
-	// TODO(ismail): is this general enough?
-	Prove(idx int) (merkleRoot []byte, proofSet [][]byte, proofIndex uint64, numLeaves uint64)
 	Root() []byte
 }
 
@@ -42,16 +39,6 @@ func NewDefaultTree() Tree {
 func (d *DefaultTree) Push(data []byte, _idx SquareIndex) {
 	// ignore the idx, as this implementation doesn't need that info
 	d.leaves = append(d.leaves, data)
-}
-
-func (d *DefaultTree) Prove(idx int) (merkleRoot []byte, proofSet [][]byte, proofIndex uint64, numLeaves uint64) {
-	if err := d.Tree.SetIndex(uint64(idx)); err != nil {
-		panic(fmt.Sprintf("don't call prove on a already used tree: %v", err))
-	}
-	for _, l := range d.leaves {
-		d.Tree.Push(l)
-	}
-	return d.Tree.Prove()
 }
 
 func (d *DefaultTree) Root() []byte {
