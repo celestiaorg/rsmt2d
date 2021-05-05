@@ -159,7 +159,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	// Prepare shares
 	shares := make([][]byte, eds.width)
 	for c := 0; c < int(eds.width); c++ {
-		vectorData := eds.Row(uint(r))
+		vectorData := eds.row(uint(r))
 
 		if bitMask.Get(r, c) {
 			// As guaranteed by the bitMask, vectorData can't be nil here:
@@ -227,7 +227,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	// Prepare shares
 	shares := make([][]byte, eds.width)
 	for r := 0; r < int(eds.width); r++ {
-		vectorData := eds.Column(uint(c))
+		vectorData := eds.column(uint(c))
 
 		if bitMask.Get(r, c) {
 			// As guaranteed by the bitMask, vectorData can't be nil here:
@@ -359,18 +359,18 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 		colIsComplete := bitMask.ColumnIsOne(int(i))
 
 		// if there's no missing data in the this row
-		if noMissingData(eds.Row(i)) {
+		if noMissingData(eds.row(i)) {
 			// ensure that the roots are equal and that rowMask is a vector
-			if rowIsComplete && !bytes.Equal(rowRoots[i], eds.RowRoot(i)) {
-				return fmt.Errorf("bad root input: row %d expected %v got %v", i, rowRoots[i], eds.RowRoot(i))
+			if rowIsComplete && !bytes.Equal(rowRoots[i], eds.getRowRoot(i)) {
+				return fmt.Errorf("bad root input: row %d expected %v got %v", i, rowRoots[i], eds.getRowRoot(i))
 			}
 		}
 
 		// if there's no missing data in the this col
-		if noMissingData(eds.Column(i)) {
+		if noMissingData(eds.column(i)) {
 			// ensure that the roots are equal and that rowMask is a vector
-			if colIsComplete && !bytes.Equal(columnRoots[i], eds.ColRoot(i)) {
-				return fmt.Errorf("bad root input: col %d expected %v got %v", i, columnRoots[i], eds.ColRoot(i))
+			if colIsComplete && !bytes.Equal(columnRoots[i], eds.getColRoot(i)) {
+				return fmt.Errorf("bad root input: col %d expected %v got %v", i, columnRoots[i], eds.getColRoot(i))
 			}
 		}
 
@@ -380,7 +380,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 				return err
 			}
 			if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.rowSlice(i, eds.originalDataWidth, eds.originalDataWidth))) {
-				return &ErrByzantineRow{i, eds.Row(i)}
+				return &ErrByzantineRow{i, eds.row(i)}
 			}
 		}
 
@@ -390,7 +390,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 				return err
 			}
 			if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.columnSlice(eds.originalDataWidth, i, eds.originalDataWidth))) {
-				return &ErrByzantineColumn{i, eds.Column(i)}
+				return &ErrByzantineColumn{i, eds.column(i)}
 			}
 		}
 	}

@@ -62,7 +62,7 @@ func TestRoots(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	if !reflect.DeepEqual(result.RowRoots(), result.ColumnRoots()) {
+	if !reflect.DeepEqual(result.getRowRoots(), result.getColRoots()) {
 		t.Errorf("computing roots failed; expecting row and column roots for 1x1 square to be equal")
 	}
 }
@@ -77,8 +77,8 @@ func TestLazyRootGeneration(t *testing.T) {
 	var colRoots [][]byte
 
 	for i := uint(0); i < square.width; i++ {
-		rowRoots = append(rowRoots, square.RowRoot(i))
-		colRoots = append(rowRoots, square.ColRoot(i))
+		rowRoots = append(rowRoots, square.getRowRoot(i))
+		colRoots = append(rowRoots, square.getColRoot(i))
 	}
 
 	square.computeRoots()
@@ -95,18 +95,18 @@ func TestRootAPI(t *testing.T) {
 	}
 
 	for i := uint(0); i < square.width; i++ {
-		if !reflect.DeepEqual(square.RowRoots()[i], square.RowRoot(i)) {
+		if !reflect.DeepEqual(square.getRowRoots()[i], square.getRowRoot(i)) {
 			t.Errorf(
 				"Row root API results in different roots, expected %v go %v",
-				square.RowRoots()[i],
-				square.RowRoot(i),
+				square.getRowRoots()[i],
+				square.getRowRoot(i),
 			)
 		}
-		if !reflect.DeepEqual(square.ColumnRoots()[i], square.ColRoot(i)) {
+		if !reflect.DeepEqual(square.getColRoots()[i], square.getColRoot(i)) {
 			t.Errorf(
 				"Column root API results in different roots, expected %v go %v",
-				square.ColumnRoots()[i],
-				square.ColRoot(i),
+				square.getColRoots()[i],
+				square.getColRoot(i),
 			)
 		}
 	}
