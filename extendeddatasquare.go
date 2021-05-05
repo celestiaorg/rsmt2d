@@ -13,7 +13,11 @@ type ExtendedDataSquare struct {
 }
 
 // ComputeExtendedDataSquare computes the extended data square for some chunks of data.
-func ComputeExtendedDataSquare(data [][]byte, codec Codec, treeCreatorFn TreeConstructorFn) (*ExtendedDataSquare, error) {
+func ComputeExtendedDataSquare(
+	data [][]byte,
+	codec Codec,
+	treeCreatorFn TreeConstructorFn,
+) (*ExtendedDataSquare, error) {
 	if len(data) > codec.maxChunks() {
 		return nil, errors.New("number of chunks exceeds the maximum")
 	}
@@ -33,7 +37,11 @@ func ComputeExtendedDataSquare(data [][]byte, codec Codec, treeCreatorFn TreeCon
 }
 
 // ImportExtendedDataSquare imports an extended data square, represented as flattened chunks of data.
-func ImportExtendedDataSquare(data [][]byte, codec Codec, treeCreatorFn TreeConstructorFn) (*ExtendedDataSquare, error) {
+func ImportExtendedDataSquare(
+	data [][]byte,
+	codec Codec,
+	treeCreatorFn TreeConstructorFn,
+) (*ExtendedDataSquare, error) {
 	if len(data) > 4*codec.maxChunks() {
 		return nil, errors.New("number of chunks exceeds the maximum")
 	}
