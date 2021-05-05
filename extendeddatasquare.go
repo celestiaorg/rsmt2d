@@ -120,3 +120,34 @@ func (eds *ExtendedDataSquare) deepCopy(codec Codec) (ExtendedDataSquare, error)
 	eds, err := ImportExtendedDataSquare(eds.flattened(), codec, eds.createTreeFn)
 	return *eds, err
 }
+
+// Col returns a column slice.
+// This slice is a copy of the internal column slice.
+func (eds *ExtendedDataSquare) Col(y uint) [][]byte {
+	s := make([][]byte, eds.width)
+	copy(s, eds.columnSlice(0, y, eds.width))
+	return s
+}
+
+// ColRoots returns the Merkle roots of all the columns in the square.
+func (eds *ExtendedDataSquare) ColRoots() [][]byte {
+	return eds.getColRoots()
+}
+
+// Row returns a row slice.
+// This slice is a copy of the internal row slice.
+func (eds *ExtendedDataSquare) Row(x uint) [][]byte {
+	s := make([][]byte, eds.width)
+	copy(s, eds.rowSlice(x, 0, eds.width))
+	return s
+}
+
+// RowRoots returns the Merkle roots of all the rows in the square.
+func (eds *ExtendedDataSquare) RowRoots() [][]byte {
+	return eds.getRowRoots()
+}
+
+// Width returns the width of the square.
+func (eds *ExtendedDataSquare) Width() uint {
+	return eds.width
+}
