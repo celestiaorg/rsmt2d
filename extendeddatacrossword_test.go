@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math"
 	"math/rand"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -152,6 +154,46 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		}
 		if eds == nil {
 			t.Errorf("did not return a repaired EDS")
+		}
+
+		// Additional case to check that repaired eds is the same as after solvedCrossword
+		corrupted, err = original.deepCopy(codec)
+		if err != nil {
+			t.Fatalf("unexpected err while copying original data: %v, codec: :%s", err, codecName)
+		}
+		corrupted.setCell(3, 0, corruptChunk)
+		flattened = corrupted.flattened()
+		flattened[1], flattened[2], flattened[3] = nil, nil, nil
+		eds, err = RepairExtendedDataSquare(corrupted.getRowRoots(), corrupted.getColRoots(), flattened, codec, NewDefaultTree)
+		if err == nil {
+			t.Fatalf("expected error did no received")
+		}
+		if eds == nil {
+			t.Fatalf("did not return a repaired EDS")
+		}
+		// Prepare data for solving
+		width := int(math.Ceil(math.Sqrt(float64(len(flattened)))))
+		bitMat := newBitMatrix(width)
+		var chunkSize int
+		for i := range flattened {
+			if flattened[i] != nil {
+				bitMat.SetFlat(i)
+				if chunkSize == 0 {
+					chunkSize = len(flattened[i])
+				}
+			}
+		}
+		edsNew, err := ImportExtendedDataSquare(flattened, codec, NewDefaultTree)
+		if err != nil {
+			t.Errorf("did not return a repaired EDS")
+		}
+		_ = edsNew.solveCrossword(corrupted.getRowRoots(), corrupted.getColRoots(), bitMat, codec)
+
+		if !reflect.DeepEqual(edsNew.ColRoots(), eds.ColRoots()) {
+			t.Fatal("col roots of EDSes do not match: eds after solving: ", edsNew.ColRoots(), ",eds after repairing: ", eds.ColRoots())
+		}
+		if !reflect.DeepEqual(edsNew.RowRoots(), eds.RowRoots()) {
+			t.Fatal("col roots of EDSes do not match: eds after solving: ", edsNew.RowRoots(), ", eds after repairing: ", eds.RowRoots())
 		}
 	}
 }
