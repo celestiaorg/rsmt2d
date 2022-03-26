@@ -15,6 +15,9 @@ const (
 // ErrUnrepairableDataSquare is thrown when there is insufficient chunks to repair the square.
 var ErrUnrepairableDataSquare = errors.New("failed to solve data square")
 
+// ErrNoChunksAvailable is thrown when dataSquare is empty
+var ErrNoChunksAvailable = errors.New("no chunks available")
+
 // ErrByzantineRow is thrown when a repaired row does not match the expected row Merkle root.
 type ErrByzantineRow struct {
 	RowNumber uint     // Row index
@@ -23,6 +26,13 @@ type ErrByzantineRow struct {
 
 func (e *ErrByzantineRow) Error() string {
 	return fmt.Sprintf("byzantine row: %d", e.RowNumber)
+}
+
+// checks if error equal to ErrByzantineRow/ErrByzantineCol
+func isByzantineError(err error) bool {
+	var errRow *ErrByzantineRow
+	var errCol *ErrByzantineCol
+	return errors.As(err, &errRow) || errors.As(err, &errCol)
 }
 
 // ErrByzantineCol is thrown when a repaired column does not match the expected column Merkle root.
@@ -45,7 +55,7 @@ func (e *ErrByzantineCol) Error() string {
 //
 // Output
 //
-// The EDS is modified in-place. If repairing is successful, the EDS will be
+// If repairing is successful, the EDS will be
 // complete. If repairing is unsuccessful, the EDS will be the most-repaired
 // prior to the Byzantine row or column being repaired, and the Byzantine row
 // or column prior to repair is returned in the error with missing shares as
@@ -70,7 +80,7 @@ func RepairExtendedDataSquare(
 	}
 
 	if chunkSize == 0 {
-		return nil, ErrUnrepairableDataSquare
+		return nil, ErrNoChunksAvailable
 	}
 
 	fillerChunk := bytes.Repeat([]byte{0}, chunkSize)
@@ -88,15 +98,13 @@ func RepairExtendedDataSquare(
 
 	err = eds.prerepairSanityCheck(rowRoots, colRoots, bitMat, codec)
 	if err != nil {
+		if isByzantineError(err) {
+			return eds, err
+		}
 		return nil, err
 	}
 
-	err = eds.solveCrossword(rowRoots, colRoots, bitMat, codec)
-	if err != nil {
-		return nil, err
-	}
-
-	return eds, err
+	return eds, eds.solveCrossword(rowRoots, colRoots, bitMat, codec)
 }
 
 // solveCrossword attempts to iteratively repair an EDS.
