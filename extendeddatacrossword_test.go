@@ -193,7 +193,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 			t.Fatal("col roots of EDSes do not match: eds after solving: ", edsNew.ColRoots(), ",eds after repairing: ", eds.ColRoots())
 		}
 		if !reflect.DeepEqual(edsNew.RowRoots(), eds.RowRoots()) {
-			t.Fatal("col roots of EDSes do not match: eds after solving: ", edsNew.RowRoots(), ", eds after repairing: ", eds.RowRoots())
+			t.Fatal("row roots of EDSes do not match: eds after solving: ", edsNew.RowRoots(), ", eds after repairing: ", eds.RowRoots())
 		}
 	}
 }
