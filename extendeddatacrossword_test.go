@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"math"
 	"math/rand"
 	"reflect"
 	"testing"
@@ -172,12 +171,9 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 			t.Fatalf("did not return a repaired EDS")
 		}
 		// Prepare data for solving
-		width := int(math.Ceil(math.Sqrt(float64(len(flattened)))))
-		bitMat := newBitMatrix(width)
 		var chunkSize int
 		for i := range flattened {
 			if flattened[i] != nil {
-				bitMat.SetFlat(i)
 				if chunkSize == 0 {
 					chunkSize = len(flattened[i])
 				}
@@ -187,7 +183,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		if err != nil {
 			t.Errorf("did not return a repaired EDS")
 		}
-		_ = edsNew.solveCrossword(corrupted.getRowRoots(), corrupted.getColRoots(), bitMat, codec)
+		_ = edsNew.solveCrossword(corrupted.getRowRoots(), corrupted.getColRoots(), codec)
 
 		if !reflect.DeepEqual(edsNew.ColRoots(), eds.ColRoots()) {
 			t.Fatal("col roots of EDSes do not match: eds after solving: ", edsNew.ColRoots(), ",eds after repairing: ", eds.ColRoots())
