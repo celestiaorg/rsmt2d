@@ -1,8 +1,9 @@
+//go:build leopard
 // +build leopard
 
 // Note that if the build tag leopard is used, liblibleopard.a
 // has to be present where the linker will find it.
-// Otherwise go-leopard won't build.
+// Otherwise, go-leopard won't build.
 package rsmt2d
 
 import "github.com/celestiaorg/go-leopard"

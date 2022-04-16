@@ -305,7 +305,7 @@ func (eds *ExtendedDataSquare) rebuildShares(
 			rebuiltExtendedShares[startIndex:]...,
 		)
 	} else {
-		// Otherwise copy them from the EDS.
+		// Otherwise, copy them from the EDS.
 		startIndex := len(shares) - int(eds.originalDataWidth)
 		rebuiltShares = append(
 			rebuiltShares[0:eds.originalDataWidth],
@@ -365,7 +365,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 		rowIsComplete := bitMask.RowIsOne(int(i))
 		colIsComplete := bitMask.ColIsOne(int(i))
 
-		// if there's no missing data in the this row
+		// if there's no missing data in this row
 		if noMissingData(eds.row(i)) {
 			// ensure that the roots are equal and that rowMask is a vector
 			if rowIsComplete && !bytes.Equal(rowRoots[i], eds.getRowRoot(i)) {
@@ -373,7 +373,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 			}
 		}
 
-		// if there's no missing data in the this col
+		// if there's no missing data in this col
 		if noMissingData(eds.col(i)) {
 			// ensure that the roots are equal and that rowMask is a vector
 			if colIsComplete && !bytes.Equal(colRoots[i], eds.getColRoot(i)) {
