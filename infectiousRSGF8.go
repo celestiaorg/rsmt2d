@@ -19,10 +19,11 @@ func NewRSGF8Codec() *rsGF8Codec {
 	return &rsGF8Codec{make(map[int]*infectious.FEC)}
 }
 
-// Encode uses uses the infectous RSGF8 codec to encode the provided data
 func (c *rsGF8Codec) Encode(data [][]byte) ([][]byte, error) {
 	var fec *infectious.FEC
 	var err error
+
+	// Set up caches.
 	if value, ok := c.infectiousCache[len(data)]; ok {
 		fec = value
 	} else {
@@ -37,7 +38,7 @@ func (c *rsGF8Codec) Encode(data [][]byte) ([][]byte, error) {
 	shares := make([][]byte, len(data))
 	output := func(s infectious.Share) {
 		if s.Number >= len(data) {
-			shareData := make([]byte, len(data[0]))
+			shareData := make([]byte, len(s.Data))
 			copy(shareData, s.Data)
 			shares[s.Number-len(data)] = shareData
 		}
@@ -49,10 +50,11 @@ func (c *rsGF8Codec) Encode(data [][]byte) ([][]byte, error) {
 	return shares, err
 }
 
-// Decode uses uses the infectous RSGF8 codec to decode the provided data
 func (c *rsGF8Codec) Decode(data [][]byte) ([][]byte, error) {
 	var fec *infectious.FEC
 	var err error
+
+	// Set up caches.
 	if value, ok := c.infectiousCache[len(data)/2]; ok {
 		fec = value
 	} else {
@@ -70,11 +72,12 @@ func (c *rsGF8Codec) Decode(data [][]byte) ([][]byte, error) {
 	}
 
 	shares := []infectious.Share{}
-	for j := 0; j < len(data); j++ {
-		if data[j] != nil {
-			shares = append(shares, infectious.Share{Number: j, Data: data[j]})
+	for i, d := range data {
+		if d != nil {
+			shares = append(shares, infectious.Share{Number: i, Data: d})
 		}
 	}
+
 	err = fec.Rebuild(shares, rebuiltSharesOutput)
 
 	return rebuiltShares, err

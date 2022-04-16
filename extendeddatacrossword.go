@@ -14,7 +14,7 @@ const (
 // ErrUnrepairableDataSquare is thrown when there is insufficient chunks to repair the square.
 var ErrUnrepairableDataSquare = errors.New("failed to solve data square")
 
-// ErrNoChunksAvailable is thrown when dataSquare is empty
+// ErrNoChunksAvailable is thrown when dataSquare is empty.
 var ErrNoChunksAvailable = errors.New("no chunks available")
 
 // ErrByzantineRow is thrown when a repaired row does not match the expected row Merkle root.
@@ -67,14 +67,15 @@ func RepairExtendedDataSquare(
 	treeCreatorFn TreeConstructorFn,
 ) (*ExtendedDataSquare, error) {
 	var chunkSize int
-	for i := range data {
-		if data[i] != nil {
+	for _, d := range data {
+		if d != nil {
 			if chunkSize == 0 {
-				chunkSize = len(data[i])
+				chunkSize = len(d)
+			} else if chunkSize != len(d) {
+				return nil, ErrUnevenChunks
 			}
 		}
 	}
-
 	if chunkSize == 0 {
 		return nil, ErrNoChunksAvailable
 	}
@@ -152,8 +153,8 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 
 	// Prepare shares
 	shares := make([][]byte, eds.width)
+	vectorData := eds.row(uint(r))
 	for c := 0; c < int(eds.width); c++ {
-		vectorData := eds.row(uint(r))
 		shares[c] = vectorData[c]
 
 	}
@@ -211,8 +212,8 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 
 	// Prepare shares
 	shares := make([][]byte, eds.width)
+	vectorData := eds.col(uint(c))
 	for r := 0; r < int(eds.width); r++ {
-		vectorData := eds.col(uint(c))
 		shares[r] = vectorData[r]
 
 	}
