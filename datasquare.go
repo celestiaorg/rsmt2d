@@ -233,6 +233,9 @@ func (ds *dataSquare) getColRoot(y uint) []byte {
 
 // getCell returns a single chunk at a specific cell.
 func (ds *dataSquare) getCell(x uint, y uint) []byte {
+	if ds.squareRow[x][y] == nil {
+		return nil
+	}
 	cell := make([]byte, ds.chunkSize)
 	copy(cell, ds.squareRow[x][y])
 	return cell

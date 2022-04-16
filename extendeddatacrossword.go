@@ -66,17 +66,13 @@ func RepairExtendedDataSquare(
 	codec Codec,
 	treeCreatorFn TreeConstructorFn,
 ) (*ExtendedDataSquare, error) {
-	var chunkSize int
+	var isNotEmpty bool
 	for _, d := range data {
 		if d != nil {
-			if chunkSize == 0 {
-				chunkSize = len(d)
-			} else if chunkSize != len(d) {
-				return nil, ErrUnevenChunks
-			}
+			isNotEmpty = true
 		}
 	}
-	if chunkSize == 0 {
+	if !isNotEmpty {
 		return nil, ErrNoChunksAvailable
 	}
 
@@ -177,9 +173,9 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 
 	// Check that newly completed orthogonal vectors match their new merkle roots
 	for c := 0; c < int(eds.width); c++ {
-		if eds.getCell(uint(r), uint(c)) != nil &&
-			noMissingData(eds.col(uint(c))) {
-			err := eds.verifyAgainstColRoots(colRoots, uint(c), rebuiltShares)
+		col := eds.col(uint(c))
+		if noMissingData(col) {
+			err := eds.verifyAgainstColRoots(colRoots, uint(c), col)
 			if err != nil {
 				return false, false, err
 			}
@@ -236,9 +232,9 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 
 	// Check that newly completed orthogonal vectors match their new merkle roots
 	for r := 0; r < int(eds.width); r++ {
-		if eds.getCell(uint(r), uint(c)) != nil &&
-			noMissingData(eds.row(uint(r))) {
-			err := eds.verifyAgainstRowRoots(rowRoots, uint(r), rebuiltShares)
+		row := eds.row(uint(r))
+		if noMissingData(row) {
+			err := eds.verifyAgainstRowRoots(rowRoots, uint(r), row)
 			if err != nil {
 				return false, false, err
 			}
