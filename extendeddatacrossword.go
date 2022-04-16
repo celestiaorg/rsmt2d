@@ -83,11 +83,10 @@ func RepairExtendedDataSquare(
 		return nil, ErrNoChunksAvailable
 	}
 
-	fillerChunk := bytes.Repeat([]byte{0}, chunkSize)
 	for i := range data {
 		if data[i] == nil {
+			// automatically filled with zeroes
 			data[i] = make([]byte, chunkSize)
-			copy(data[i], fillerChunk)
 		}
 	}
 

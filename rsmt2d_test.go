@@ -20,7 +20,6 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 	}{
 		{"leopardFF8", bufferSize, rsmt2d.NewLeoRSFF8Codec()},
 		{"leopardFF16", bufferSize, rsmt2d.NewLeoRSFF16Codec()},
-		{"infectiousGF8", bufferSize, rsmt2d.NewRSGF8Codec()},
 	}
 
 	for _, tt := range tests {

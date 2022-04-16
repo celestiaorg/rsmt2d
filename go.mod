@@ -9,7 +9,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/stretchr/testify v1.7.0
-	github.com/vivint/infectious v0.0.0-20200605153912-25a574ae18a3
 	gitlab.com/NebulousLabs/errors v0.0.0-20200929122200-06c536cf6975 // indirect
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2 // indirect
 	golang.org/x/sys v0.0.0-20210403161142-5e06dd20ab57 // indirect

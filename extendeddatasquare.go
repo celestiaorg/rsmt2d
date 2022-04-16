@@ -1,4 +1,4 @@
-// Package rsmt2d implements the two dimensional Reed-Solomon merkle tree data availability scheme.
+// Package rsmt2d implements the two-dimensional Reed-Solomon merkle tree data availability scheme.
 package rsmt2d
 
 import (
