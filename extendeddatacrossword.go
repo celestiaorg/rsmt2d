@@ -27,13 +27,6 @@ func (e *ErrByzantineRow) Error() string {
 	return fmt.Sprintf("byzantine row: %d", e.RowNumber)
 }
 
-// checks if error equal to ErrByzantineRow/ErrByzantineCol
-func isByzantineError(err error) bool {
-	var errRow *ErrByzantineRow
-	var errCol *ErrByzantineCol
-	return errors.As(err, &errRow) || errors.As(err, &errCol)
-}
-
 // ErrByzantineCol is thrown when a repaired column does not match the expected column Merkle root.
 type ErrByzantineCol struct {
 	ColNumber uint     // Column index
@@ -54,7 +47,7 @@ func (e *ErrByzantineCol) Error() string {
 //
 // Output
 //
-// If repairing is successful, the EDS will be
+// The EDS is modified in-place. If repairing is successful, the EDS will be
 // complete. If repairing is unsuccessful, the EDS will be the most-repaired
 // prior to the Byzantine row or column being repaired, and the Byzantine row
 // or column prior to repair is returned in the error with missing shares as
@@ -65,7 +58,7 @@ func RepairExtendedDataSquare(
 	data [][]byte,
 	codec Codec,
 	treeCreatorFn TreeConstructorFn,
-) (*ExtendedDataSquare, error) {
+) error {
 	var isNotEmpty bool
 	for _, d := range data {
 		if d != nil {
@@ -73,23 +66,20 @@ func RepairExtendedDataSquare(
 		}
 	}
 	if !isNotEmpty {
-		return nil, ErrNoChunksAvailable
+		return ErrNoChunksAvailable
 	}
 
 	eds, err := ImportExtendedDataSquare(data, codec, treeCreatorFn)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = eds.prerepairSanityCheck(rowRoots, colRoots, codec)
 	if err != nil {
-		if isByzantineError(err) {
-			return eds, err
-		}
-		return nil, err
+		return err
 	}
 
-	return eds, eds.solveCrossword(rowRoots, colRoots, codec)
+	return eds.solveCrossword(rowRoots, colRoots, codec)
 }
 
 // solveCrossword attempts to iteratively repair an EDS.

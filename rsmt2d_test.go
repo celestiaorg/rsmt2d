@@ -56,7 +56,7 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 			flattened[12], flattened[13] = nil, nil
 
 			// Repair square.
-			repaired, err := rsmt2d.RepairExtendedDataSquare(
+			err = rsmt2d.RepairExtendedDataSquare(
 				eds.RowRoots(),
 				eds.ColRoots(),
 				flattened,
@@ -68,7 +68,6 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 				// See extendeddatacrossword_test.go
 				t.Errorf("RepairExtendedDataSquare failed")
 			}
-			_ = repaired
 		})
 	}
 }

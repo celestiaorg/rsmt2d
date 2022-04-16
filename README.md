@@ -54,7 +54,7 @@ func main() {
     flattened[12], flattened[13] = nil, nil
 
     // Repair square.
-    repaired, err := rsmt2d.RepairExtendedDataSquare(
+    err := rsmt2d.RepairExtendedDataSquare(
         eds.RowRoots(),
         eds.ColRoots(),
         flattened,
@@ -65,9 +65,7 @@ func main() {
         // err contains information to construct a fraud proof
         // See extendeddatacrossword_test.go
     }
-    _ = repaired
 }
-
 ```
 
 ## Building From Source
