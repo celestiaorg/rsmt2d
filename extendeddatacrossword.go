@@ -359,17 +359,6 @@ func noMissingData(input [][]byte) bool {
 	return true
 }
 
-func numOnes(input [][]byte) int {
-	var counter int
-	for _, d := range input {
-		if d != nil {
-			counter++
-		}
-	}
-
-	return counter
-}
-
 func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, i uint) []byte {
 	tree := eds.createTreeFn()
 	for cell, d := range shares {
