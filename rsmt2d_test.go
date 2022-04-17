@@ -128,7 +128,7 @@ func TestEdsRepairTwice(t *testing.T) {
 			)
 			if err == nil {
 				// Should fail since insufficient data.
-				t.Errorf("RepairExtendedDataSquare did not fail")
+				t.Errorf("RepairExtendedDataSquare did not fail. Expected ErrUnrepairableDataSquare but got nil.")
 			}
 			// Re-insert missing share and try again.
 			flattened[1] = make([]byte, bufferSize)
