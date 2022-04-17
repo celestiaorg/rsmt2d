@@ -142,7 +142,7 @@ func TestEdsRepairTwice(t *testing.T) {
 			)
 			if err != nil {
 				// Should now passing, since sufficient data.
-				t.Errorf("RepairExtendedDataSquare failed")
+				t.Errorf("RepairExtendedDataSquare failed: %v", err)
 			}
 
 		})
