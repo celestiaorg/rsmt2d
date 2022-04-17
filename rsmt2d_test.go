@@ -4,6 +4,7 @@ package rsmt2d_test
 
 import (
 	"bytes"
+	"errors"
 	"testing"
 
 	"github.com/celestiaorg/rsmt2d"
@@ -126,9 +127,9 @@ func TestEdsRepairTwice(t *testing.T) {
 				tt.codec,
 				rsmt2d.NewDefaultTree,
 			)
-			if err == nil {
+			if !errors.As(err, &rsmt2d.ErrUnrepairableDataSquare) {
 				// Should fail since insufficient data.
-				t.Errorf("RepairExtendedDataSquare did not fail. Expected ErrUnrepairableDataSquare but got nil.")
+				t.Errorf("RepairExtendedDataSquare did not fail with `%s`, got `%s`", rsmt2d.ErrUnrepairableDataSquare, err)
 			}
 			// Re-insert missing share and try again.
 			flattened[1] = make([]byte, bufferSize)
