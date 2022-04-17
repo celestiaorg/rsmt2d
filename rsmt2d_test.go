@@ -127,7 +127,7 @@ func TestEdsRepairTwice(t *testing.T) {
 				tt.codec,
 				rsmt2d.NewDefaultTree,
 			)
-			if !errors.As(err, &rsmt2d.ErrUnrepairableDataSquare) {
+			if !errors.Is(err, rsmt2d.ErrUnrepairableDataSquare) {
 				// Should fail since insufficient data.
 				t.Errorf("RepairExtendedDataSquare did not fail with `%v`, got `%v`", rsmt2d.ErrUnrepairableDataSquare, err)
 			}
