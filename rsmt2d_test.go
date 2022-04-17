@@ -39,7 +39,7 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 				rsmt2d.NewDefaultTree,
 			)
 			if err != nil {
-				t.Errorf("ComputeExtendedDataSquare failed")
+				t.Errorf("ComputeExtendedDataSquare failed: %v", err)
 			}
 
 			// Save all shares in flattened form.
@@ -65,7 +65,7 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 			if err != nil {
 				// err contains information to construct a fraud proof
 				// See extendeddatacrossword_test.go
-				t.Errorf("RepairExtendedDataSquare failed")
+				t.Errorf("RepairExtendedDataSquare failed: %v", err)
 			}
 		})
 	}
@@ -101,7 +101,7 @@ func TestEdsRepairTwice(t *testing.T) {
 				rsmt2d.NewDefaultTree,
 			)
 			if err != nil {
-				t.Errorf("ComputeExtendedDataSquare failed")
+				t.Errorf("ComputeExtendedDataSquare failed: %v", err)
 			}
 
 			// Save all shares in flattened form.
@@ -141,7 +141,7 @@ func TestEdsRepairTwice(t *testing.T) {
 				rsmt2d.NewDefaultTree,
 			)
 			if err != nil {
-				// Should now passing, since sufficient data.
+				// Should now pass, since sufficient data.
 				t.Errorf("RepairExtendedDataSquare failed: %v", err)
 			}
 
