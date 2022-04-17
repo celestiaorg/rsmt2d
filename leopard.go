@@ -1,4 +1,4 @@
-// +build leopard
+//go:build leopard
 
 // Note that if the build tag leopard is used, liblibleopard.a
 // has to be present where the linker will find it.

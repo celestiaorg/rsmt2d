@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"math"
 )
 
 const (
@@ -15,7 +14,7 @@ const (
 // ErrUnrepairableDataSquare is thrown when there is insufficient chunks to repair the square.
 var ErrUnrepairableDataSquare = errors.New("failed to solve data square")
 
-// ErrNoChunksAvailable is thrown when dataSquare is empty
+// ErrNoChunksAvailable is thrown when dataSquare is empty.
 var ErrNoChunksAvailable = errors.New("no chunks available")
 
 // ErrByzantineRow is thrown when a repaired row does not match the expected row Merkle root.
@@ -26,13 +25,6 @@ type ErrByzantineRow struct {
 
 func (e *ErrByzantineRow) Error() string {
 	return fmt.Sprintf("byzantine row: %d", e.RowNumber)
-}
-
-// checks if error equal to ErrByzantineRow/ErrByzantineCol
-func isByzantineError(err error) bool {
-	var errRow *ErrByzantineRow
-	var errCol *ErrByzantineCol
-	return errors.As(err, &errRow) || errors.As(err, &errCol)
 }
 
 // ErrByzantineCol is thrown when a repaired column does not match the expected column Merkle root.
@@ -55,7 +47,7 @@ func (e *ErrByzantineCol) Error() string {
 //
 // Output
 //
-// If repairing is successful, the EDS will be
+// The EDS is modified in-place. If repairing is successful, the EDS will be
 // complete. If repairing is unsuccessful, the EDS will be the most-repaired
 // prior to the Byzantine row or column being repaired, and the Byzantine row
 // or column prior to repair is returned in the error with missing shares as
@@ -66,52 +58,34 @@ func RepairExtendedDataSquare(
 	data [][]byte,
 	codec Codec,
 	treeCreatorFn TreeConstructorFn,
-) (*ExtendedDataSquare, error) {
-	width := int(math.Ceil(math.Sqrt(float64(len(data)))))
-	bitMat := newBitMatrix(width)
-	var chunkSize int
-	for i := range data {
-		if data[i] != nil {
-			bitMat.SetFlat(i)
-			if chunkSize == 0 {
-				chunkSize = len(data[i])
-			}
+) error {
+	var isNotEmpty bool
+	for _, d := range data {
+		if d != nil {
+			isNotEmpty = true
 		}
 	}
-
-	if chunkSize == 0 {
-		return nil, ErrNoChunksAvailable
-	}
-
-	fillerChunk := bytes.Repeat([]byte{0}, chunkSize)
-	for i := range data {
-		if data[i] == nil {
-			data[i] = make([]byte, chunkSize)
-			copy(data[i], fillerChunk)
-		}
+	if !isNotEmpty {
+		return ErrNoChunksAvailable
 	}
 
 	eds, err := ImportExtendedDataSquare(data, codec, treeCreatorFn)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	err = eds.prerepairSanityCheck(rowRoots, colRoots, bitMat, codec)
+	err = eds.prerepairSanityCheck(rowRoots, colRoots, codec)
 	if err != nil {
-		if isByzantineError(err) {
-			return eds, err
-		}
-		return nil, err
+		return err
 	}
 
-	return eds, eds.solveCrossword(rowRoots, colRoots, bitMat, codec)
+	return eds.solveCrossword(rowRoots, colRoots, codec)
 }
 
 // solveCrossword attempts to iteratively repair an EDS.
 func (eds *ExtendedDataSquare) solveCrossword(
 	rowRoots [][]byte,
 	colRoots [][]byte,
-	bitMask bitMatrix,
 	codec Codec,
 ) error {
 	// Keep repeating until the square is solved
@@ -123,11 +97,11 @@ func (eds *ExtendedDataSquare) solveCrossword(
 
 		// Loop through every row and column, attempt to rebuild each row or column if incomplete
 		for i := 0; i < int(eds.width); i++ {
-			solvedRow, progressMadeRow, err := eds.solveCrosswordRow(i, rowRoots, colRoots, bitMask, codec)
+			solvedRow, progressMadeRow, err := eds.solveCrosswordRow(i, rowRoots, colRoots, codec)
 			if err != nil {
 				return err
 			}
-			solvedCol, progressMadeCol, err := eds.solveCrosswordCol(i, rowRoots, colRoots, bitMask, codec)
+			solvedCol, progressMadeCol, err := eds.solveCrosswordCol(i, rowRoots, colRoots, codec)
 			if err != nil {
 				return err
 			}
@@ -156,26 +130,22 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	r int,
 	rowRoots [][]byte,
 	colRoots [][]byte,
-	bitMask bitMatrix,
 	codec Codec,
 ) (bool, bool, error) {
-	isComplete := bitMask.RowIsOne(r)
+	isComplete := noMissingData(eds.row(uint(r)))
 	if isComplete {
 		return true, false, nil
 	}
 
 	// Prepare shares
 	shares := make([][]byte, eds.width)
+	vectorData := eds.row(uint(r))
 	for c := 0; c < int(eds.width); c++ {
-		vectorData := eds.row(uint(r))
+		shares[c] = vectorData[c]
 
-		if bitMask.Get(r, c) {
-			// As guaranteed by the bitMask, vectorData can't be nil here:
-			shares[c] = vectorData[c]
-		}
 	}
 
-	isExtendedPartIncomplete := !bitMask.RowRangeIsOne(r, int(eds.originalDataWidth), int(eds.width))
+	isExtendedPartIncomplete := !eds.rowRangeNoMissingData(uint(r), eds.originalDataWidth, eds.width)
 	// Attempt rebuild
 	rebuiltShares, isDecoded, err := eds.rebuildShares(isExtendedPartIncomplete, shares, codec)
 	if err != nil {
@@ -186,25 +156,20 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	}
 
 	// Check that rebuilt shares matches appropriate root
-	err = eds.verifyAgainstRowRoots(rowRoots, uint(r), bitMask, rebuiltShares)
+	err = eds.verifyAgainstRowRoots(rowRoots, uint(r), rebuiltShares)
 	if err != nil {
 		return false, false, err
 	}
 
 	// Check that newly completed orthogonal vectors match their new merkle roots
 	for c := 0; c < int(eds.width); c++ {
-		if !bitMask.Get(r, c) &&
-			bitMask.ColIsOne(c) {
-			err := eds.verifyAgainstColRoots(colRoots, uint(c), bitMask, rebuiltShares)
+		col := eds.col(uint(c))
+		if noMissingData(col) {
+			err := eds.verifyAgainstColRoots(colRoots, uint(c), col)
 			if err != nil {
 				return false, false, err
 			}
 		}
-	}
-
-	// Set vector mask to true
-	for c := 0; c < int(eds.width); c++ {
-		bitMask.Set(r, c)
 	}
 
 	// Insert rebuilt shares into square.
@@ -224,26 +189,22 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	c int,
 	rowRoots [][]byte,
 	colRoots [][]byte,
-	bitMask bitMatrix,
 	codec Codec,
 ) (bool, bool, error) {
-	isComplete := bitMask.ColIsOne(c)
+	isComplete := noMissingData(eds.col(uint(c)))
 	if isComplete {
 		return true, false, nil
 	}
 
 	// Prepare shares
 	shares := make([][]byte, eds.width)
+	vectorData := eds.col(uint(c))
 	for r := 0; r < int(eds.width); r++ {
-		vectorData := eds.col(uint(c))
+		shares[r] = vectorData[r]
 
-		if bitMask.Get(r, c) {
-			// As guaranteed by the bitMask, vectorData can't be nil here:
-			shares[r] = vectorData[r]
-		}
 	}
 
-	isExtendedPartIncomplete := !bitMask.ColRangeIsOne(c, int(eds.originalDataWidth), int(eds.width))
+	isExtendedPartIncomplete := !eds.colRangeNoMissingData(uint(c), eds.originalDataWidth, eds.width)
 	// Attempt rebuild
 	rebuiltShares, isDecoded, err := eds.rebuildShares(isExtendedPartIncomplete, shares, codec)
 	if err != nil {
@@ -254,25 +215,20 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	}
 
 	// Check that rebuilt shares matches appropriate root
-	err = eds.verifyAgainstColRoots(colRoots, uint(c), bitMask, rebuiltShares)
+	err = eds.verifyAgainstColRoots(colRoots, uint(c), rebuiltShares)
 	if err != nil {
 		return false, false, err
 	}
 
 	// Check that newly completed orthogonal vectors match their new merkle roots
 	for r := 0; r < int(eds.width); r++ {
-		if !bitMask.Get(r, c) &&
-			bitMask.RowIsOne(r) {
-			err := eds.verifyAgainstRowRoots(rowRoots, uint(r), bitMask, rebuiltShares)
+		row := eds.row(uint(r))
+		if noMissingData(row) {
+			err := eds.verifyAgainstRowRoots(rowRoots, uint(r), row)
 			if err != nil {
 				return false, false, err
 			}
 		}
-	}
-
-	// Set vector mask to true
-	for r := 0; r < int(eds.width); r++ {
-		bitMask.Set(r, c)
 	}
 
 	// Insert rebuilt shares into square.
@@ -320,17 +276,11 @@ func (eds *ExtendedDataSquare) rebuildShares(
 func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
 	rowRoots [][]byte,
 	r uint,
-	bitMask bitMatrix,
 	shares [][]byte,
 ) error {
 	root := eds.computeSharesRoot(shares, r)
 
 	if !bytes.Equal(root, rowRoots[r]) {
-		for c := 0; c < int(eds.width); c++ {
-			if !bitMask.Get(int(r), c) {
-				shares[c] = nil
-			}
-		}
 		return &ErrByzantineRow{r, shares}
 	}
 
@@ -339,17 +289,12 @@ func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
 
 func (eds *ExtendedDataSquare) verifyAgainstColRoots(
 	colRoots [][]byte,
-	c uint, bitMask bitMatrix,
+	c uint,
 	shares [][]byte,
 ) error {
 	root := eds.computeSharesRoot(shares, c)
 
 	if !bytes.Equal(root, colRoots[c]) {
-		for r := 0; r < int(eds.width); r++ {
-			if !bitMask.Get(r, int(c)) {
-				shares[r] = nil
-			}
-		}
 		return &ErrByzantineCol{c, shares}
 	}
 
@@ -359,25 +304,24 @@ func (eds *ExtendedDataSquare) verifyAgainstColRoots(
 func (eds *ExtendedDataSquare) prerepairSanityCheck(
 	rowRoots [][]byte,
 	colRoots [][]byte,
-	bitMask bitMatrix,
 	codec Codec,
 ) error {
 	for i := uint(0); i < eds.width; i++ {
-		rowIsComplete := bitMask.RowIsOne(int(i))
-		colIsComplete := bitMask.ColIsOne(int(i))
+		rowIsComplete := noMissingData(eds.row(i))
+		colIsComplete := noMissingData(eds.col(i))
 
 		// if there's no missing data in the this row
-		if noMissingData(eds.row(i)) {
+		if rowIsComplete {
 			// ensure that the roots are equal and that rowMask is a vector
-			if rowIsComplete && !bytes.Equal(rowRoots[i], eds.getRowRoot(i)) {
+			if !bytes.Equal(rowRoots[i], eds.getRowRoot(i)) {
 				return fmt.Errorf("bad root input: row %d expected %v got %v", i, rowRoots[i], eds.getRowRoot(i))
 			}
 		}
 
 		// if there's no missing data in the this col
-		if noMissingData(eds.col(i)) {
+		if colIsComplete {
 			// ensure that the roots are equal and that rowMask is a vector
-			if colIsComplete && !bytes.Equal(colRoots[i], eds.getColRoot(i)) {
+			if !bytes.Equal(colRoots[i], eds.getColRoot(i)) {
 				return fmt.Errorf("bad root input: col %d expected %v got %v", i, colRoots[i], eds.getColRoot(i))
 			}
 		}
@@ -421,4 +365,22 @@ func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, i uint) []byte
 		tree.Push(d, SquareIndex{Cell: uint(cell), Axis: i})
 	}
 	return tree.Root()
+}
+
+func (eds *ExtendedDataSquare) rowRangeNoMissingData(r, start, end uint) bool {
+	for c := start; c <= end && c < eds.width; c++ {
+		if eds.getCell(r, c) == nil {
+			return false
+		}
+	}
+	return true
+}
+
+func (eds *ExtendedDataSquare) colRangeNoMissingData(c, start, end uint) bool {
+	for r := start; r <= end && r < eds.width; r++ {
+		if eds.getCell(r, c) == nil {
+			return false
+		}
+	}
+	return true
 }

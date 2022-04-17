@@ -5,6 +5,9 @@ import (
 	"math"
 )
 
+// ErrUnevenChunks is thrown when non-nil chunks are not all of equal size.
+var ErrUnevenChunks = errors.New("non-nil chunks not all of equal size")
+
 // dataSquare stores all data for an original data square (ODS) or extended
 // data square (EDS). Data is duplicated in both row-major and column-major
 // order in order to be able to provide zero-allocation column slices.
@@ -24,14 +27,23 @@ func newDataSquare(data [][]byte, treeCreator TreeConstructorFn) (*dataSquare, e
 		return nil, errors.New("number of chunks must be a square number")
 	}
 
-	chunkSize := len(data[0])
+	var chunkSize int
+	for _, d := range data {
+		if d != nil {
+			if chunkSize == 0 {
+				chunkSize = len(d)
+			} else if chunkSize != len(d) {
+				return nil, ErrUnevenChunks
+			}
+		}
+	}
 
 	squareRow := make([][][]byte, width)
 	for i := 0; i < width; i++ {
 		squareRow[i] = data[i*width : i*width+width]
 
 		for j := 0; j < width; j++ {
-			if len(squareRow[i][j]) != chunkSize {
+			if squareRow[i][j] != nil && len(squareRow[i][j]) != chunkSize {
 				return nil, errors.New("all chunks must be of equal size")
 			}
 		}
@@ -221,6 +233,9 @@ func (ds *dataSquare) getColRoot(y uint) []byte {
 
 // getCell returns a single chunk at a specific cell.
 func (ds *dataSquare) getCell(x uint, y uint) []byte {
+	if ds.squareRow[x][y] == nil {
+		return nil
+	}
 	cell := make([]byte, ds.chunkSize)
 	copy(cell, ds.squareRow[x][y])
 	return cell
