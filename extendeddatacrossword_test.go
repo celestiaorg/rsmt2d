@@ -35,6 +35,9 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 			panic(err)
 		}
 
+		rowRoots := original.RowRoots()
+		colRoots := original.ColRoots()
+
 		flattened := original.flattened()
 		flattened[0], flattened[2], flattened[3] = nil, nil, nil
 		flattened[4], flattened[5], flattened[6], flattened[7] = nil, nil, nil, nil
@@ -42,12 +45,12 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		flattened[12], flattened[13] = nil, nil
 
 		// Re-import the data square.
-		eds, err := ImportExtendedDataSquare(flattened, original.RowRoots(), original.ColRoots(), codec, NewDefaultTree)
+		eds, err := ImportExtendedDataSquare(flattened, codec, NewDefaultTree)
 		if err != nil {
 			t.Errorf("ImportExtendedDataSquare failed: %v", err)
 		}
 
-		err = eds.RepairExtendedDataSquare(codec, NewDefaultTree)
+		err = eds.RepairExtendedDataSquare(rowRoots, colRoots, codec, NewDefaultTree)
 		if err != nil {
 			t.Errorf("unexpected err while repairing data square: %v, codec: :%s", err, codecName)
 		} else {
@@ -64,12 +67,12 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		flattened[12], flattened[13], flattened[14] = nil, nil, nil
 
 		// Re-import the data square.
-		eds, err = ImportExtendedDataSquare(flattened, original.RowRoots(), original.ColRoots(), codec, NewDefaultTree)
+		eds, err = ImportExtendedDataSquare(flattened, codec, NewDefaultTree)
 		if err != nil {
 			t.Errorf("ImportExtendedDataSquare failed: %v", err)
 		}
 
-		err = eds.RepairExtendedDataSquare(codec, NewDefaultTree)
+		err = eds.RepairExtendedDataSquare(rowRoots, colRoots, codec, NewDefaultTree)
 		if err == nil {
 			t.Errorf("did not return an error on trying to repair an unrepairable square")
 		}
@@ -80,7 +83,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		}
 		corruptChunk := bytes.Repeat([]byte{66}, bufferSize)
 		corrupted.setCell(0, 0, corruptChunk)
-		err = corrupted.RepairExtendedDataSquare(codec, NewDefaultTree)
+		err = corrupted.RepairExtendedDataSquare(rowRoots, colRoots, codec, NewDefaultTree)
 		if err == nil {
 			t.Errorf("did not return an error on trying to repair a square with bad roots")
 		}
@@ -90,7 +93,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 			t.Fatalf("unexpected err while copying original data: %v, codec: :%s", err, codecName)
 		}
 		corrupted.setCell(0, 0, corruptChunk)
-		err = corrupted.RepairExtendedDataSquare(codec, NewDefaultTree)
+		err = corrupted.RepairExtendedDataSquare(rowRoots, colRoots, codec, NewDefaultTree)
 		var byzRow *ErrByzantineRow
 		if !errors.As(err, &byzRow) {
 			t.Errorf("did not return a ErrByzantineRow for a bad row; got: %v", err)
@@ -121,7 +124,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 			t.Fatalf("unexpected err while copying original data: %v, codec: :%s", err, codecName)
 		}
 		corrupted.setCell(0, 3, corruptChunk)
-		err = corrupted.RepairExtendedDataSquare(codec, NewDefaultTree)
+		err = corrupted.RepairExtendedDataSquare(rowRoots, colRoots, codec, NewDefaultTree)
 		if !errors.As(err, &byzRow) {
 			t.Errorf("did not return a ErrByzantineRow for a bad row; got %v", err)
 		}
@@ -134,7 +137,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		corrupted.setCell(0, 1, nil)
 		corrupted.setCell(0, 2, nil)
 		corrupted.setCell(0, 3, nil)
-		err = corrupted.RepairExtendedDataSquare(codec, NewDefaultTree)
+		err = corrupted.RepairExtendedDataSquare(rowRoots, colRoots, codec, NewDefaultTree)
 		var byzCol *ErrByzantineCol
 		if !errors.As(err, &byzCol) {
 			t.Errorf("did not return a ErrByzantineCol for a bad column; got %v", err)
@@ -147,7 +150,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		corrupted.setCell(0, 1, nil)
 		corrupted.setCell(0, 2, nil)
 		corrupted.setCell(0, 3, nil)
-		err = corrupted.RepairExtendedDataSquare(codec, NewDefaultTree)
+		err = corrupted.RepairExtendedDataSquare(rowRoots, colRoots, codec, NewDefaultTree)
 		if !errors.As(err, &byzCol) {
 			t.Errorf("did not return a ErrByzantineCol for a bad column; got %v", err)
 		}
@@ -166,6 +169,8 @@ func BenchmarkRepair(b *testing.B) {
 			}
 
 			extendedDataWidth := originalDataWidth * 2
+			rowRoots := eds.RowRoots()
+			colRoots := eds.ColRoots()
 
 			b.Run(
 				fmt.Sprintf(
@@ -192,11 +197,13 @@ func BenchmarkRepair(b *testing.B) {
 						}
 
 						// Re-import the data square.
-						eds, _ = ImportExtendedDataSquare(flattened, eds.RowRoots(), eds.ColRoots(), codec, NewDefaultTree)
+						eds, _ = ImportExtendedDataSquare(flattened, codec, NewDefaultTree)
 
 						b.StartTimer()
 
 						err := eds.RepairExtendedDataSquare(
+							rowRoots,
+							colRoots,
 							codec,
 							NewDefaultTree,
 						)

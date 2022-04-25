@@ -53,6 +53,8 @@ func (e *ErrByzantineCol) Error() string {
 // or column prior to repair is returned in the error with missing shares as
 // nil.
 func (eds *ExtendedDataSquare) RepairExtendedDataSquare(
+	rowRoots [][]byte,
+	colRoots [][]byte,
 	codec Codec,
 	treeCreatorFn TreeConstructorFn,
 ) error {
@@ -66,16 +68,18 @@ func (eds *ExtendedDataSquare) RepairExtendedDataSquare(
 	// 	return ErrNoChunksAvailable
 	// }
 
-	err := eds.prerepairSanityCheck(codec)
+	err := eds.prerepairSanityCheck(rowRoots, colRoots, codec)
 	if err != nil {
 		return err
 	}
 
-	return eds.solveCrossword(codec)
+	return eds.solveCrossword(rowRoots, colRoots, codec)
 }
 
 // solveCrossword attempts to iteratively repair an EDS.
 func (eds *ExtendedDataSquare) solveCrossword(
+	rowRoots [][]byte,
+	colRoots [][]byte,
 	codec Codec,
 ) error {
 	// Keep repeating until the square is solved
@@ -87,11 +91,11 @@ func (eds *ExtendedDataSquare) solveCrossword(
 
 		// Loop through every row and column, attempt to rebuild each row or column if incomplete
 		for i := 0; i < int(eds.width); i++ {
-			solvedRow, progressMadeRow, err := eds.solveCrosswordRow(i, codec)
+			solvedRow, progressMadeRow, err := eds.solveCrosswordRow(i, rowRoots, colRoots, codec)
 			if err != nil {
 				return err
 			}
-			solvedCol, progressMadeCol, err := eds.solveCrosswordCol(i, codec)
+			solvedCol, progressMadeCol, err := eds.solveCrosswordCol(i, rowRoots, colRoots, codec)
 			if err != nil {
 				return err
 			}
@@ -118,6 +122,8 @@ func (eds *ExtendedDataSquare) solveCrossword(
 // - an error if the repair is unsuccessful
 func (eds *ExtendedDataSquare) solveCrosswordRow(
 	r int,
+	rowRoots [][]byte,
+	colRoots [][]byte,
 	codec Codec,
 ) (bool, bool, error) {
 	isComplete := noMissingData(eds.row(uint(r)))
@@ -144,7 +150,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	}
 
 	// Check that rebuilt shares matches appropriate root
-	err = eds.verifyAgainstRowRoots(uint(r), rebuiltShares)
+	err = eds.verifyAgainstRowRoots(rowRoots, uint(r), rebuiltShares)
 	if err != nil {
 		return false, false, err
 	}
@@ -153,7 +159,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	for c := 0; c < int(eds.width); c++ {
 		col := eds.col(uint(c))
 		if noMissingData(col) {
-			err := eds.verifyAgainstColRoots(uint(c), col)
+			err := eds.verifyAgainstColRoots(colRoots, uint(c), col)
 			if err != nil {
 				return false, false, err
 			}
@@ -175,6 +181,8 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 // - an error if the repair is unsuccessful
 func (eds *ExtendedDataSquare) solveCrosswordCol(
 	c int,
+	rowRoots [][]byte,
+	colRoots [][]byte,
 	codec Codec,
 ) (bool, bool, error) {
 	isComplete := noMissingData(eds.col(uint(c)))
@@ -201,7 +209,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	}
 
 	// Check that rebuilt shares matches appropriate root
-	err = eds.verifyAgainstColRoots(uint(c), rebuiltShares)
+	err = eds.verifyAgainstColRoots(colRoots, uint(c), rebuiltShares)
 	if err != nil {
 		return false, false, err
 	}
@@ -210,7 +218,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	for r := 0; r < int(eds.width); r++ {
 		row := eds.row(uint(r))
 		if noMissingData(row) {
-			err := eds.verifyAgainstRowRoots(uint(r), row)
+			err := eds.verifyAgainstRowRoots(rowRoots, uint(r), row)
 			if err != nil {
 				return false, false, err
 			}
@@ -260,12 +268,13 @@ func (eds *ExtendedDataSquare) rebuildShares(
 }
 
 func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
+	rowRoots [][]byte,
 	r uint,
 	shares [][]byte,
 ) error {
 	root := eds.computeSharesRoot(shares, r)
 
-	if !bytes.Equal(root, eds.rowRoots[r]) {
+	if !bytes.Equal(root, rowRoots[r]) {
 		return &ErrByzantineRow{r, shares}
 	}
 
@@ -273,12 +282,13 @@ func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
 }
 
 func (eds *ExtendedDataSquare) verifyAgainstColRoots(
+	colRoots [][]byte,
 	c uint,
 	shares [][]byte,
 ) error {
 	root := eds.computeSharesRoot(shares, c)
 
-	if !bytes.Equal(root, eds.colRoots[c]) {
+	if !bytes.Equal(root, colRoots[c]) {
 		return &ErrByzantineCol{c, shares}
 	}
 
@@ -286,6 +296,8 @@ func (eds *ExtendedDataSquare) verifyAgainstColRoots(
 }
 
 func (eds *ExtendedDataSquare) prerepairSanityCheck(
+	rowRoots [][]byte,
+	colRoots [][]byte,
 	codec Codec,
 ) error {
 	for i := uint(0); i < eds.width; i++ {
@@ -295,16 +307,16 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 		// if there's no missing data in the this row
 		if rowIsComplete {
 			// ensure that the roots are equal and that rowMask is a vector
-			if !bytes.Equal(eds.rowRoots[i], eds.getRowRoot(i)) {
-				return fmt.Errorf("bad root input: row %d expected %v got %v", i, eds.rowRoots[i], eds.getRowRoot(i))
+			if !bytes.Equal(rowRoots[i], eds.getRowRoot(i)) {
+				return fmt.Errorf("bad root input: row %d expected %v got %v", i, rowRoots[i], eds.getRowRoot(i))
 			}
 		}
 
 		// if there's no missing data in the this col
 		if colIsComplete {
 			// ensure that the roots are equal and that rowMask is a vector
-			if !bytes.Equal(eds.colRoots[i], eds.getColRoot(i)) {
-				return fmt.Errorf("bad root input: col %d expected %v got %v", i, eds.colRoots[i], eds.getColRoot(i))
+			if !bytes.Equal(colRoots[i], eds.getColRoot(i)) {
+				return fmt.Errorf("bad root input: col %d expected %v got %v", i, colRoots[i], eds.getColRoot(i))
 			}
 		}
 

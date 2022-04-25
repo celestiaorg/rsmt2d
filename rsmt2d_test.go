@@ -56,13 +56,15 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 			flattened[12], flattened[13] = nil, nil
 
 			// Re-import the data square.
-			eds, err = rsmt2d.ImportExtendedDataSquare(flattened, eds.RowRoots(), eds.ColRoots(), tt.codec, rsmt2d.NewDefaultTree)
+			eds, err = rsmt2d.ImportExtendedDataSquare(flattened, tt.codec, rsmt2d.NewDefaultTree)
 			if err != nil {
 				t.Errorf("ImportExtendedDataSquare failed: %v", err)
 			}
 
 			// Repair square.
 			err = eds.RepairExtendedDataSquare(
+				eds.RowRoots(),
+				eds.ColRoots(),
 				tt.codec,
 				rsmt2d.NewDefaultTree,
 			)
@@ -108,6 +110,9 @@ func TestEdsRepairTwice(t *testing.T) {
 				t.Errorf("ComputeExtendedDataSquare failed: %v", err)
 			}
 
+			rowRoots := eds.RowRoots()
+			colRoots := eds.ColRoots()
+
 			// Save all shares in flattened form.
 			flattened := make([][]byte, 0, eds.Width()*eds.Width())
 			for i := uint(0); i < eds.Width(); i++ {
@@ -123,13 +128,15 @@ func TestEdsRepairTwice(t *testing.T) {
 			flattened[12], flattened[13] = nil, nil
 
 			// Re-import the data square.
-			eds, err = rsmt2d.ImportExtendedDataSquare(flattened, eds.RowRoots(), eds.ColRoots(), tt.codec, rsmt2d.NewDefaultTree)
+			eds, err = rsmt2d.ImportExtendedDataSquare(flattened, tt.codec, rsmt2d.NewDefaultTree)
 			if err != nil {
 				t.Errorf("ImportExtendedDataSquare failed: %v", err)
 			}
 
 			// Repair square.
 			err = eds.RepairExtendedDataSquare(
+				rowRoots,
+				colRoots,
 				tt.codec,
 				rsmt2d.NewDefaultTree,
 			)
@@ -142,12 +149,14 @@ func TestEdsRepairTwice(t *testing.T) {
 			copy(flattened[1], missing)
 
 			// Re-import the data square.
-			eds, err = rsmt2d.ImportExtendedDataSquare(flattened, eds.RowRoots(), eds.ColRoots(), tt.codec, rsmt2d.NewDefaultTree)
+			eds, err = rsmt2d.ImportExtendedDataSquare(flattened, tt.codec, rsmt2d.NewDefaultTree)
 			if err != nil {
 				t.Errorf("ImportExtendedDataSquare failed: %v", err)
 			}
 
 			err = eds.RepairExtendedDataSquare(
+				rowRoots,
+				colRoots,
 				tt.codec,
 				rsmt2d.NewDefaultTree,
 			)
