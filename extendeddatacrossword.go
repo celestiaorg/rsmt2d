@@ -6,8 +6,11 @@ import (
 	"fmt"
 )
 
+// axis represents which of a row or col.
+type axis int
+
 const (
-	row = iota
+	row axis = iota
 	col
 )
 
@@ -16,13 +19,13 @@ var ErrUnrepairableDataSquare = errors.New("failed to solve data square")
 
 // ErrByzantineData is thrown when a repaired row or column does not match the expected row or column Merkle root.
 type ErrByzantineData struct {
-	isRow  bool     // Is row.
+	axis   axis     // Axis of the data.
 	Index  uint     // Row/Col index.
 	Shares [][]byte // Pre-repaired shares. Missing shares are nil.
 }
 
 func (e *ErrByzantineData) Error() string {
-	if e.isRow {
+	if e.axis == row {
 		return fmt.Sprintf("byzantine row: %d", e.Index)
 	} else {
 		return fmt.Sprintf("byzantine column: %d", e.Index)
@@ -31,12 +34,12 @@ func (e *ErrByzantineData) Error() string {
 
 // IsRow returns if the error is a row or not.
 func (e *ErrByzantineData) IsRow() bool {
-	return e.isRow
+	return e.axis == row
 }
 
 // IsCol returns if the error is a column or not.
 func (e *ErrByzantineData) IsCol() bool {
-	return !e.isRow
+	return e.axis == col
 }
 
 // Repair attempts to repair an incomplete extended data
@@ -267,7 +270,7 @@ func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
 	root := eds.computeSharesRoot(shares, r)
 
 	if !bytes.Equal(root, rowRoots[r]) {
-		return &ErrByzantineData{true, r, shares}
+		return &ErrByzantineData{row, r, shares}
 	}
 
 	return nil
@@ -281,7 +284,7 @@ func (eds *ExtendedDataSquare) verifyAgainstColRoots(
 	root := eds.computeSharesRoot(shares, c)
 
 	if !bytes.Equal(root, colRoots[c]) {
-		return &ErrByzantineData{false, c, shares}
+		return &ErrByzantineData{col, c, shares}
 	}
 
 	return nil
@@ -318,7 +321,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 				return err
 			}
 			if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.rowSlice(i, eds.originalDataWidth, eds.originalDataWidth))) {
-				return &ErrByzantineData{true, i, eds.row(i)}
+				return &ErrByzantineData{row, i, eds.row(i)}
 			}
 		}
 
@@ -328,7 +331,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 				return err
 			}
 			if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.colSlice(eds.originalDataWidth, i, eds.originalDataWidth))) {
-				return &ErrByzantineData{false, i, eds.col(i)}
+				return &ErrByzantineData{col, i, eds.col(i)}
 			}
 		}
 	}

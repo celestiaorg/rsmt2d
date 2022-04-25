@@ -99,7 +99,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 			t.Errorf("did not return a ErrByzantineData for a bad row; got: %v", err)
 		}
 		// Construct the fraud proof
-		fraudProof := PseudoFraudProof{row, byzData.Index, byzData.Shares}
+		fraudProof := PseudoFraudProof{0, byzData.Index, byzData.Shares}
 		// Verify the fraud proof
 		// TODO in a real fraud proof, also verify Merkle proof for each non-nil share.
 		rebuiltShares, err := codec.Decode(fraudProof.Shares)
