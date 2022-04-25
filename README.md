@@ -54,7 +54,7 @@ func main() {
     flattened[12], flattened[13] = nil, nil
 
     // Re-import the data square.
-    eds, err = rsmt2d.ImportExtendedDataSquare(flattened, tt.codec, rsmt2d.NewDefaultTree)
+    eds, err = rsmt2d.ImportExtendedDataSquare(flattened, codec, rsmt2d.NewDefaultTree)
     if err != nil {
         // ImportExtendedDataSquare failed
     }
