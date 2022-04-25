@@ -14,9 +14,6 @@ const (
 // ErrUnrepairableDataSquare is thrown when there is insufficient chunks to repair the square.
 var ErrUnrepairableDataSquare = errors.New("failed to solve data square")
 
-// ErrNoChunksAvailable is thrown when dataSquare is empty.
-var ErrNoChunksAvailable = errors.New("no chunks available")
-
 // ErrByzantineRow is thrown when a repaired row does not match the expected row Merkle root.
 type ErrByzantineRow struct {
 	RowNumber uint     // Row index
@@ -37,7 +34,7 @@ func (e *ErrByzantineCol) Error() string {
 	return fmt.Sprintf("byzantine column: %d", e.ColNumber)
 }
 
-// RepairExtendedDataSquare attempts to repair an incomplete extended data
+// Repair attempts to repair an incomplete extended data
 // square (EDS), comparing repaired rows and columns against expected Merkle
 // roots.
 //
@@ -52,29 +49,13 @@ func (e *ErrByzantineCol) Error() string {
 // prior to the Byzantine row or column being repaired, and the Byzantine row
 // or column prior to repair is returned in the error with missing shares as
 // nil.
-func RepairExtendedDataSquare(
+func (eds *ExtendedDataSquare) Repair(
 	rowRoots [][]byte,
 	colRoots [][]byte,
-	data [][]byte,
 	codec Codec,
 	treeCreatorFn TreeConstructorFn,
 ) error {
-	var isNotEmpty bool
-	for _, d := range data {
-		if d != nil {
-			isNotEmpty = true
-		}
-	}
-	if !isNotEmpty {
-		return ErrNoChunksAvailable
-	}
-
-	eds, err := ImportExtendedDataSquare(data, codec, treeCreatorFn)
-	if err != nil {
-		return err
-	}
-
-	err = eds.prerepairSanityCheck(rowRoots, colRoots, codec)
+	err := eds.prerepairSanityCheck(rowRoots, colRoots, codec)
 	if err != nil {
 		return err
 	}

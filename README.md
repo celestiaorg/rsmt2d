@@ -53,11 +53,16 @@ func main() {
     flattened[8], flattened[9], flattened[10] = nil, nil, nil
     flattened[12], flattened[13] = nil, nil
 
+    // Re-import the data square.
+    eds, err = rsmt2d.ImportExtendedDataSquare(flattened, codec, rsmt2d.NewDefaultTree)
+    if err != nil {
+        // ImportExtendedDataSquare failed
+    }
+
     // Repair square.
-    err := rsmt2d.RepairExtendedDataSquare(
+    err := eds.Repair(
         eds.RowRoots(),
         eds.ColRoots(),
-        flattened,
         codec,
         rsmt2d.NewDefaultTree,
     )
