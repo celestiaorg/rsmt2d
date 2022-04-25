@@ -39,6 +39,8 @@ func ComputeExtendedDataSquare(
 // ImportExtendedDataSquare imports an extended data square, represented as flattened chunks of data.
 func ImportExtendedDataSquare(
 	data [][]byte,
+	rowRoots [][]byte,
+	colRoots [][]byte,
 	codec Codec,
 	treeCreatorFn TreeConstructorFn,
 ) (*ExtendedDataSquare, error) {
@@ -50,6 +52,9 @@ func ImportExtendedDataSquare(
 	if err != nil {
 		return nil, err
 	}
+
+	ds.rowRoots = rowRoots
+	ds.colRoots = colRoots
 
 	eds := ExtendedDataSquare{dataSquare: ds}
 	if eds.width%2 != 0 {
@@ -125,7 +130,7 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 }
 
 func (eds *ExtendedDataSquare) deepCopy(codec Codec) (ExtendedDataSquare, error) {
-	eds, err := ImportExtendedDataSquare(eds.flattened(), codec, eds.createTreeFn)
+	eds, err := ImportExtendedDataSquare(eds.flattened(), eds.RowRoots(), eds.ColRoots(), codec, eds.createTreeFn)
 	return *eds, err
 }
 

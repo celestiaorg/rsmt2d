@@ -55,11 +55,14 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 			flattened[8], flattened[9], flattened[10] = nil, nil, nil
 			flattened[12], flattened[13] = nil, nil
 
+			// Re-import the data square.
+			eds, err = rsmt2d.ImportExtendedDataSquare(flattened, eds.RowRoots(), eds.ColRoots(), tt.codec, rsmt2d.NewDefaultTree)
+			if err != nil {
+				t.Errorf("ImportExtendedDataSquare failed: %v", err)
+			}
+
 			// Repair square.
-			err = rsmt2d.RepairExtendedDataSquare(
-				eds.RowRoots(),
-				eds.ColRoots(),
-				flattened,
+			err = eds.RepairExtendedDataSquare(
 				tt.codec,
 				rsmt2d.NewDefaultTree,
 			)
@@ -119,11 +122,14 @@ func TestEdsRepairTwice(t *testing.T) {
 			flattened[8], flattened[9], flattened[10] = nil, nil, nil
 			flattened[12], flattened[13] = nil, nil
 
+			// Re-import the data square.
+			eds, err = rsmt2d.ImportExtendedDataSquare(flattened, eds.RowRoots(), eds.ColRoots(), tt.codec, rsmt2d.NewDefaultTree)
+			if err != nil {
+				t.Errorf("ImportExtendedDataSquare failed: %v", err)
+			}
+
 			// Repair square.
-			err = rsmt2d.RepairExtendedDataSquare(
-				eds.RowRoots(),
-				eds.ColRoots(),
-				flattened,
+			err = eds.RepairExtendedDataSquare(
 				tt.codec,
 				rsmt2d.NewDefaultTree,
 			)
@@ -134,10 +140,14 @@ func TestEdsRepairTwice(t *testing.T) {
 			// Re-insert missing share and try again.
 			flattened[1] = make([]byte, bufferSize)
 			copy(flattened[1], missing)
-			err = rsmt2d.RepairExtendedDataSquare(
-				eds.RowRoots(),
-				eds.ColRoots(),
-				flattened,
+
+			// Re-import the data square.
+			eds, err = rsmt2d.ImportExtendedDataSquare(flattened, eds.RowRoots(), eds.ColRoots(), tt.codec, rsmt2d.NewDefaultTree)
+			if err != nil {
+				t.Errorf("ImportExtendedDataSquare failed: %v", err)
+			}
+
+			err = eds.RepairExtendedDataSquare(
 				tt.codec,
 				rsmt2d.NewDefaultTree,
 			)
