@@ -58,16 +58,6 @@ func (eds *ExtendedDataSquare) RepairExtendedDataSquare(
 	codec Codec,
 	treeCreatorFn TreeConstructorFn,
 ) error {
-	// var isNotEmpty bool
-	// for _, d := range data {
-	// 	if d != nil {
-	// 		isNotEmpty = true
-	// 	}
-	// }
-	// if !isNotEmpty {
-	// 	return ErrNoChunksAvailable
-	// }
-
 	err := eds.prerepairSanityCheck(rowRoots, colRoots, codec)
 	if err != nil {
 		return err
