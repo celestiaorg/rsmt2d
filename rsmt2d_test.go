@@ -43,6 +43,9 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 				t.Errorf("ComputeExtendedDataSquare failed: %v", err)
 			}
 
+			rowRoots := eds.RowRoots()
+			colRoots := eds.ColRoots()
+
 			// Save all shares in flattened form.
 			flattened := make([][]byte, 0, eds.Width()*eds.Width())
 			for i := uint(0); i < eds.Width(); i++ {
@@ -63,8 +66,8 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 
 			// Repair square.
 			err = eds.RepairExtendedDataSquare(
-				eds.RowRoots(),
-				eds.ColRoots(),
+				rowRoots,
+				colRoots,
 				tt.codec,
 				rsmt2d.NewDefaultTree,
 			)
