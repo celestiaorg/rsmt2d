@@ -14,9 +14,6 @@ const (
 // ErrUnrepairableDataSquare is thrown when there is insufficient chunks to repair the square.
 var ErrUnrepairableDataSquare = errors.New("failed to solve data square")
 
-// ErrNoChunksAvailable is thrown when dataSquare is empty.
-var ErrNoChunksAvailable = errors.New("no chunks available")
-
 // ErrByzantineRow is thrown when a repaired row does not match the expected row Merkle root.
 type ErrByzantineRow struct {
 	RowNumber uint     // Row index
