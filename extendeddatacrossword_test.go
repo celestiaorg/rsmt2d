@@ -93,7 +93,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 			t.Fatalf("unexpected err while copying original data: %v, codec: :%s", err, codecName)
 		}
 		corrupted.setCell(0, 0, corruptChunk)
-		err = corrupted.RepairExtendedDataSquare(rowRoots, colRoots, codec, NewDefaultTree)
+		err = corrupted.RepairExtendedDataSquare(corrupted.getRowRoots(), corrupted.getColRoots(), codec, NewDefaultTree)
 		var byzRow *ErrByzantineRow
 		if !errors.As(err, &byzRow) {
 			t.Errorf("did not return a ErrByzantineRow for a bad row; got: %v", err)
@@ -124,7 +124,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 			t.Fatalf("unexpected err while copying original data: %v, codec: :%s", err, codecName)
 		}
 		corrupted.setCell(0, 3, corruptChunk)
-		err = corrupted.RepairExtendedDataSquare(rowRoots, colRoots, codec, NewDefaultTree)
+		err = corrupted.RepairExtendedDataSquare(corrupted.getRowRoots(), corrupted.getColRoots(), codec, NewDefaultTree)
 		if !errors.As(err, &byzRow) {
 			t.Errorf("did not return a ErrByzantineRow for a bad row; got %v", err)
 		}
@@ -137,7 +137,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		corrupted.setCell(0, 1, nil)
 		corrupted.setCell(0, 2, nil)
 		corrupted.setCell(0, 3, nil)
-		err = corrupted.RepairExtendedDataSquare(rowRoots, colRoots, codec, NewDefaultTree)
+		err = corrupted.RepairExtendedDataSquare(corrupted.getRowRoots(), corrupted.getColRoots(), codec, NewDefaultTree)
 		var byzCol *ErrByzantineCol
 		if !errors.As(err, &byzCol) {
 			t.Errorf("did not return a ErrByzantineCol for a bad column; got %v", err)
@@ -150,7 +150,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		corrupted.setCell(0, 1, nil)
 		corrupted.setCell(0, 2, nil)
 		corrupted.setCell(0, 3, nil)
-		err = corrupted.RepairExtendedDataSquare(rowRoots, colRoots, codec, NewDefaultTree)
+		err = corrupted.RepairExtendedDataSquare(corrupted.getRowRoots(), corrupted.getColRoots(), codec, NewDefaultTree)
 		if !errors.As(err, &byzCol) {
 			t.Errorf("did not return a ErrByzantineCol for a bad column; got %v", err)
 		}
