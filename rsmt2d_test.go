@@ -65,7 +65,7 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 			}
 
 			// Repair square.
-			err = eds.RepairExtendedDataSquare(
+			err = eds.Repair(
 				rowRoots,
 				colRoots,
 				tt.codec,
@@ -137,7 +137,7 @@ func TestEdsRepairTwice(t *testing.T) {
 			}
 
 			// Repair square.
-			err = eds.RepairExtendedDataSquare(
+			err = eds.Repair(
 				rowRoots,
 				colRoots,
 				tt.codec,
@@ -157,7 +157,7 @@ func TestEdsRepairTwice(t *testing.T) {
 				t.Errorf("ImportExtendedDataSquare failed: %v", err)
 			}
 
-			err = eds.RepairExtendedDataSquare(
+			err = eds.Repair(
 				rowRoots,
 				colRoots,
 				tt.codec,
