@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-// axis represents which of a row or col.
+// Axis represents which of a row or col.
 type Axis int
 
 const (
