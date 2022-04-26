@@ -14,6 +14,17 @@ const (
 	Col
 )
 
+func (a Axis) String() string {
+	switch a {
+	case Row:
+		return "row"
+	case Col:
+		return "col"
+	default:
+		panic(fmt.Sprintf("invalid axis type: %d", a))
+	}
+}
+
 // ErrUnrepairableDataSquare is thrown when there is insufficient chunks to repair the square.
 var ErrUnrepairableDataSquare = errors.New("failed to solve data square")
 
