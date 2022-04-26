@@ -95,7 +95,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		corrupted.setCell(0, 0, corruptChunk)
 		err = corrupted.Repair(corrupted.getRowRoots(), corrupted.getColRoots(), codec, NewDefaultTree)
 		var byzData *ErrByzantineData
-		if !errors.As(err, &byzData) || !byzData.IsRow() {
+		if !errors.As(err, &byzData) || byzData.Axis != Row {
 			t.Errorf("did not return a ErrByzantineData for a bad row; got: %v", err)
 		}
 		// Construct the fraud proof
@@ -125,7 +125,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		}
 		corrupted.setCell(0, 3, corruptChunk)
 		err = corrupted.Repair(corrupted.getRowRoots(), corrupted.getColRoots(), codec, NewDefaultTree)
-		if !errors.As(err, &byzData) || !byzData.IsRow() {
+		if !errors.As(err, &byzData) || byzData.Axis != Row {
 			t.Errorf("did not return a ErrByzantineData for a bad row; got %v", err)
 		}
 
@@ -138,7 +138,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		corrupted.setCell(0, 2, nil)
 		corrupted.setCell(0, 3, nil)
 		err = corrupted.Repair(corrupted.getRowRoots(), corrupted.getColRoots(), codec, NewDefaultTree)
-		if !errors.As(err, &byzData) || !byzData.IsCol() {
+		if !errors.As(err, &byzData) || byzData.Axis != Col {
 			t.Errorf("did not return a ErrByzantineData for a bad column; got %v", err)
 		}
 		corrupted, err = original.deepCopy(codec)
@@ -150,7 +150,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		corrupted.setCell(0, 2, nil)
 		corrupted.setCell(0, 3, nil)
 		err = corrupted.Repair(corrupted.getRowRoots(), corrupted.getColRoots(), codec, NewDefaultTree)
-		if !errors.As(err, &byzData) || !byzData.IsCol() {
+		if !errors.As(err, &byzData) || byzData.Axis != Col {
 			t.Errorf("did not return a ErrByzantineData for a bad column; got %v", err)
 		}
 	}
