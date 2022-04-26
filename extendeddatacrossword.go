@@ -25,10 +25,13 @@ type ErrByzantineData struct {
 }
 
 func (e *ErrByzantineData) Error() string {
-	if e.Axis == Row {
+	switch e.Axis {
+	case Row:
 		return fmt.Sprintf("byzantine row: %d", e.Index)
-	} else {
+	case Col:
 		return fmt.Sprintf("byzantine column: %d", e.Index)
+	default:
+		panic(fmt.Sprintf("invalid axis: %d", e.Axis))
 	}
 }
 
