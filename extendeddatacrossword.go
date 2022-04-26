@@ -14,6 +14,17 @@ const (
 	Col
 )
 
+func (a Axis) String() string {
+	switch a {
+	case Row:
+		return "row"
+	case Col:
+		return "col"
+	default:
+		panic(fmt.Sprintf("invalid axis type: %d", a))
+	}
+}
+
 // ErrUnrepairableDataSquare is thrown when there is insufficient chunks to repair the square.
 var ErrUnrepairableDataSquare = errors.New("failed to solve data square")
 
@@ -25,14 +36,7 @@ type ErrByzantineData struct {
 }
 
 func (e *ErrByzantineData) Error() string {
-	switch e.Axis {
-	case Row:
-		return fmt.Sprintf("byzantine row: %d", e.Index)
-	case Col:
-		return fmt.Sprintf("byzantine column: %d", e.Index)
-	default:
-		panic(fmt.Sprintf("invalid axis: %d", e.Axis))
-	}
+	return fmt.Sprintf("byzantine %s: %d", e.Axis, e.Index)
 }
 
 // Repair attempts to repair an incomplete extended data
