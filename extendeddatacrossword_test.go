@@ -94,12 +94,12 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		}
 		corrupted.setCell(0, 0, corruptChunk)
 		err = corrupted.Repair(corrupted.getRowRoots(), corrupted.getColRoots(), codec, NewDefaultTree)
-		var byzRow *ErrByzantineRow
-		if !errors.As(err, &byzRow) {
-			t.Errorf("did not return a ErrByzantineRow for a bad row; got: %v", err)
+		var byzData *ErrByzantineData
+		if !errors.As(err, &byzData) || byzData.Axis != Row {
+			t.Errorf("did not return a ErrByzantineData for a bad row; got: %v", err)
 		}
 		// Construct the fraud proof
-		fraudProof := PseudoFraudProof{row, byzRow.RowNumber, byzRow.Shares}
+		fraudProof := PseudoFraudProof{0, byzData.Index, byzData.Shares}
 		// Verify the fraud proof
 		// TODO in a real fraud proof, also verify Merkle proof for each non-nil share.
 		rebuiltShares, err := codec.Decode(fraudProof.Shares)
@@ -125,8 +125,8 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		}
 		corrupted.setCell(0, 3, corruptChunk)
 		err = corrupted.Repair(corrupted.getRowRoots(), corrupted.getColRoots(), codec, NewDefaultTree)
-		if !errors.As(err, &byzRow) {
-			t.Errorf("did not return a ErrByzantineRow for a bad row; got %v", err)
+		if !errors.As(err, &byzData) || byzData.Axis != Row {
+			t.Errorf("did not return a ErrByzantineData for a bad row; got %v", err)
 		}
 
 		corrupted, err = original.deepCopy(codec)
@@ -138,9 +138,8 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		corrupted.setCell(0, 2, nil)
 		corrupted.setCell(0, 3, nil)
 		err = corrupted.Repair(corrupted.getRowRoots(), corrupted.getColRoots(), codec, NewDefaultTree)
-		var byzCol *ErrByzantineCol
-		if !errors.As(err, &byzCol) {
-			t.Errorf("did not return a ErrByzantineCol for a bad column; got %v", err)
+		if !errors.As(err, &byzData) || byzData.Axis != Col {
+			t.Errorf("did not return a ErrByzantineData for a bad column; got %v", err)
 		}
 		corrupted, err = original.deepCopy(codec)
 		if err != nil {
@@ -151,8 +150,8 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		corrupted.setCell(0, 2, nil)
 		corrupted.setCell(0, 3, nil)
 		err = corrupted.Repair(corrupted.getRowRoots(), corrupted.getColRoots(), codec, NewDefaultTree)
-		if !errors.As(err, &byzCol) {
-			t.Errorf("did not return a ErrByzantineCol for a bad column; got %v", err)
+		if !errors.As(err, &byzData) || byzData.Axis != Col {
+			t.Errorf("did not return a ErrByzantineData for a bad column; got %v", err)
 		}
 	}
 }

@@ -6,32 +6,33 @@ import (
 	"fmt"
 )
 
+// Axis represents which of a row or col.
+type Axis int
+
 const (
-	row = iota
-	col
+	Row Axis = iota
+	Col
 )
 
 // ErrUnrepairableDataSquare is thrown when there is insufficient chunks to repair the square.
 var ErrUnrepairableDataSquare = errors.New("failed to solve data square")
 
-// ErrByzantineRow is thrown when a repaired row does not match the expected row Merkle root.
-type ErrByzantineRow struct {
-	RowNumber uint     // Row index
-	Shares    [][]byte // Pre-repaired row shares. Missing shares are nil.
+// ErrByzantineData is thrown when a repaired row or column does not match the expected row or column Merkle root.
+type ErrByzantineData struct {
+	Axis   Axis     // Axis of the data.
+	Index  uint     // Row/Col index.
+	Shares [][]byte // Pre-repaired shares. Missing shares are nil.
 }
 
-func (e *ErrByzantineRow) Error() string {
-	return fmt.Sprintf("byzantine row: %d", e.RowNumber)
-}
-
-// ErrByzantineCol is thrown when a repaired column does not match the expected column Merkle root.
-type ErrByzantineCol struct {
-	ColNumber uint     // Column index
-	Shares    [][]byte // Pre-repaired column shares. Missing shares are nil.
-}
-
-func (e *ErrByzantineCol) Error() string {
-	return fmt.Sprintf("byzantine column: %d", e.ColNumber)
+func (e *ErrByzantineData) Error() string {
+	switch e.Axis {
+	case Row:
+		return fmt.Sprintf("byzantine row: %d", e.Index)
+	case Col:
+		return fmt.Sprintf("byzantine column: %d", e.Index)
+	default:
+		panic(fmt.Sprintf("invalid axis: %d", e.Axis))
+	}
 }
 
 // Repair attempts to repair an incomplete extended data
@@ -262,7 +263,7 @@ func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
 	root := eds.computeSharesRoot(shares, r)
 
 	if !bytes.Equal(root, rowRoots[r]) {
-		return &ErrByzantineRow{r, shares}
+		return &ErrByzantineData{Row, r, shares}
 	}
 
 	return nil
@@ -276,7 +277,7 @@ func (eds *ExtendedDataSquare) verifyAgainstColRoots(
 	root := eds.computeSharesRoot(shares, c)
 
 	if !bytes.Equal(root, colRoots[c]) {
-		return &ErrByzantineCol{c, shares}
+		return &ErrByzantineData{Col, c, shares}
 	}
 
 	return nil
@@ -313,7 +314,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 				return err
 			}
 			if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.rowSlice(i, eds.originalDataWidth, eds.originalDataWidth))) {
-				return &ErrByzantineRow{i, eds.row(i)}
+				return &ErrByzantineData{Row, i, eds.row(i)}
 			}
 		}
 
@@ -323,7 +324,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 				return err
 			}
 			if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.colSlice(eds.originalDataWidth, i, eds.originalDataWidth))) {
-				return &ErrByzantineCol{i, eds.col(i)}
+				return &ErrByzantineData{Col, i, eds.col(i)}
 			}
 		}
 	}
