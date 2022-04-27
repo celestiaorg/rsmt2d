@@ -1,4 +1,5 @@
 //go:build leopard
+// +build leopard
 
 package rsmt2d_test
 
