@@ -355,7 +355,7 @@ func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, i uint) []byte
 
 func (eds *ExtendedDataSquare) rowRangeNoMissingData(r, start, end uint) bool {
 	for c := start; c <= end && c < eds.width; c++ {
-		if eds.getCell(r, c) == nil {
+		if eds.squareRow[r][c] == nil {
 			return false
 		}
 	}
@@ -364,7 +364,7 @@ func (eds *ExtendedDataSquare) rowRangeNoMissingData(r, start, end uint) bool {
 
 func (eds *ExtendedDataSquare) colRangeNoMissingData(c, start, end uint) bool {
 	for r := start; r <= end && r < eds.width; r++ {
-		if eds.getCell(r, c) == nil {
+		if eds.squareRow[r][c]  == nil {
 			return false
 		}
 	}
