@@ -231,7 +231,7 @@ func (ds *dataSquare) getColRoot(y uint) []byte {
 	return tree.Root()
 }
 
-// getCell returns a copy a single chunk at a specific cell.
+// getCell returns a copy of single chunk at a specific cell.
 func (ds *dataSquare) getCell(x uint, y uint) []byte {
 	if ds.squareRow[x][y] == nil {
 		return nil
