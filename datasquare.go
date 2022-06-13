@@ -2,6 +2,7 @@ package rsmt2d
 
 import (
 	"errors"
+	"fmt"
 	"math"
 )
 
@@ -241,8 +242,19 @@ func (ds *dataSquare) GetCell(x uint, y uint) []byte {
 	return cell
 }
 
-// SetCell sets a specific cell.
+// SetCell sets a specific cell. Cell to set must be `nil`.
+// Panics if attempting to set a cell that is not `nil`.
 func (ds *dataSquare) SetCell(x uint, y uint, newChunk []byte) {
+	if ds.squareRow[x][y] != nil {
+		panic(fmt.Sprintf("cannot set cell (%d, %d) as it already has a value %x", x, y, ds.squareRow[x][y]))
+	}
+	ds.squareRow[x][y] = newChunk
+	ds.squareCol[y][x] = newChunk
+	ds.resetRoots()
+}
+
+// setCell sets a specific cell.
+func (ds *dataSquare) setCell(x uint, y uint, newChunk []byte) {
 	ds.squareRow[x][y] = newChunk
 	ds.squareCol[y][x] = newChunk
 	ds.resetRoots()
