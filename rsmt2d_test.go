@@ -68,8 +68,6 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 			err = eds.Repair(
 				rowRoots,
 				colRoots,
-				tt.codec,
-				rsmt2d.NewDefaultTree,
 			)
 			if err != nil {
 				// err contains information to construct a fraud proof
@@ -140,8 +138,6 @@ func TestEdsRepairTwice(t *testing.T) {
 			err = eds.Repair(
 				rowRoots,
 				colRoots,
-				tt.codec,
-				rsmt2d.NewDefaultTree,
 			)
 			if !errors.Is(err, rsmt2d.ErrUnrepairableDataSquare) {
 				// Should fail since insufficient data.
@@ -160,8 +156,6 @@ func TestEdsRepairTwice(t *testing.T) {
 			err = eds.Repair(
 				rowRoots,
 				colRoots,
-				tt.codec,
-				rsmt2d.NewDefaultTree,
 			)
 			if err != nil {
 				// Should now pass, since sufficient data.

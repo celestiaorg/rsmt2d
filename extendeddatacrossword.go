@@ -57,22 +57,19 @@ func (e *ErrByzantineData) Error() string {
 func (eds *ExtendedDataSquare) Repair(
 	rowRoots [][]byte,
 	colRoots [][]byte,
-	codec Codec,
-	treeCreatorFn TreeConstructorFn,
 ) error {
-	err := eds.prerepairSanityCheck(rowRoots, colRoots, codec)
+	err := eds.prerepairSanityCheck(rowRoots, colRoots)
 	if err != nil {
 		return err
 	}
 
-	return eds.solveCrossword(rowRoots, colRoots, codec)
+	return eds.solveCrossword(rowRoots, colRoots)
 }
 
 // solveCrossword attempts to iteratively repair an EDS.
 func (eds *ExtendedDataSquare) solveCrossword(
 	rowRoots [][]byte,
 	colRoots [][]byte,
-	codec Codec,
 ) error {
 	// Keep repeating until the square is solved
 	for {
@@ -83,11 +80,11 @@ func (eds *ExtendedDataSquare) solveCrossword(
 
 		// Loop through every row and column, attempt to rebuild each row or column if incomplete
 		for i := 0; i < int(eds.width); i++ {
-			solvedRow, progressMadeRow, err := eds.solveCrosswordRow(i, rowRoots, colRoots, codec)
+			solvedRow, progressMadeRow, err := eds.solveCrosswordRow(i, rowRoots, colRoots)
 			if err != nil {
 				return err
 			}
-			solvedCol, progressMadeCol, err := eds.solveCrosswordCol(i, rowRoots, colRoots, codec)
+			solvedCol, progressMadeCol, err := eds.solveCrosswordCol(i, rowRoots, colRoots)
 			if err != nil {
 				return err
 			}
@@ -116,7 +113,6 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	r int,
 	rowRoots [][]byte,
 	colRoots [][]byte,
-	codec Codec,
 ) (bool, bool, error) {
 	isComplete := noMissingData(eds.row(uint(r)))
 	if isComplete {
@@ -133,7 +129,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 
 	isExtendedPartIncomplete := !eds.rowRangeNoMissingData(uint(r), eds.originalDataWidth, eds.width)
 	// Attempt rebuild
-	rebuiltShares, isDecoded, err := eds.rebuildShares(isExtendedPartIncomplete, shares, codec)
+	rebuiltShares, isDecoded, err := eds.rebuildShares(isExtendedPartIncomplete, shares)
 	if err != nil {
 		return false, false, err
 	}
@@ -175,7 +171,6 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	c int,
 	rowRoots [][]byte,
 	colRoots [][]byte,
-	codec Codec,
 ) (bool, bool, error) {
 	isComplete := noMissingData(eds.col(uint(c)))
 	if isComplete {
@@ -192,7 +187,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 
 	isExtendedPartIncomplete := !eds.colRangeNoMissingData(uint(c), eds.originalDataWidth, eds.width)
 	// Attempt rebuild
-	rebuiltShares, isDecoded, err := eds.rebuildShares(isExtendedPartIncomplete, shares, codec)
+	rebuiltShares, isDecoded, err := eds.rebuildShares(isExtendedPartIncomplete, shares)
 	if err != nil {
 		return false, false, err
 	}
@@ -228,9 +223,8 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 func (eds *ExtendedDataSquare) rebuildShares(
 	isExtendedPartIncomplete bool,
 	shares [][]byte,
-	codec Codec,
 ) ([][]byte, bool, error) {
-	rebuiltShares, err := codec.Decode(shares)
+	rebuiltShares, err := eds.codec.Decode(shares)
 	if err != nil {
 		// repair unsuccessful
 		return nil, false, nil
@@ -238,7 +232,7 @@ func (eds *ExtendedDataSquare) rebuildShares(
 
 	if isExtendedPartIncomplete {
 		// If needed, rebuild the parity shares too.
-		rebuiltExtendedShares, err := codec.Encode(rebuiltShares[0:eds.originalDataWidth])
+		rebuiltExtendedShares, err := eds.codec.Encode(rebuiltShares[0:eds.originalDataWidth])
 		if err != nil {
 			return nil, true, err
 		}
@@ -290,7 +284,6 @@ func (eds *ExtendedDataSquare) verifyAgainstColRoots(
 func (eds *ExtendedDataSquare) prerepairSanityCheck(
 	rowRoots [][]byte,
 	colRoots [][]byte,
-	codec Codec,
 ) error {
 	for i := uint(0); i < eds.width; i++ {
 		rowIsComplete := noMissingData(eds.row(i))
@@ -313,7 +306,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 		}
 
 		if rowIsComplete {
-			parityShares, err := codec.Encode(eds.rowSlice(i, 0, eds.originalDataWidth))
+			parityShares, err := eds.codec.Encode(eds.rowSlice(i, 0, eds.originalDataWidth))
 			if err != nil {
 				return err
 			}
@@ -323,7 +316,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 		}
 
 		if colIsComplete {
-			parityShares, err := codec.Encode(eds.colSlice(0, i, eds.originalDataWidth))
+			parityShares, err := eds.codec.Encode(eds.colSlice(0, i, eds.originalDataWidth))
 			if err != nil {
 				return err
 			}
