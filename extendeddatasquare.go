@@ -9,6 +9,7 @@ import (
 // ExtendedDataSquare represents an extended piece of data.
 type ExtendedDataSquare struct {
 	*dataSquare
+	codec             Codec
 	originalDataWidth uint
 }
 
@@ -27,7 +28,7 @@ func ComputeExtendedDataSquare(
 		return nil, err
 	}
 
-	eds := ExtendedDataSquare{dataSquare: ds}
+	eds := ExtendedDataSquare{dataSquare: ds, codec: codec}
 	err = eds.erasureExtendSquare(codec)
 	if err != nil {
 		return nil, err
@@ -51,7 +52,7 @@ func ImportExtendedDataSquare(
 		return nil, err
 	}
 
-	eds := ExtendedDataSquare{dataSquare: ds}
+	eds := ExtendedDataSquare{dataSquare: ds, codec: codec}
 	if eds.width%2 != 0 {
 		return nil, errors.New("square width must be even")
 	}
