@@ -2,6 +2,7 @@ package rsmt2d
 
 import (
 	"errors"
+	"fmt"
 	"math"
 )
 
@@ -117,7 +118,7 @@ func (ds *dataSquare) rowSlice(x uint, y uint, length uint) [][]byte {
 }
 
 // row returns a row slice.
-// Do not modify this slice directly, instead use setCell.
+// Do not modify this slice directly, instead use SetCell.
 func (ds *dataSquare) row(x uint) [][]byte {
 	return ds.rowSlice(x, 0, ds.width)
 }
@@ -144,7 +145,7 @@ func (ds *dataSquare) colSlice(x uint, y uint, length uint) [][]byte {
 }
 
 // col returns a column slice.
-// Do not modify this slice directly, instead use setCell.
+// Do not modify this slice directly, instead use SetCell.
 func (ds *dataSquare) col(y uint) [][]byte {
 	return ds.colSlice(0, y, ds.width)
 }
@@ -231,8 +232,8 @@ func (ds *dataSquare) getColRoot(y uint) []byte {
 	return tree.Root()
 }
 
-// getCell returns a copy of single chunk at a specific cell.
-func (ds *dataSquare) getCell(x uint, y uint) []byte {
+// GetCell returns a copy of a specific cell.
+func (ds *dataSquare) GetCell(x uint, y uint) []byte {
 	if ds.squareRow[x][y] == nil {
 		return nil
 	}
@@ -241,6 +242,18 @@ func (ds *dataSquare) getCell(x uint, y uint) []byte {
 	return cell
 }
 
+// SetCell sets a specific cell. Cell to set must be `nil`.
+// Panics if attempting to set a cell that is not `nil`.
+func (ds *dataSquare) SetCell(x uint, y uint, newChunk []byte) {
+	if ds.squareRow[x][y] != nil {
+		panic(fmt.Sprintf("cannot set cell (%d, %d) as it already has a value %x", x, y, ds.squareRow[x][y]))
+	}
+	ds.squareRow[x][y] = newChunk
+	ds.squareCol[y][x] = newChunk
+	ds.resetRoots()
+}
+
+// setCell sets a specific cell.
 func (ds *dataSquare) setCell(x uint, y uint, newChunk []byte) {
 	ds.squareRow[x][y] = newChunk
 	ds.squareCol[y][x] = newChunk
