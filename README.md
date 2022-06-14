@@ -63,8 +63,6 @@ func main() {
     err := eds.Repair(
         eds.RowRoots(),
         eds.ColRoots(),
-        codec,
-        rsmt2d.NewDefaultTree,
     )
     if err != nil {
         // err contains information to construct a fraud proof
