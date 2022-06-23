@@ -310,7 +310,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 		rowIsComplete := noMissingData(eds.row(i))
 		colIsComplete := noMissingData(eds.col(i))
 
-		// if there's no missing data in the this row
+		// if there's no missing data in this row
 		if rowIsComplete {
 			errs.Go(func() error {
 				// ensure that the roots are equal
@@ -321,7 +321,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 			})
 		}
 
-		// if there's no missing data in the this col
+		// if there's no missing data in this col
 		if colIsComplete {
 			errs.Go(func() error {
 				// ensure that the roots are equal

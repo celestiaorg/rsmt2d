@@ -10,11 +10,12 @@ import (
 
 func TestNewDataSquare(t *testing.T) {
 	tests := []struct {
-		name  string
-		cells [][]byte
+		name     string
+		cells    [][]byte
+		expected [][][]byte
 	}{
-		{"1x1", [][]byte{{1, 2}}},
-		{"2x2", [][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}}},
+		{"1x1", [][]byte{{1, 2}}, [][][]byte{{{1, 2}}}},
+		{"2x2", [][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}}, [][][]byte{{{1, 2}, {3, 4}}, {{5, 6}, {7, 8}}}},
 	}
 
 	for _, test := range tests {
@@ -23,7 +24,7 @@ func TestNewDataSquare(t *testing.T) {
 			if err != nil {
 				panic(err)
 			}
-			if !reflect.DeepEqual(result.squareRow, [][][]byte{test.cells}) {
+			if !reflect.DeepEqual(result.squareRow, test.expected) {
 				t.Errorf("newDataSquare failed for %v square", test.name)
 			}
 		})
