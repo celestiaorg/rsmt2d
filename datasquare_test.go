@@ -9,36 +9,43 @@ import (
 )
 
 func TestNewDataSquare(t *testing.T) {
-	t.Run("1x1", func(t *testing.T) {
-		result, err := newDataSquare([][]byte{{1, 2}}, NewDefaultTree)
-		if err != nil {
-			panic(err)
-		}
-		if !reflect.DeepEqual(result.squareRow, [][][]byte{{{1, 2}}}) {
-			t.Errorf("newDataSquare failed for 1x1 square")
-		}
-	})
-	t.Run("2x2", func(t *testing.T) {
-		result, err := newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}}, NewDefaultTree)
-		if err != nil {
-			panic(err)
-		}
-		if !reflect.DeepEqual(result.squareRow, [][][]byte{{{1, 2}, {3, 4}}, {{5, 6}, {7, 8}}}) {
-			t.Errorf("newDataSquare failed for 2x2 square")
-		}
-	})
-	t.Run("InconsistentNumberOfChunks", func(t *testing.T) {
-		_, err := newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}}, NewDefaultTree)
-		if err == nil {
-			t.Errorf("newDataSquare failed; inconsistent number of chunks accepted")
-		}
-	})
-	t.Run("UnequalChunkSize", func(t *testing.T) {
-		_, err := newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7}}, NewDefaultTree)
-		if err == nil {
-			t.Errorf("newDataSquare failed; chunks of unequal size accepted")
-		}
-	})
+	tests := []struct {
+		name  string
+		cells [][]byte
+	}{
+		{"1x1", [][]byte{{1, 2}}},
+		{"2x2", [][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}}},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result, err := newDataSquare(test.cells, NewDefaultTree)
+			if err != nil {
+				panic(err)
+			}
+			if !reflect.DeepEqual(result.squareRow, [][][]byte{test.cells}) {
+				t.Errorf("newDataSquare failed for %v square", test.name)
+			}
+		})
+	}
+}
+
+func TestInvalidDataSquareCreation(t *testing.T) {
+	tests := []struct {
+		name  string
+		cells [][]byte
+	}{
+		{"InconsistentChunkNumber", [][]byte{{1, 2}, {3, 4}, {5, 6}}},
+		{"UnequalChunkSize", [][]byte{{1, 2}, {3, 4}, {5, 6}, {7}}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := newDataSquare(test.cells, NewDefaultTree)
+			if err == nil {
+				t.Errorf("newDataSquare failed; chunks accepted with %v", test.name)
+			}
+		})
+	}
 }
 
 func TestSetCell(t *testing.T) {
@@ -86,29 +93,28 @@ func TestFlattened(t *testing.T) {
 }
 
 func TestExtendSquare(t *testing.T) {
-	t.Run("FillerChunkSize!=DSChunkSize", func(t *testing.T) {
-		ds, err := newDataSquare([][]byte{{1, 2}}, NewDefaultTree)
-		if err != nil {
-			panic(err)
-		}
-		err = ds.extendSquare(1, []byte{0})
-		if err == nil {
-			t.Errorf("extendSquare failed; error not returned when filler chunk size does not match data square chunk size")
-		}
-	})
-	t.Run("1x1->2x2", func(t *testing.T) {
-		ds, err := newDataSquare([][]byte{{1, 2}}, NewDefaultTree)
-		if err != nil {
-			panic(err)
-		}
-		err = ds.extendSquare(1, []byte{0, 0})
-		if err != nil {
-			panic(err)
-		}
-		if !reflect.DeepEqual(ds.squareRow, [][][]byte{{{1, 2}, {0, 0}}, {{0, 0}, {0, 0}}}) {
-			t.Errorf("extendSquare failed; unexpected result when extending 1x1 square to 2x2 square")
-		}
-	})
+	ds, err := newDataSquare([][]byte{{1, 2}}, NewDefaultTree)
+	if err != nil {
+		panic(err)
+	}
+	err = ds.extendSquare(1, []byte{0, 0})
+	if err != nil {
+		panic(err)
+	}
+	if !reflect.DeepEqual(ds.squareRow, [][][]byte{{{1, 2}, {0, 0}}, {{0, 0}, {0, 0}}}) {
+		t.Errorf("extendSquare failed; unexpected result when extending 1x1 square to 2x2 square")
+	}
+}
+
+func TestInvalidSquareExtension(t *testing.T) {
+	ds, err := newDataSquare([][]byte{{1, 2}}, NewDefaultTree)
+	if err != nil {
+		panic(err)
+	}
+	err = ds.extendSquare(1, []byte{0})
+	if err == nil {
+		t.Errorf("extendSquare failed; error not returned when filler chunk size does not match data square chunk size")
+	}
 }
 
 func TestRoots(t *testing.T) {
