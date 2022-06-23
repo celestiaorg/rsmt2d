@@ -51,7 +51,10 @@ func FuzzRepairExtendedDataSquare(f *testing.F) {
 				colRoots := eds.ColRoots()
 
 				// Save all shares in flattened form.
-				flattened := eds.Flattened()
+				flattened := make([][]byte, 0, eds.Width()*eds.Width())
+				for i := uint(0); i < eds.Width(); i++ {
+					flattened = append(flattened, eds.Row(i)...)
+				}
 
 				t.Run("RandomErasures", func(t *testing.T) {
 					// Delete some shares, just enough so that repairing is always possible.

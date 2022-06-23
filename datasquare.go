@@ -260,8 +260,7 @@ func (ds *dataSquare) setCell(x uint, y uint, newChunk []byte) {
 	ds.resetRoots()
 }
 
-// Flattened returns the concatenated rows of the data square.
-func (ds *dataSquare) Flattened() [][]byte {
+func (ds *dataSquare) flattened() [][]byte {
 	flattened := [][]byte(nil)
 	for _, data := range ds.squareRow {
 		flattened = append(flattened, data...)
