@@ -133,9 +133,13 @@ func (eds *ExtendedDataSquare) deepCopy(codec Codec) (ExtendedDataSquare, error)
 // Col returns a column slice.
 // This slice is a copy of the internal column slice.
 func (eds *ExtendedDataSquare) Col(y uint) [][]byte {
-	s := make([][]byte, eds.width)
-	copy(s, eds.colSlice(0, y, eds.width))
-	return s
+	col := make([][]byte, eds.width)
+	original := eds.col(y)
+	for i, cell := range original {
+		col[i] = make([]byte, eds.chunkSize)
+		copy(col[i], cell)
+	}
+	return col
 }
 
 // ColRoots returns the Merkle roots of all the columns in the square.
@@ -146,9 +150,13 @@ func (eds *ExtendedDataSquare) ColRoots() [][]byte {
 // Row returns a row slice.
 // This slice is a copy of the internal row slice.
 func (eds *ExtendedDataSquare) Row(x uint) [][]byte {
-	s := make([][]byte, eds.width)
-	copy(s, eds.rowSlice(x, 0, eds.width))
-	return s
+	row := make([][]byte, eds.width)
+	original := eds.row(x)
+	for i, cell := range original {
+		row[i] = make([]byte, eds.chunkSize)
+		copy(row[i], cell)
+	}
+	return row
 }
 
 // RowRoots returns the Merkle roots of all the rows in the square.
