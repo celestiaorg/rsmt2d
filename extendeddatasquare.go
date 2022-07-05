@@ -151,7 +151,7 @@ func (eds *ExtendedDataSquare) ColRoots() [][]byte {
 // This slice is a copy of the internal row slice.
 func (eds *ExtendedDataSquare) Row(x uint) [][]byte {
 	row := make([][]byte, eds.width)
-	original := eds.col(x)
+	original := eds.row(x)
 	for i, cell := range original {
 		row[i] = make([]byte, eds.chunkSize)
 		copy(row[i], cell)

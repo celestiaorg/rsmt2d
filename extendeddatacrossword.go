@@ -124,7 +124,6 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	vectorData := eds.row(uint(r))
 	for c := 0; c < int(eds.width); c++ {
 		shares[c] = vectorData[c]
-
 	}
 
 	isExtendedPartIncomplete := !eds.rowRangeNoMissingData(uint(r), eds.originalDataWidth, eds.width)
