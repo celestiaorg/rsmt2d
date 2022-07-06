@@ -26,6 +26,29 @@ func TestComputeExtendedDataSquare(t *testing.T) {
 	}
 }
 
+func TestEDSRowColImmutable(t *testing.T) {
+	codec := NewRSGF8Codec()
+	result, err := ComputeExtendedDataSquare([][]byte{
+		{1}, {2},
+		{3}, {4},
+	}, codec, NewDefaultTree)
+	if err != nil {
+		panic(err)
+	}
+
+	row := result.Row(0)
+	row[0][0]++
+	if reflect.DeepEqual(row, result.Row(0)) {
+		t.Errorf("Exported EDS Row was mutable")
+	}
+
+	col := result.Col(0)
+	col[0][0]++
+	if reflect.DeepEqual(col, result.Col(0)) {
+		t.Errorf("Exported EDS Col was mutable")
+	}
+}
+
 // dump acts as a data dump for the benchmarks to stop the compiler from making
 // unrealistic optimizations
 var dump *ExtendedDataSquare
