@@ -26,6 +26,29 @@ func TestComputeExtendedDataSquare(t *testing.T) {
 	}
 }
 
+func TestImmutableRoots(t *testing.T) {
+	codec := NewRSGF8Codec()
+	result, err := ComputeExtendedDataSquare([][]byte{
+		{1}, {2},
+		{3}, {4},
+	}, codec, NewDefaultTree)
+	if err != nil {
+		panic(err)
+	}
+
+	row := result.RowRoots()
+	row[0][0]++
+	if reflect.DeepEqual(row, result.RowRoots()) {
+		t.Errorf("Exported EDS RowRoots was mutable")
+	}
+
+	col := result.ColRoots()
+	col[0][0]++
+	if reflect.DeepEqual(col, result.ColRoots()) {
+		t.Errorf("Exported EDS ColRoots was mutable")
+	}
+}
+
 func TestEDSRowColImmutable(t *testing.T) {
 	codec := NewRSGF8Codec()
 	result, err := ComputeExtendedDataSquare([][]byte{
