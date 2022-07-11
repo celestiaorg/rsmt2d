@@ -1,6 +1,6 @@
 module github.com/celestiaorg/rsmt2d
 
-go 1.17
+go 1.18
 
 require (
 	// only needed if built with go build -tags leopard
