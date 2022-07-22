@@ -144,24 +144,27 @@ func (eds *ExtendedDataSquare) Col(y uint) [][]byte {
 
 // ColRoots returns the Merkle roots of all the columns in the square.
 func (eds *ExtendedDataSquare) ColRoots() [][]byte {
-	return eds.getColRoots()
+	return deepCopy(eds.getColRoots())
 }
 
 // Row returns a row slice.
 // This slice is a copy of the internal row slice.
 func (eds *ExtendedDataSquare) Row(x uint) [][]byte {
-	row := make([][]byte, eds.width)
-	original := eds.row(x)
-	for i, cell := range original {
-		row[i] = make([]byte, eds.chunkSize)
-		copy(row[i], cell)
-	}
-	return row
+	return deepCopy(eds.row(x))
 }
 
 // RowRoots returns the Merkle roots of all the rows in the square.
 func (eds *ExtendedDataSquare) RowRoots() [][]byte {
-	return eds.getRowRoots()
+	return deepCopy(eds.getRowRoots())
+}
+
+func deepCopy(original [][]byte) [][]byte {
+	dest := make([][]byte, len(original))
+	for i, cell := range original {
+		dest[i] = make([]byte, len(cell))
+		copy(dest[i], cell)
+	}
+	return dest
 }
 
 // Width returns the width of the square.
