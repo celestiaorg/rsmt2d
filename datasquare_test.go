@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewDataSquare(t *testing.T) {
@@ -31,6 +33,36 @@ func TestNewDataSquare(t *testing.T) {
 	_, err = newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7}}, NewDefaultTree)
 	if err == nil {
 		t.Errorf("newDataSquare failed; chunks of unequal size accepted")
+	}
+}
+
+func TestSetCell(t *testing.T) {
+	ds, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
+	if err != nil {
+		panic(err)
+	}
+
+	// SetCell can only write to nil cells
+	assert.Panics(t, func() { ds.SetCell(0, 0, []byte{0}) })
+
+	// Set the cell to nil to allow modification
+	ds.setCell(0, 0, nil)
+
+	ds.SetCell(0, 0, []byte{42})
+	assert.Equal(t, []byte{42}, ds.GetCell(0, 0))
+}
+
+func TestGetCell(t *testing.T) {
+	ds, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
+	if err != nil {
+		panic(err)
+	}
+
+	cell := ds.GetCell(0, 0)
+	cell[0] = 42
+
+	if reflect.DeepEqual(ds.GetCell(0, 0), []byte{42}) {
+		t.Errorf("GetCell failed to return an immutable copy of the cell")
 	}
 }
 
