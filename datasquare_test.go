@@ -66,6 +66,20 @@ func TestGetCell(t *testing.T) {
 	}
 }
 
+func TestFlattened(t *testing.T) {
+	ds, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
+	if err != nil {
+		panic(err)
+	}
+
+	flattened := ds.Flattened()
+	flattened[0] = []byte{42}
+
+	if reflect.DeepEqual(ds.Flattened(), [][]byte{{42}, {2}, {3}, {4}}) {
+		t.Errorf("Flattened failed to return an immutable copy")
+	}
+}
+
 func TestExtendSquare(t *testing.T) {
 	ds, err := newDataSquare([][]byte{{1, 2}}, NewDefaultTree)
 	if err != nil {
