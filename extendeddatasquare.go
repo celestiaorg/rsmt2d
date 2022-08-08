@@ -126,7 +126,7 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 }
 
 func (eds *ExtendedDataSquare) deepCopy(codec Codec) (ExtendedDataSquare, error) {
-	eds, err := ImportExtendedDataSquare(eds.flattened(), codec, eds.createTreeFn)
+	eds, err := ImportExtendedDataSquare(eds.Flattened(), codec, eds.createTreeFn)
 	return *eds, err
 }
 

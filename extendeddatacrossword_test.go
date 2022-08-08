@@ -38,7 +38,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		rowRoots := original.RowRoots()
 		colRoots := original.ColRoots()
 
-		flattened := original.flattened()
+		flattened := original.Flattened()
 		flattened[0], flattened[2], flattened[3] = nil, nil, nil
 		flattened[4], flattened[5], flattened[6], flattened[7] = nil, nil, nil, nil
 		flattened[8], flattened[9], flattened[10] = nil, nil, nil
@@ -60,7 +60,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 			assert.Equal(t, original.GetCell(1, 1), fours)
 		}
 
-		flattened = original.flattened()
+		flattened = original.Flattened()
 		flattened[0], flattened[2], flattened[3] = nil, nil, nil
 		flattened[4], flattened[5], flattened[6], flattened[7] = nil, nil, nil, nil
 		flattened[8], flattened[9], flattened[10] = nil, nil, nil
@@ -182,7 +182,7 @@ func BenchmarkRepair(b *testing.B) {
 					for n := 0; n < b.N; n++ {
 						b.StopTimer()
 
-						flattened := eds.flattened()
+						flattened := eds.Flattened()
 						// Randomly remove 1/2 of the shares of each row
 						for r := 0; r < extendedDataWidth; r++ {
 							for c := 0; c < originalDataWidth; {
