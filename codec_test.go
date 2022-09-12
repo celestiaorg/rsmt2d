@@ -15,6 +15,7 @@ func BenchmarkEncoding(b *testing.B) {
 	// generate some fake data
 	data := generateRandData(128)
 	for codecName, codec := range codecs {
+		codec.Encode(data)
 		b.Run(
 			fmt.Sprintf("Encoding 128 shares using %s", codecName),
 			func(b *testing.B) {
@@ -47,6 +48,7 @@ func BenchmarkDecoding(b *testing.B) {
 	// generate some fake data
 	for codecName, codec := range codecs {
 		data := generateMissingData(128, codec)
+		codec.Decode(data)
 		b.Run(
 			fmt.Sprintf("Decoding 128 shares using %s", codecName),
 			func(b *testing.B) {
