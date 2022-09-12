@@ -69,6 +69,8 @@ func (r *DoubleCache[T]) Query(id int) (T, bool) {
 		return value, ok
 	}
 	if value, ok := r.cacheBack[id]; ok {
+		delete(r.cacheBack, id)
+		r.cacheFront[id] = value
 		return value, ok
 	}
 
