@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"reflect"
 	"sync"
 )
 
@@ -29,8 +30,7 @@ func (opts DoubleCacheOptions) WithCapacity(capacity int) DoubleCacheOptions {
 }
 
 type DoubleCache[T any] struct {
-	opts DoubleCacheOptions
-
+	opts           DoubleCacheOptions
 	cacheMu        *sync.Mutex
 	cacheFrontSize int
 	cacheFront     map[int]T
@@ -57,7 +57,7 @@ func (r *DoubleCache[T]) Insert(id int, value T) {
 		r.cacheFront = make(map[int]T, 0)
 	}
 
-	r.cacheFrontSize += 1
+	r.cacheFrontSize += int(reflect.TypeOf(value).Size())
 	r.cacheFront[id] = value
 }
 
@@ -69,8 +69,8 @@ func (r *DoubleCache[T]) Query(id int) (T, bool) {
 		return value, ok
 	}
 	if value, ok := r.cacheBack[id]; ok {
-		delete(r.cacheBack, id)
 		r.cacheFront[id] = value
+		r.cacheFrontSize = int(reflect.TypeOf(value).Size())
 		return value, ok
 	}
 
