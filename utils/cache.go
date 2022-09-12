@@ -69,8 +69,8 @@ func (r *DoubleCache[T]) Query(id int) (T, bool) {
 		return value, ok
 	}
 	if value, ok := r.cacheBack[id]; ok {
+		r.cacheFrontSize += int(reflect.TypeOf(value).Size())
 		r.cacheFront[id] = value
-		r.cacheFrontSize = int(reflect.TypeOf(value).Size())
 		return value, ok
 	}
 
