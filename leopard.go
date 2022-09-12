@@ -1,11 +1,14 @@
 package rsmt2d
 
 import (
+	"github.com/celestiaorg/rsmt2d/utils"
 	"github.com/klauspost/reedsolomon"
 )
 
 var _ Codec = leoRSFF8Codec{}
 var _ Codec = leoRSFF16Codec{}
+
+var encoderCache = utils.NewDoubleCache[reedsolomon.Encoder](utils.DefaultDoubleCacheOptions())
 
 func init() {
 	registerCodec(LeopardFF8, newLeoRSFF8Codec())
@@ -19,19 +22,26 @@ func (l leoRSFF8Codec) Encode(data [][]byte) ([][]byte, error) {
 }
 
 func encode(data [][]byte) ([][]byte, error) {
-	enc, err := reedsolomon.New(len(data), len(data))
-	if err != nil {
-		return nil, err
+	dataLen := len(data)
+	enc, ok := encoderCache.Query(dataLen)
+	if !ok {
+		var err error
+		enc, err = reedsolomon.New(dataLen, dataLen, reedsolomon.WithLeopardGF16(true))
+		if err != nil {
+			return nil, err
+		}
+		encoderCache.Insert(dataLen, enc)
 	}
-	shards := make([][]byte, len(data)*2)
+
+	shards := make([][]byte, dataLen*2)
 	copy(shards, data)
-	for i := len(data); i < len(shards); i++ {
+	for i := dataLen; i < len(shards); i++ {
 		shards[i] = make([]byte, len(data[0]))
 	}
 	if err := enc.Encode(shards); err != nil {
 		return nil, err
 	}
-	return shards[len(data):], nil
+	return shards[dataLen:], nil
 }
 
 func (l leoRSFF8Codec) Decode(data [][]byte) ([][]byte, error) {
@@ -40,9 +50,14 @@ func (l leoRSFF8Codec) Decode(data [][]byte) ([][]byte, error) {
 
 func decode(data [][]byte) ([][]byte, error) {
 	half := len(data) / 2
-	enc, err := reedsolomon.New(half, half)
-	if err != nil {
-		return nil, err
+	enc, ok := encoderCache.Query(half)
+	var err error
+	if !ok {
+		enc, err = reedsolomon.New(half, half, reedsolomon.WithLeopardGF16(true))
+		if err != nil {
+			return nil, err
+		}
+		encoderCache.Insert(half, enc)
 	}
 	err = enc.Reconstruct(data)
 	return data, err
