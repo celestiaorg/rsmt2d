@@ -51,13 +51,18 @@ func (r *DoubleCache[T]) Insert(id int, value T) {
 	r.cacheMu.Lock()
 	defer r.cacheMu.Unlock()
 
-	if r.cacheFrontSize+1 > r.opts.Capacity {
+	size := int(reflect.TypeOf(value).Size())
+	if size > r.opts.Capacity {
+		return
+	}
+
+	if r.cacheFrontSize+size > r.opts.Capacity {
 		r.cacheBack = r.cacheFront
 		r.cacheFrontSize = 0
 		r.cacheFront = make(map[int]T, 0)
 	}
 
-	r.cacheFrontSize += int(reflect.TypeOf(value).Size())
+	r.cacheFrontSize += size
 	r.cacheFront[id] = value
 }
 
