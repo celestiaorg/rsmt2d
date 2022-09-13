@@ -3,7 +3,10 @@ package rsmt2d
 
 import (
 	"bytes"
+	"context"
 	"errors"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // ExtendedDataSquare represents an extended piece of data.
@@ -68,7 +71,7 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 		return err
 	}
 
-	var err error
+	errs, _ := errgroup.WithContext(context.Background())
 
 	// Extend original square horizontally and vertically
 	//  ------- -------
@@ -82,14 +85,16 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 	//  -------
 	for i := uint(0); i < eds.originalDataWidth; i++ {
 		// Extend horizontally
-		err = eds.erasureExtendRow(codec, i)
-		if err != nil {
-			return err
-		}
+		errs.Go(func() error {
+			return eds.erasureExtendRow(codec, i)
+		})
 
 		// Extend vertically
-		err = eds.erasureExtendCol(codec, i)
-		if err != nil {
+		errs.Go(func() error {
+			return eds.erasureExtendCol(codec, i)
+		})
+
+		if err := errs.Wait(); err != nil {
 			return err
 		}
 	}
@@ -106,8 +111,11 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 	//  ------- -------
 	for i := eds.originalDataWidth; i < eds.width; i++ {
 		// Extend horizontally
-		err = eds.erasureExtendRow(codec, i)
-		if err != nil {
+		errs.Go(func() error {
+			return eds.erasureExtendRow(codec, i)
+		})
+
+		if err := errs.Wait(); err != nil {
 			return err
 		}
 	}
