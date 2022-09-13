@@ -89,6 +89,8 @@ func BenchmarkExtension(b *testing.B) {
 						if err != nil {
 							b.Error(err)
 						}
+						_ = eds.RowRoots()
+						_ = eds.ColRoots()
 						dump = eds
 					}
 				},
