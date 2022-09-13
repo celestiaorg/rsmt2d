@@ -145,7 +145,11 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	// Check that newly completed orthogonal vectors match their new merkle roots
 	for c := 0; c < int(eds.width); c++ {
 		col := eds.col(uint(c))
-		if noMissingData(col) {
+		if col[r] != nil {
+			continue // not newly completed
+		}
+		col[r] = rebuiltShares[c]
+		if noMissingData(col) { // not completed
 			err := eds.verifyAgainstColRoots(colRoots, uint(c), col)
 			if err != nil {
 				return false, false, err
@@ -203,7 +207,11 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	// Check that newly completed orthogonal vectors match their new merkle roots
 	for r := 0; r < int(eds.width); r++ {
 		row := eds.row(uint(r))
-		if noMissingData(row) {
+		if row[c] != nil {
+			continue // not newly completed
+		}
+		row[c] = rebuiltShares[r]
+		if noMissingData(row) { // completed
 			err := eds.verifyAgainstRowRoots(rowRoots, uint(r), row)
 			if err != nil {
 				return false, false, err
