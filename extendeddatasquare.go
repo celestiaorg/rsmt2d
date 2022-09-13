@@ -68,7 +68,6 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 		return err
 	}
 
-	var shares [][]byte
 	var err error
 
 	// Extend original square horizontally and vertically
@@ -83,20 +82,14 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 	//  -------
 	for i := uint(0); i < eds.originalDataWidth; i++ {
 		// Extend horizontally
-		shares, err = codec.Encode(eds.rowSlice(i, 0, eds.originalDataWidth))
+		err = eds.erasureExtendRow(codec, i)
 		if err != nil {
-			return err
-		}
-		if err := eds.setRowSlice(i, eds.originalDataWidth, shares[len(shares)-int(eds.originalDataWidth):]); err != nil {
 			return err
 		}
 
 		// Extend vertically
-		shares, err = codec.Encode(eds.colSlice(0, i, eds.originalDataWidth))
+		err = eds.erasureExtendCol(codec, i)
 		if err != nil {
-			return err
-		}
-		if err := eds.setColSlice(eds.originalDataWidth, i, shares[len(shares)-int(eds.originalDataWidth):]); err != nil {
 			return err
 		}
 	}
@@ -113,15 +106,40 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 	//  ------- -------
 	for i := eds.originalDataWidth; i < eds.width; i++ {
 		// Extend horizontally
-		shares, err = codec.Encode(eds.rowSlice(i, 0, eds.originalDataWidth))
+		err = eds.erasureExtendRow(codec, i)
 		if err != nil {
-			return err
-		}
-		if err := eds.setRowSlice(i, eds.originalDataWidth, shares[len(shares)-int(eds.originalDataWidth):]); err != nil {
 			return err
 		}
 	}
 
+	return nil
+}
+
+func (eds *ExtendedDataSquare) erasureExtendRow(codec Codec, i uint) error {
+	var shares [][]byte
+	var err error
+
+	shares, err = codec.Encode(eds.rowSlice(i, 0, eds.originalDataWidth))
+	if err != nil {
+		return err
+	}
+	if err := eds.setRowSlice(i, eds.originalDataWidth, shares[len(shares)-int(eds.originalDataWidth):]); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (eds *ExtendedDataSquare) erasureExtendCol(codec Codec, i uint) error {
+	var shares [][]byte
+	var err error
+
+	shares, err = codec.Encode(eds.colSlice(0, i, eds.originalDataWidth))
+	if err != nil {
+		return err
+	}
+	if err := eds.setColSlice(eds.originalDataWidth, i, shares[len(shares)-int(eds.originalDataWidth):]); err != nil {
+		return err
+	}
 	return nil
 }
 
