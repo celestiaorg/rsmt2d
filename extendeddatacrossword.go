@@ -211,7 +211,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 			continue // not newly completed
 		}
 		row[c] = rebuiltShares[r]
-		if noMissingData(row) { // completed
+		if noMissingData(row) { // not completed
 			err := eds.verifyAgainstRowRoots(rowRoots, uint(r), row)
 			if err != nil {
 				return false, false, err
