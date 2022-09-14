@@ -1,6 +1,8 @@
 package rsmt2d
 
 import (
+	"sync"
+
 	"github.com/vivint/infectious"
 )
 
@@ -11,12 +13,13 @@ func init() {
 }
 
 type rsGF8Codec struct {
-	infectiousCache map[int]*infectious.FEC
+	infectiousCache      map[int]*infectious.FEC
+	infectiousCacheMutex sync.Mutex
 }
 
 // NewRSGF8Codec issues a new cached RSGF8Codec
 func NewRSGF8Codec() *rsGF8Codec {
-	return &rsGF8Codec{make(map[int]*infectious.FEC)}
+	return &rsGF8Codec{infectiousCache: make(map[int]*infectious.FEC)}
 }
 
 func (c *rsGF8Codec) Encode(data [][]byte) ([][]byte, error) {
@@ -24,6 +27,7 @@ func (c *rsGF8Codec) Encode(data [][]byte) ([][]byte, error) {
 	var err error
 
 	// Set up caches.
+	c.infectiousCacheMutex.Lock()
 	if value, ok := c.infectiousCache[len(data)]; ok {
 		fec = value
 	} else {
@@ -34,6 +38,7 @@ func (c *rsGF8Codec) Encode(data [][]byte) ([][]byte, error) {
 
 		c.infectiousCache[len(data)] = fec
 	}
+	c.infectiousCacheMutex.Unlock()
 
 	shares := make([][]byte, len(data))
 	output := func(s infectious.Share) {
