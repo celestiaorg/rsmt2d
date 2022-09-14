@@ -84,19 +84,21 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 	// |       |
 	//  -------
 	for i := uint(0); i < eds.originalDataWidth; i++ {
+		iArg := i
+
 		// Extend horizontally
 		errs.Go(func() error {
-			return eds.erasureExtendRow(codec, i)
+			return eds.erasureExtendRow(codec, iArg)
 		})
 
 		// Extend vertically
 		errs.Go(func() error {
-			return eds.erasureExtendCol(codec, i)
+			return eds.erasureExtendCol(codec, iArg)
 		})
+	}
 
-		if err := errs.Wait(); err != nil {
-			return err
-		}
+	if err := errs.Wait(); err != nil {
+		return err
 	}
 
 	// Extend extended square horizontally
@@ -110,14 +112,16 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 	// |       |       |
 	//  ------- -------
 	for i := eds.originalDataWidth; i < eds.width; i++ {
+		iArg := i
+
 		// Extend horizontally
 		errs.Go(func() error {
-			return eds.erasureExtendRow(codec, i)
+			return eds.erasureExtendRow(codec, iArg)
 		})
+	}
 
-		if err := errs.Wait(); err != nil {
-			return err
-		}
+	if err := errs.Wait(); err != nil {
+		return err
 	}
 
 	return nil
