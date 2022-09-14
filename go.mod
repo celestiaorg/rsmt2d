@@ -14,6 +14,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.1.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
+	github.com/minio/sha256-simd v1.0.0
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	gitlab.com/NebulousLabs/errors v0.0.0-20200929122200-06c536cf6975 // indirect
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2 // indirect

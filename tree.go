@@ -1,7 +1,7 @@
 package rsmt2d
 
 import (
-	"crypto/sha256"
+	"github.com/minio/sha256-simd"
 
 	"github.com/celestiaorg/merkletree"
 )
