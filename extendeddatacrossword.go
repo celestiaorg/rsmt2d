@@ -139,6 +139,9 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	// Check that rebuilt shares matches appropriate root
 	err = eds.verifyAgainstRowRoots(rowRoots, uint(r), rebuiltShares)
 	if err != nil {
+		if byzErr, ok := err.(*ErrByzantineData); ok {
+			byzErr.Shares = shares
+		}
 		return false, false, err
 	}
 
@@ -201,6 +204,9 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	// Check that rebuilt shares matches appropriate root
 	err = eds.verifyAgainstColRoots(colRoots, uint(c), rebuiltShares)
 	if err != nil {
+		if byzErr, ok := err.(*ErrByzantineData); ok {
+			byzErr.Shares = shares
+		}
 		return false, false, err
 	}
 
@@ -268,7 +274,7 @@ func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
 	root := eds.computeSharesRoot(shares, r)
 
 	if !bytes.Equal(root, rowRoots[r]) {
-		return &ErrByzantineData{Row, r, shares}
+		return &ErrByzantineData{Row, r, nil}
 	}
 
 	return nil
@@ -282,7 +288,7 @@ func (eds *ExtendedDataSquare) verifyAgainstColRoots(
 	root := eds.computeSharesRoot(shares, c)
 
 	if !bytes.Equal(root, colRoots[c]) {
-		return &ErrByzantineData{Col, c, shares}
+		return &ErrByzantineData{Col, c, nil}
 	}
 
 	return nil
@@ -318,7 +324,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 				return err
 			}
 			if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.rowSlice(i, eds.originalDataWidth, eds.originalDataWidth))) {
-				return &ErrByzantineData{Row, i, eds.row(i)}
+				return &ErrByzantineData{Row, i, eds.rowSlice(i, 0, eds.originalDataWidth)}
 			}
 		}
 
@@ -328,7 +334,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 				return err
 			}
 			if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.colSlice(eds.originalDataWidth, i, eds.originalDataWidth))) {
-				return &ErrByzantineData{Col, i, eds.col(i)}
+				return &ErrByzantineData{Col, i, eds.colSlice(i, 0, eds.originalDataWidth)}
 			}
 		}
 	}
