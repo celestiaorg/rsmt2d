@@ -324,7 +324,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 				return err
 			}
 			if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.rowSlice(i, eds.originalDataWidth, eds.originalDataWidth))) {
-				return &ErrByzantineData{Row, i, eds.rowSlice(i, 0, eds.originalDataWidth)}
+				return &ErrByzantineData{Row, i, append(eds.rowSlice(i, 0, eds.originalDataWidth), make([][]byte, eds.originalDataWidth)...)}
 			}
 		}
 
@@ -334,7 +334,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 				return err
 			}
 			if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.colSlice(eds.originalDataWidth, i, eds.originalDataWidth))) {
-				return &ErrByzantineData{Col, i, eds.colSlice(i, 0, eds.originalDataWidth)}
+				return &ErrByzantineData{Col, i, append(eds.colSlice(i, 0, eds.originalDataWidth), make([][]byte, eds.originalDataWidth)...)}
 			}
 		}
 	}
