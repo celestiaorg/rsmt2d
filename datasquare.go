@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sync"
 )
 
 // ErrUnevenChunks is thrown when non-nil chunks are not all of equal size.
@@ -15,6 +16,7 @@ var ErrUnevenChunks = errors.New("non-nil chunks not all of equal size")
 type dataSquare struct {
 	squareRow    [][][]byte // row-major
 	squareCol    [][][]byte // col-major
+	dataMutex    sync.Mutex
 	width        uint
 	chunkSize    uint
 	rowRoots     [][]byte
@@ -130,6 +132,9 @@ func (ds *dataSquare) setRowSlice(x uint, y uint, newRow [][]byte) error {
 		}
 	}
 
+	ds.dataMutex.Lock()
+	defer ds.dataMutex.Unlock()
+
 	for i := uint(0); i < uint(len(newRow)); i++ {
 		ds.squareRow[x][y+i] = newRow[i]
 		ds.squareCol[y+i][x] = newRow[i]
@@ -156,6 +161,9 @@ func (ds *dataSquare) setColSlice(x uint, y uint, newCol [][]byte) error {
 			return errors.New("invalid chunk size")
 		}
 	}
+
+	ds.dataMutex.Lock()
+	defer ds.dataMutex.Unlock()
 
 	for i := uint(0); i < uint(len(newCol)); i++ {
 		ds.squareRow[x+i][y] = newCol[i]
