@@ -77,12 +77,44 @@ func TestEDSRowColImmutable(t *testing.T) {
 var dump *ExtendedDataSquare
 
 // BenchmarkExtension benchmarks extending datasquares sizes 4-128 using all supported codecs
-func BenchmarkExtension(b *testing.B) {
-	for i := 4; i < 129; i *= 2 {
+func BenchmarkExtensionEncoding(b *testing.B) {
+	for i := 4; i < 513; i *= 2 {
 		for codecName, codec := range codecs {
+			if codec.maxChunks() < i*i {
+				// Only test codecs that support this many chunks
+				continue
+			}
+
 			square := genRandDS(i)
 			b.Run(
-				fmt.Sprintf("%s size %d", codecName, i),
+				fmt.Sprintf("%s %dx%dx%d ODS", codecName, i, i, len(square[0])),
+				func(b *testing.B) {
+					for n := 0; n < b.N; n++ {
+						eds, err := ComputeExtendedDataSquare(square, codec, NewDefaultTree)
+						if err != nil {
+							b.Error(err)
+						}
+						dump = eds
+					}
+				},
+			)
+		}
+
+	}
+}
+
+// BenchmarkExtension benchmarks extending datasquares sizes 4-128 using all supported codecs
+func BenchmarkExtensionWithRoots(b *testing.B) {
+	for i := 4; i < 513; i *= 2 {
+		for codecName, codec := range codecs {
+			if codec.maxChunks() < i*i {
+				// Only test codecs that support this many chunks
+				continue
+			}
+
+			square := genRandDS(i)
+			b.Run(
+				fmt.Sprintf("%s %dx%dx%d ODS", codecName, i, i, len(square[0])),
 				func(b *testing.B) {
 					for n := 0; n < b.N; n++ {
 						eds, err := ComputeExtendedDataSquare(square, codec, NewDefaultTree)
