@@ -120,11 +120,7 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 		})
 	}
 
-	if err := errs.Wait(); err != nil {
-		return err
-	}
-
-	return nil
+	return errs.Wait()
 }
 
 func (eds *ExtendedDataSquare) erasureExtendRow(codec Codec, i uint) error {
