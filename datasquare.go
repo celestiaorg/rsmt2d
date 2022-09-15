@@ -215,7 +215,7 @@ func (ds *dataSquare) getRowRoots() [][]byte {
 }
 
 // getRowRoot calculates and returns the root of the selected row. Note: unlike the
-// getRowRoots method, getRowRoot uses the built-in cache when available.
+// getRowRoots method, getRowRoot does not write to the built-in cache.
 func (ds *dataSquare) getRowRoot(x uint) []byte {
 	if ds.rowRoots != nil {
 		return ds.rowRoots[x]
@@ -239,7 +239,7 @@ func (ds *dataSquare) getColRoots() [][]byte {
 }
 
 // getColRoot calculates and returns the root of the selected row. Note: unlike the
-// getColRoots method, getColRoot uses the built-in cache when available.
+// getColRoots method, getColRoot does not write to the built-in cache.
 func (ds *dataSquare) getColRoot(y uint) []byte {
 	if ds.colRoots != nil {
 		return ds.colRoots[y]
