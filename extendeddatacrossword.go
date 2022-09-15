@@ -76,6 +76,8 @@ func (eds *ExtendedDataSquare) solveCrossword(
 ) error {
 	// Keep repeating until the square is solved
 	for {
+		errs, _ := errgroup.WithContext(context.Background())
+
 		// Track if the entire square is completely solved
 		solved := true
 		// Track if a single iteration of this loop made progress
@@ -83,17 +85,33 @@ func (eds *ExtendedDataSquare) solveCrossword(
 
 		// Loop through every row and column, attempt to rebuild each row or column if incomplete
 		for i := 0; i < int(eds.width); i++ {
-			solvedRow, progressMadeRow, err := eds.solveCrosswordRow(i, rowRoots, colRoots)
-			if err != nil {
-				return err
-			}
-			solvedCol, progressMadeCol, err := eds.solveCrosswordCol(i, rowRoots, colRoots)
-			if err != nil {
-				return err
-			}
+			i := i
 
-			solved = solved && solvedRow && solvedCol
-			progressMade = progressMade || progressMadeRow || progressMadeCol
+			errs.Go(func() error {
+				solvedRow, progressMadeRow, err := eds.solveCrosswordRow(i, rowRoots, colRoots)
+				if err != nil {
+					return err
+				}
+
+				solved = solved && solvedRow
+				progressMade = progressMade || progressMadeRow
+				return nil
+			})
+
+			errs.Go(func() error {
+				solvedCol, progressMadeCol, err := eds.solveCrosswordCol(i, rowRoots, colRoots)
+				if err != nil {
+					return err
+				}
+
+				solved = solved && solvedCol
+				progressMade = progressMade || progressMadeCol
+				return nil
+			})
+		}
+
+		if err := errs.Wait(); err != nil {
+			return err
 		}
 
 		if solved {
