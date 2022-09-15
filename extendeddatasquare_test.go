@@ -76,7 +76,8 @@ func TestEDSRowColImmutable(t *testing.T) {
 // unrealistic optimizations
 var dump *ExtendedDataSquare
 
-// BenchmarkExtension benchmarks extending datasquares sizes 4-128 using all supported codecs
+// BenchmarkExtension benchmarks extending datasquares sizes 4-128 using all
+// supported codecs (encoding only)
 func BenchmarkExtensionEncoding(b *testing.B) {
 	for i := 4; i < 513; i *= 2 {
 		for codecName, codec := range codecs {
@@ -103,7 +104,8 @@ func BenchmarkExtensionEncoding(b *testing.B) {
 	}
 }
 
-// BenchmarkExtension benchmarks extending datasquares sizes 4-128 using all supported codecs
+// BenchmarkExtension benchmarks extending datasquares sizes 4-128 using all
+// supported codecs (both encoding and root computation)
 func BenchmarkExtensionWithRoots(b *testing.B) {
 	for i := 4; i < 513; i *= 2 {
 		for codecName, codec := range codecs {
