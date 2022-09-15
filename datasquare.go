@@ -182,34 +182,22 @@ func (ds *dataSquare) resetRoots() {
 
 func (ds *dataSquare) computeRoots() {
 	var wg sync.WaitGroup
-	var mu sync.Mutex
 
 	rowRoots := make([][]byte, ds.width)
 	colRoots := make([][]byte, ds.width)
 
 	for i := uint(0); i < ds.width; i++ {
-		i := i
 		wg.Add(2)
 
-		go func() {
+		go func(i uint) {
 			defer wg.Done()
+			rowRoots[i] = ds.getRowRoot(i)
+		}(i)
 
-			rowRoot := ds.getRowRoot(i)
-
-			mu.Lock()
-			defer mu.Unlock()
-			rowRoots[i] = rowRoot
-		}()
-
-		go func() {
+		go func(i uint) {
 			defer wg.Done()
-
-			colRoot := ds.getColRoot(i)
-
-			mu.Lock()
-			defer mu.Unlock()
-			colRoots[i] = colRoot
-		}()
+			colRoots[i] = ds.getColRoot(i)
+		}(i)
 	}
 
 	wg.Wait()
@@ -227,13 +215,13 @@ func (ds *dataSquare) getRowRoots() [][]byte {
 }
 
 // getRowRoot calculates and returns the root of the selected row. Note: unlike the
-// getRowRoots method, getRowRoot uses the built-in cache when available.
+// getRowRoots method, getRowRoot does not write to the built-in cache.
 func (ds *dataSquare) getRowRoot(x uint) []byte {
 	if ds.rowRoots != nil {
 		return ds.rowRoots[x]
 	}
 
-	tree := ds.createTreeFn()
+	tree := ds.createTreeFn(Row, x)
 	for i, d := range ds.row(x) {
 		tree.Push(d, SquareIndex{Cell: uint(i), Axis: x})
 	}
@@ -251,13 +239,13 @@ func (ds *dataSquare) getColRoots() [][]byte {
 }
 
 // getColRoot calculates and returns the root of the selected row. Note: unlike the
-// getColRoots method, getColRoot uses the built-in cache when available.
+// getColRoots method, getColRoot does not write to the built-in cache.
 func (ds *dataSquare) getColRoot(y uint) []byte {
 	if ds.colRoots != nil {
 		return ds.colRoots[y]
 	}
 
-	tree := ds.createTreeFn()
+	tree := ds.createTreeFn(Col, y)
 	for i, d := range ds.col(y) {
 		tree.Push(d, SquareIndex{Axis: y, Cell: uint(i)})
 	}
