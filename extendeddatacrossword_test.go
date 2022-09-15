@@ -158,7 +158,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 
 func BenchmarkRepair(b *testing.B) {
 	// For different ODS sizes
-	for originalDataWidth := 16; originalDataWidth <= 512; originalDataWidth *= 2 {
+	for originalDataWidth := 4; originalDataWidth <= 512; originalDataWidth *= 2 {
 		for codecName, codec := range codecs {
 			if codec.maxChunks() < originalDataWidth*originalDataWidth {
 				// Only test codecs that support this many chunks
