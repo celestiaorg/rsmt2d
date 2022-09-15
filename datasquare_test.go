@@ -214,7 +214,7 @@ func BenchmarkRoots(b *testing.B) {
 }
 
 func computeRowProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
-	tree := ds.createTreeFn()
+	tree := ds.createTreeFn(Row, x)
 	data := ds.row(x)
 
 	for i := uint(0); i < ds.width; i++ {
@@ -226,7 +226,7 @@ func computeRowProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, ui
 }
 
 func computeColProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
-	tree := ds.createTreeFn()
+	tree := ds.createTreeFn(Col, y)
 	data := ds.col(y)
 
 	for i := uint(0); i < ds.width; i++ {

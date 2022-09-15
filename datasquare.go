@@ -221,7 +221,7 @@ func (ds *dataSquare) getRowRoot(x uint) []byte {
 		return ds.rowRoots[x]
 	}
 
-	tree := ds.createTreeFn()
+	tree := ds.createTreeFn(Row, x)
 	for i, d := range ds.row(x) {
 		tree.Push(d, SquareIndex{Cell: uint(i), Axis: x})
 	}
@@ -245,7 +245,7 @@ func (ds *dataSquare) getColRoot(y uint) []byte {
 		return ds.colRoots[y]
 	}
 
-	tree := ds.createTreeFn()
+	tree := ds.createTreeFn(Col, y)
 	for i, d := range ds.col(y) {
 		tree.Push(d, SquareIndex{Axis: y, Cell: uint(i)})
 	}

@@ -269,7 +269,7 @@ func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
 	r uint,
 	shares [][]byte,
 ) error {
-	root := eds.computeSharesRoot(shares, r)
+	root := eds.computeSharesRoot(shares, Row, r)
 
 	if !bytes.Equal(root, rowRoots[r]) {
 		return &ErrByzantineData{Row, r, shares}
@@ -283,7 +283,7 @@ func (eds *ExtendedDataSquare) verifyAgainstColRoots(
 	c uint,
 	shares [][]byte,
 ) error {
-	root := eds.computeSharesRoot(shares, c)
+	root := eds.computeSharesRoot(shares, Col, c)
 
 	if !bytes.Equal(root, colRoots[c]) {
 		return &ErrByzantineData{Col, c, shares}
@@ -349,8 +349,8 @@ func noMissingData(input [][]byte) bool {
 	return true
 }
 
-func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, i uint) []byte {
-	tree := eds.createTreeFn()
+func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, axis Axis, i uint) []byte {
+	tree := eds.createTreeFn(axis, i)
 	for cell, d := range shares {
 		tree.Push(d, SquareIndex{Cell: uint(cell), Axis: i})
 	}
