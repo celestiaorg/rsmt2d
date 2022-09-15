@@ -182,7 +182,6 @@ func (ds *dataSquare) resetRoots() {
 
 func (ds *dataSquare) computeRoots() {
 	var wg sync.WaitGroup
-	var mu sync.Mutex
 
 	rowRoots := make([][]byte, ds.width)
 	colRoots := make([][]byte, ds.width)
@@ -194,21 +193,13 @@ func (ds *dataSquare) computeRoots() {
 		go func() {
 			defer wg.Done()
 
-			rowRoot := ds.getRowRoot(i)
-
-			mu.Lock()
-			defer mu.Unlock()
-			rowRoots[i] = rowRoot
+			rowRoots[i] = ds.getRowRoot(i)
 		}()
 
 		go func() {
 			defer wg.Done()
 
-			colRoot := ds.getColRoot(i)
-
-			mu.Lock()
-			defer mu.Unlock()
-			colRoots[i] = colRoot
+			colRoots[i] = ds.getColRoot(i)
 		}()
 	}
 
