@@ -203,7 +203,7 @@ func BenchmarkEDSRoots(b *testing.B) {
 			b.Errorf("Failure to create square of size %d: %s", i, err)
 		}
 		b.Run(
-			fmt.Sprintf("%dx%dx256 ODS", i, i),
+			fmt.Sprintf("%dx%dx%d ODS", i, i, int(square.chunkSize)),
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
 					square.resetRoots()
