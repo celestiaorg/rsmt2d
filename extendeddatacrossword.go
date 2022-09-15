@@ -104,10 +104,6 @@ func (eds *ExtendedDataSquare) solveCrossword(
 		}
 	}
 
-	// Update roots of solved eds
-	eds.rowRoots = rowRoots
-	eds.colRoots = colRoots
-
 	return nil
 }
 
