@@ -187,20 +187,17 @@ func (ds *dataSquare) computeRoots() {
 	colRoots := make([][]byte, ds.width)
 
 	for i := uint(0); i < ds.width; i++ {
-		i := i
 		wg.Add(2)
 
-		go func() {
+		go func(i uint) {
 			defer wg.Done()
-
 			rowRoots[i] = ds.getRowRoot(i)
-		}()
+		}(i)
 
-		go func() {
+		go func(i uint) {
 			defer wg.Done()
-
 			colRoots[i] = ds.getColRoot(i)
-		}()
+		}(i)
 	}
 
 	wg.Wait()
