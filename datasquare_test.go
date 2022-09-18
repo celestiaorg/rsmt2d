@@ -196,16 +196,17 @@ func TestDefaultTreeProofs(t *testing.T) {
 	}
 }
 
-func BenchmarkRoots(b *testing.B) {
-	for i := 32; i < 257; i *= 2 {
-		square, err := newDataSquare(genRandDS(i), NewDefaultTree)
+func BenchmarkEDSRoots(b *testing.B) {
+	for i := 32; i < 513; i *= 2 {
+		square, err := newDataSquare(genRandDS(i*2), NewDefaultTree)
 		if err != nil {
 			b.Errorf("Failure to create square of size %d: %s", i, err)
 		}
 		b.Run(
-			fmt.Sprintf("Square Size %dx%d", i, i),
+			fmt.Sprintf("%dx%dx%d ODS", i, i, int(square.chunkSize)),
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
+					square.resetRoots()
 					square.computeRoots()
 				}
 			},

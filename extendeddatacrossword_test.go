@@ -158,8 +158,13 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 
 func BenchmarkRepair(b *testing.B) {
 	// For different ODS sizes
-	for originalDataWidth := 16; originalDataWidth <= 128; originalDataWidth *= 2 {
+	for originalDataWidth := 4; originalDataWidth <= 512; originalDataWidth *= 2 {
 		for codecName, codec := range codecs {
+			if codec.maxChunks() < originalDataWidth*originalDataWidth {
+				// Only test codecs that support this many chunks
+				continue
+			}
+
 			// Generate a new range original data square then extend it
 			square := genRandDS(originalDataWidth)
 			eds, err := ComputeExtendedDataSquare(square, codec, NewDefaultTree)
@@ -173,10 +178,11 @@ func BenchmarkRepair(b *testing.B) {
 
 			b.Run(
 				fmt.Sprintf(
-					"Repairing %dx%d ODS using %s",
-					originalDataWidth,
-					originalDataWidth,
+					"%s %dx%dx%d ODS",
 					codecName,
+					originalDataWidth,
+					originalDataWidth,
+					len(square[0]),
 				),
 				func(b *testing.B) {
 					for n := 0; n < b.N; n++ {
