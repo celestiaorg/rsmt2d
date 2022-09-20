@@ -95,8 +95,9 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		corrupted.setCell(0, 0, corruptChunk)
 		err = corrupted.Repair(corrupted.getRowRoots(), corrupted.getColRoots())
 		var byzData *ErrByzantineData
-		if !errors.As(err, &byzData) || byzData.Axis != Row {
-			t.Errorf("did not return a ErrByzantineData for a bad row; got: %v", err)
+		if !errors.As(err, &byzData) {
+			// due to parallelisation, the ErrByzantineData axis may be either row or col
+			t.Errorf("did not return a ErrByzantineData for a bad row or col; got: %v", err)
 		}
 		// Construct the fraud proof
 		fraudProof := PseudoFraudProof{0, byzData.Index, byzData.Shares}
@@ -106,7 +107,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		if err != nil {
 			t.Errorf("could not decode fraud proof shares; got: %v", err)
 		}
-		root := corrupted.computeSharesRoot(rebuiltShares, fraudProof.Index)
+		root := corrupted.computeSharesRoot(rebuiltShares, byzData.Axis, fraudProof.Index)
 		if bytes.Equal(root, corrupted.getRowRoot(fraudProof.Index)) {
 			// If the roots match, then the fraud proof should be for invalid erasure coding.
 			parityShares, err := codec.Encode(rebuiltShares[0:corrupted.originalDataWidth])
@@ -125,8 +126,9 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		}
 		corrupted.setCell(0, 3, corruptChunk)
 		err = corrupted.Repair(corrupted.getRowRoots(), corrupted.getColRoots())
-		if !errors.As(err, &byzData) || byzData.Axis != Row {
-			t.Errorf("did not return a ErrByzantineData for a bad row; got %v", err)
+		if !errors.As(err, &byzData) {
+			// due to parallelisation, the ErrByzantineData axis may be either row or col
+			t.Errorf("did not return a ErrByzantineData for a bad row or col; got %v", err)
 		}
 
 		corrupted, err = original.deepCopy(codec)
@@ -150,8 +152,9 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		corrupted.setCell(0, 2, nil)
 		corrupted.setCell(0, 3, nil)
 		err = corrupted.Repair(corrupted.getRowRoots(), corrupted.getColRoots())
-		if !errors.As(err, &byzData) || byzData.Axis != Col {
-			t.Errorf("did not return a ErrByzantineData for a bad column; got %v", err)
+		if !errors.As(err, &byzData) {
+			// due to parallelisation, the ErrByzantineData axis may be either row or col
+			t.Errorf("did not return a ErrByzantineData for a bad col or row; got %v", err)
 		}
 	}
 }
