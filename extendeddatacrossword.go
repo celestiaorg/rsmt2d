@@ -365,8 +365,8 @@ func noMissingData(input [][]byte) bool {
 
 func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, axis Axis, i uint) []byte {
 	tree := eds.createTreeFn(axis, i)
-	for cell, d := range shares {
-		tree.Push(d, SquareIndex{Cell: uint(cell), Axis: i})
+	for _, d := range shares {
+		tree.Push(d)
 	}
 	return tree.Root()
 }

@@ -219,7 +219,7 @@ func computeRowProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, ui
 	data := ds.row(x)
 
 	for i := uint(0); i < ds.width; i++ {
-		tree.Push(data[i], SquareIndex{Axis: y, Cell: uint(i)})
+		tree.Push(data[i])
 	}
 
 	merkleRoot, proof, proofIndex, numLeaves := treeProve(tree.(*DefaultTree), int(y))
@@ -231,7 +231,7 @@ func computeColProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, ui
 	data := ds.col(y)
 
 	for i := uint(0); i < ds.width; i++ {
-		tree.Push(data[i], SquareIndex{Axis: y, Cell: uint(i)})
+		tree.Push(data[i])
 	}
 	// TODO(ismail): check for overflow when casting from uint -> int
 	merkleRoot, proof, proofIndex, numLeaves := treeProve(tree.(*DefaultTree), int(x))

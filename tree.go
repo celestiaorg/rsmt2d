@@ -17,7 +17,7 @@ type SquareIndex struct {
 
 // Tree wraps Merkle tree implementations to work with rsmt2d
 type Tree interface {
-	Push(data []byte, idx SquareIndex)
+	Push(data []byte)
 	Root() []byte
 }
 
@@ -36,7 +36,7 @@ func NewDefaultTree(axis Axis, index uint) Tree {
 	}
 }
 
-func (d *DefaultTree) Push(data []byte, _idx SquareIndex) {
+func (d *DefaultTree) Push(data []byte) {
 	// ignore the idx, as this implementation doesn't need that info
 	d.leaves = append(d.leaves, data)
 }
