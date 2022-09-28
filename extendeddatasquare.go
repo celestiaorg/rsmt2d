@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"sync"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -14,6 +15,7 @@ type ExtendedDataSquare struct {
 	*dataSquare
 	codec             Codec
 	originalDataWidth uint
+	rowColMutex       []sync.Mutex
 }
 
 // ComputeExtendedDataSquare computes the extended data square for some chunks of data.
@@ -31,7 +33,7 @@ func ComputeExtendedDataSquare(
 		return nil, err
 	}
 
-	eds := ExtendedDataSquare{dataSquare: ds, codec: codec}
+	eds := ExtendedDataSquare{dataSquare: ds, codec: codec, rowColMutex: make([]sync.Mutex, ds.width)}
 	err = eds.erasureExtendSquare(codec)
 	if err != nil {
 		return nil, err
@@ -55,7 +57,7 @@ func ImportExtendedDataSquare(
 		return nil, err
 	}
 
-	eds := ExtendedDataSquare{dataSquare: ds, codec: codec}
+	eds := ExtendedDataSquare{dataSquare: ds, codec: codec, rowColMutex: make([]sync.Mutex, ds.width)}
 	if eds.width%2 != 0 {
 		return nil, errors.New("square width must be even")
 	}
