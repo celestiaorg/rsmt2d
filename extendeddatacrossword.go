@@ -84,7 +84,7 @@ func (eds *ExtendedDataSquare) solveCrossword(
 		// Track if a single iteration of this loop made progress
 		progressMade := false
 
-		var mut sync.Mutex
+		var trackerMutex sync.Mutex
 		// Loop through every row and column, attempt to rebuild each row or column if incomplete
 		for i := 0; i < int(eds.width); i++ {
 			i := i
@@ -95,8 +95,8 @@ func (eds *ExtendedDataSquare) solveCrossword(
 					return err
 				}
 
-				mut.Lock()
-				defer mut.Unlock()
+				trackerMutex.Lock()
+				defer trackerMutex.Unlock()
 				solved = solved && solvedRow
 				progressMade = progressMade || progressMadeRow
 				return nil
@@ -116,8 +116,8 @@ func (eds *ExtendedDataSquare) solveCrossword(
 					return err
 				}
 
-				mut.Lock()
-				defer mut.Unlock()
+				trackerMutex.Lock()
+				defer trackerMutex.Unlock()
 				solved = solved && solvedCol
 				progressMade = progressMade || progressMadeCol
 				return nil
