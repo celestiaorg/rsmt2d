@@ -85,12 +85,15 @@ func (eds *ExtendedDataSquare) solveCrossword(
 		progressMade := false
 
 		var foo sync.Mutex
+		var wg sync.WaitGroup
+		wg.Add(int(eds.width))
 
 		// Loop through every row and column, attempt to rebuild each row or column if incomplete
 		for i := 0; i < int(eds.width); i++ {
 			i := i
 
 			errs.Go(func() error {
+				defer wg.Done()
 				solvedRow, progressMadeRow, err := eds.solveCrosswordRow(i, rowRoots, colRoots)
 				if err != nil {
 					return err
@@ -104,6 +107,7 @@ func (eds *ExtendedDataSquare) solveCrossword(
 			})
 
 			errs.Go(func() error {
+				wg.Wait()
 				solvedCol, progressMadeCol, err := eds.solveCrosswordCol(i, rowRoots, colRoots)
 				if err != nil {
 					return err
