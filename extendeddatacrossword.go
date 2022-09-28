@@ -84,7 +84,7 @@ func (eds *ExtendedDataSquare) solveCrossword(
 		// Track if a single iteration of this loop made progress
 		progressMade := false
 
-		var foo sync.Mutex
+		var mut sync.Mutex
 		var wg sync.WaitGroup
 		wg.Add(int(eds.width))
 
@@ -99,8 +99,8 @@ func (eds *ExtendedDataSquare) solveCrossword(
 					return err
 				}
 
-				foo.Lock()
-				defer foo.Unlock()
+				mut.Lock()
+				defer mut.Unlock()
 				solved = solved && solvedRow
 				progressMade = progressMade || progressMadeRow
 				return nil
@@ -113,8 +113,8 @@ func (eds *ExtendedDataSquare) solveCrossword(
 					return err
 				}
 
-				foo.Lock()
-				defer foo.Unlock()
+				mut.Lock()
+				defer mut.Unlock()
 				solved = solved && solvedCol
 				progressMade = progressMade || progressMadeCol
 				return nil
