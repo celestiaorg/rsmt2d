@@ -142,6 +142,10 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	// Check that rebuilt shares matches appropriate root
 	err = eds.verifyAgainstRowRoots(rowRoots, uint(r), rebuiltShares)
 	if err != nil {
+		var byzErr *ErrByzantineData
+		if errors.As(err, &byzErr) {
+			byzErr.Shares = shares
+		}
 		return false, false, err
 	}
 
@@ -204,6 +208,10 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	// Check that rebuilt shares matches appropriate root
 	err = eds.verifyAgainstColRoots(colRoots, uint(c), rebuiltShares)
 	if err != nil {
+		var byzErr *ErrByzantineData
+		if errors.As(err, &byzErr) {
+			byzErr.Shares = shares
+		}
 		return false, false, err
 	}
 
@@ -271,7 +279,7 @@ func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
 	root := eds.computeSharesRoot(shares, Row, r)
 
 	if !bytes.Equal(root, rowRoots[r]) {
-		return &ErrByzantineData{Row, r, shares}
+		return &ErrByzantineData{Row, r, nil}
 	}
 
 	return nil
@@ -285,7 +293,7 @@ func (eds *ExtendedDataSquare) verifyAgainstColRoots(
 	root := eds.computeSharesRoot(shares, Col, c)
 
 	if !bytes.Equal(root, colRoots[c]) {
-		return &ErrByzantineData{Col, c, shares}
+		return &ErrByzantineData{Col, c, nil}
 	}
 
 	return nil
