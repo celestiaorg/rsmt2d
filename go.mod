@@ -8,7 +8,7 @@ require (
 	github.com/vivint/infectious v0.0.0-20200605153912-25a574ae18a3
 )
 
-require github.com/klauspost/reedsolomon v1.11.0
+require github.com/klauspost/reedsolomon v1.11.1-0.20221003122241-807983c81be3
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
