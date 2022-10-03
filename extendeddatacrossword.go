@@ -2,8 +2,11 @@ package rsmt2d
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // Axis represents which of a row or col.
@@ -139,13 +142,21 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	// Check that rebuilt shares matches appropriate root
 	err = eds.verifyAgainstRowRoots(rowRoots, uint(r), rebuiltShares)
 	if err != nil {
+		var byzErr *ErrByzantineData
+		if errors.As(err, &byzErr) {
+			byzErr.Shares = shares
+		}
 		return false, false, err
 	}
 
 	// Check that newly completed orthogonal vectors match their new merkle roots
 	for c := 0; c < int(eds.width); c++ {
 		col := eds.col(uint(c))
-		if noMissingData(col) {
+		if col[r] != nil {
+			continue // not newly completed
+		}
+		col[r] = rebuiltShares[c]
+		if noMissingData(col) { // not completed
 			err := eds.verifyAgainstColRoots(colRoots, uint(c), col)
 			if err != nil {
 				return false, false, err
@@ -197,13 +208,21 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	// Check that rebuilt shares matches appropriate root
 	err = eds.verifyAgainstColRoots(colRoots, uint(c), rebuiltShares)
 	if err != nil {
+		var byzErr *ErrByzantineData
+		if errors.As(err, &byzErr) {
+			byzErr.Shares = shares
+		}
 		return false, false, err
 	}
 
 	// Check that newly completed orthogonal vectors match their new merkle roots
 	for r := 0; r < int(eds.width); r++ {
 		row := eds.row(uint(r))
-		if noMissingData(row) {
+		if row[c] != nil {
+			continue // not newly completed
+		}
+		row[c] = rebuiltShares[r]
+		if noMissingData(row) { // not completed
 			err := eds.verifyAgainstRowRoots(rowRoots, uint(r), row)
 			if err != nil {
 				return false, false, err
@@ -257,10 +276,10 @@ func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
 	r uint,
 	shares [][]byte,
 ) error {
-	root := eds.computeSharesRoot(shares, r)
+	root := eds.computeSharesRoot(shares, Row, r)
 
 	if !bytes.Equal(root, rowRoots[r]) {
-		return &ErrByzantineData{Row, r, shares}
+		return &ErrByzantineData{Row, r, nil}
 	}
 
 	return nil
@@ -271,10 +290,10 @@ func (eds *ExtendedDataSquare) verifyAgainstColRoots(
 	c uint,
 	shares [][]byte,
 ) error {
-	root := eds.computeSharesRoot(shares, c)
+	root := eds.computeSharesRoot(shares, Col, c)
 
 	if !bytes.Equal(root, colRoots[c]) {
-		return &ErrByzantineData{Col, c, shares}
+		return &ErrByzantineData{Col, c, nil}
 	}
 
 	return nil
@@ -284,48 +303,63 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 	rowRoots [][]byte,
 	colRoots [][]byte,
 ) error {
+	errs, _ := errgroup.WithContext(context.Background())
+
 	for i := uint(0); i < eds.width; i++ {
+		i := i
 		rowIsComplete := noMissingData(eds.row(i))
 		colIsComplete := noMissingData(eds.col(i))
 
 		// if there's no missing data in the this row
 		if rowIsComplete {
-			// ensure that the roots are equal and that rowMask is a vector
-			if !bytes.Equal(rowRoots[i], eds.getRowRoot(i)) {
-				return fmt.Errorf("bad root input: row %d expected %v got %v", i, rowRoots[i], eds.getRowRoot(i))
-			}
+			errs.Go(func() error {
+				// ensure that the roots are equal
+				if !bytes.Equal(rowRoots[i], eds.getRowRoot(i)) {
+					return fmt.Errorf("bad root input: row %d expected %v got %v", i, rowRoots[i], eds.getRowRoot(i))
+				}
+				return nil
+			})
 		}
 
 		// if there's no missing data in the this col
 		if colIsComplete {
-			// ensure that the roots are equal and that rowMask is a vector
-			if !bytes.Equal(colRoots[i], eds.getColRoot(i)) {
-				return fmt.Errorf("bad root input: col %d expected %v got %v", i, colRoots[i], eds.getColRoot(i))
-			}
+			errs.Go(func() error {
+				// ensure that the roots are equal
+				if !bytes.Equal(colRoots[i], eds.getColRoot(i)) {
+					return fmt.Errorf("bad root input: col %d expected %v got %v", i, colRoots[i], eds.getColRoot(i))
+				}
+				return nil
+			})
 		}
 
 		if rowIsComplete {
-			parityShares, err := eds.codec.Encode(eds.rowSlice(i, 0, eds.originalDataWidth))
-			if err != nil {
-				return err
-			}
-			if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.rowSlice(i, eds.originalDataWidth, eds.originalDataWidth))) {
-				return &ErrByzantineData{Row, i, eds.row(i)}
-			}
+			errs.Go(func() error {
+				parityShares, err := eds.codec.Encode(eds.rowSlice(i, 0, eds.originalDataWidth))
+				if err != nil {
+					return err
+				}
+				if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.rowSlice(i, eds.originalDataWidth, eds.originalDataWidth))) {
+					return &ErrByzantineData{Row, i, eds.row(i)}
+				}
+				return nil
+			})
 		}
 
 		if colIsComplete {
-			parityShares, err := eds.codec.Encode(eds.colSlice(0, i, eds.originalDataWidth))
-			if err != nil {
-				return err
-			}
-			if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.colSlice(eds.originalDataWidth, i, eds.originalDataWidth))) {
-				return &ErrByzantineData{Col, i, eds.col(i)}
-			}
+			errs.Go(func() error {
+				parityShares, err := eds.codec.Encode(eds.colSlice(0, i, eds.originalDataWidth))
+				if err != nil {
+					return err
+				}
+				if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.colSlice(eds.originalDataWidth, i, eds.originalDataWidth))) {
+					return &ErrByzantineData{Col, i, eds.col(i)}
+				}
+				return nil
+			})
 		}
 	}
 
-	return nil
+	return errs.Wait()
 }
 
 func noMissingData(input [][]byte) bool {
@@ -337,10 +371,10 @@ func noMissingData(input [][]byte) bool {
 	return true
 }
 
-func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, i uint) []byte {
-	tree := eds.createTreeFn()
-	for cell, d := range shares {
-		tree.Push(d, SquareIndex{Cell: uint(cell), Axis: i})
+func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, axis Axis, i uint) []byte {
+	tree := eds.createTreeFn(axis, i)
+	for _, d := range shares {
+		tree.Push(d)
 	}
 	return tree.Root()
 }

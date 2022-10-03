@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewDataSquare(t *testing.T) {
@@ -31,6 +33,50 @@ func TestNewDataSquare(t *testing.T) {
 	_, err = newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7}}, NewDefaultTree)
 	if err == nil {
 		t.Errorf("newDataSquare failed; chunks of unequal size accepted")
+	}
+}
+
+func TestSetCell(t *testing.T) {
+	ds, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
+	if err != nil {
+		panic(err)
+	}
+
+	// SetCell can only write to nil cells
+	assert.Panics(t, func() { ds.SetCell(0, 0, []byte{0}) })
+
+	// Set the cell to nil to allow modification
+	ds.setCell(0, 0, nil)
+
+	ds.SetCell(0, 0, []byte{42})
+	assert.Equal(t, []byte{42}, ds.GetCell(0, 0))
+}
+
+func TestGetCell(t *testing.T) {
+	ds, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
+	if err != nil {
+		panic(err)
+	}
+
+	cell := ds.GetCell(0, 0)
+	cell[0] = 42
+
+	if reflect.DeepEqual(ds.GetCell(0, 0), []byte{42}) {
+		t.Errorf("GetCell failed to return an immutable copy of the cell")
+	}
+}
+
+func TestFlattened(t *testing.T) {
+	ds, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
+	if err != nil {
+		panic(err)
+	}
+
+	flattened := ds.Flattened()
+	flattened[0] = []byte{42}
+
+	if reflect.DeepEqual(ds.Flattened(), [][]byte{{42}, {2}, {3}, {4}}) {
+		t.Errorf("Flattened failed to return an immutable copy")
 	}
 }
 
@@ -150,16 +196,17 @@ func TestDefaultTreeProofs(t *testing.T) {
 	}
 }
 
-func BenchmarkRoots(b *testing.B) {
-	for i := 32; i < 257; i *= 2 {
-		square, err := newDataSquare(genRandDS(i), NewDefaultTree)
+func BenchmarkEDSRoots(b *testing.B) {
+	for i := 32; i < 513; i *= 2 {
+		square, err := newDataSquare(genRandDS(i*2), NewDefaultTree)
 		if err != nil {
 			b.Errorf("Failure to create square of size %d: %s", i, err)
 		}
 		b.Run(
-			fmt.Sprintf("Square Size %dx%d", i, i),
+			fmt.Sprintf("%dx%dx%d ODS", i, i, int(square.chunkSize)),
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
+					square.resetRoots()
 					square.computeRoots()
 				}
 			},
@@ -168,11 +215,11 @@ func BenchmarkRoots(b *testing.B) {
 }
 
 func computeRowProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
-	tree := ds.createTreeFn()
+	tree := ds.createTreeFn(Row, x)
 	data := ds.row(x)
 
 	for i := uint(0); i < ds.width; i++ {
-		tree.Push(data[i], SquareIndex{Axis: y, Cell: uint(i)})
+		tree.Push(data[i])
 	}
 
 	merkleRoot, proof, proofIndex, numLeaves := treeProve(tree.(*DefaultTree), int(y))
@@ -180,11 +227,11 @@ func computeRowProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, ui
 }
 
 func computeColProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
-	tree := ds.createTreeFn()
+	tree := ds.createTreeFn(Col, y)
 	data := ds.col(y)
 
 	for i := uint(0); i < ds.width; i++ {
-		tree.Push(data[i], SquareIndex{Axis: y, Cell: uint(i)})
+		tree.Push(data[i])
 	}
 	// TODO(ismail): check for overflow when casting from uint -> int
 	merkleRoot, proof, proofIndex, numLeaves := treeProve(tree.(*DefaultTree), int(x))

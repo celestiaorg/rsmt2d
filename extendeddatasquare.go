@@ -3,7 +3,10 @@ package rsmt2d
 
 import (
 	"bytes"
+	"context"
 	"errors"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // ExtendedDataSquare represents an extended piece of data.
@@ -68,8 +71,7 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 		return err
 	}
 
-	var shares [][]byte
-	var err error
+	errs, _ := errgroup.WithContext(context.Background())
 
 	// Extend original square horizontally and vertically
 	//  ------- -------
@@ -82,23 +84,21 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 	// |       |
 	//  -------
 	for i := uint(0); i < eds.originalDataWidth; i++ {
+		i := i
+
 		// Extend horizontally
-		shares, err = codec.Encode(eds.rowSlice(i, 0, eds.originalDataWidth))
-		if err != nil {
-			return err
-		}
-		if err := eds.setRowSlice(i, eds.originalDataWidth, shares[len(shares)-int(eds.originalDataWidth):]); err != nil {
-			return err
-		}
+		errs.Go(func() error {
+			return eds.erasureExtendRow(codec, i)
+		})
 
 		// Extend vertically
-		shares, err = codec.Encode(eds.colSlice(0, i, eds.originalDataWidth))
-		if err != nil {
-			return err
-		}
-		if err := eds.setColSlice(eds.originalDataWidth, i, shares[len(shares)-int(eds.originalDataWidth):]); err != nil {
-			return err
-		}
+		errs.Go(func() error {
+			return eds.erasureExtendCol(codec, i)
+		})
+	}
+
+	if err := errs.Wait(); err != nil {
+		return err
 	}
 
 	// Extend extended square horizontally
@@ -112,21 +112,47 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 	// |       |       |
 	//  ------- -------
 	for i := eds.originalDataWidth; i < eds.width; i++ {
+		i := i
+
 		// Extend horizontally
-		shares, err = codec.Encode(eds.rowSlice(i, 0, eds.originalDataWidth))
-		if err != nil {
-			return err
-		}
-		if err := eds.setRowSlice(i, eds.originalDataWidth, shares[len(shares)-int(eds.originalDataWidth):]); err != nil {
-			return err
-		}
+		errs.Go(func() error {
+			return eds.erasureExtendRow(codec, i)
+		})
 	}
 
+	return errs.Wait()
+}
+
+func (eds *ExtendedDataSquare) erasureExtendRow(codec Codec, i uint) error {
+	var shares [][]byte
+	var err error
+
+	shares, err = codec.Encode(eds.rowSlice(i, 0, eds.originalDataWidth))
+	if err != nil {
+		return err
+	}
+	if err := eds.setRowSlice(i, eds.originalDataWidth, shares[len(shares)-int(eds.originalDataWidth):]); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (eds *ExtendedDataSquare) erasureExtendCol(codec Codec, i uint) error {
+	var shares [][]byte
+	var err error
+
+	shares, err = codec.Encode(eds.colSlice(0, i, eds.originalDataWidth))
+	if err != nil {
+		return err
+	}
+	if err := eds.setColSlice(eds.originalDataWidth, i, shares[len(shares)-int(eds.originalDataWidth):]); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (eds *ExtendedDataSquare) deepCopy(codec Codec) (ExtendedDataSquare, error) {
-	eds, err := ImportExtendedDataSquare(eds.flattened(), codec, eds.createTreeFn)
+	eds, err := ImportExtendedDataSquare(eds.Flattened(), codec, eds.createTreeFn)
 	return *eds, err
 }
 
@@ -144,24 +170,27 @@ func (eds *ExtendedDataSquare) Col(y uint) [][]byte {
 
 // ColRoots returns the Merkle roots of all the columns in the square.
 func (eds *ExtendedDataSquare) ColRoots() [][]byte {
-	return eds.getColRoots()
+	return deepCopy(eds.getColRoots())
 }
 
 // Row returns a row slice.
 // This slice is a copy of the internal row slice.
 func (eds *ExtendedDataSquare) Row(x uint) [][]byte {
-	row := make([][]byte, eds.width)
-	original := eds.row(x)
-	for i, cell := range original {
-		row[i] = make([]byte, eds.chunkSize)
-		copy(row[i], cell)
-	}
-	return row
+	return deepCopy(eds.row(x))
 }
 
 // RowRoots returns the Merkle roots of all the rows in the square.
 func (eds *ExtendedDataSquare) RowRoots() [][]byte {
-	return eds.getRowRoots()
+	return deepCopy(eds.getRowRoots())
+}
+
+func deepCopy(original [][]byte) [][]byte {
+	dest := make([][]byte, len(original))
+	for i, cell := range original {
+		dest[i] = make([]byte, len(cell))
+		copy(dest[i], cell)
+	}
+	return dest
 }
 
 // Width returns the width of the square.

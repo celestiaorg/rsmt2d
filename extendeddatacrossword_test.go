@@ -38,7 +38,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		rowRoots := original.RowRoots()
 		colRoots := original.ColRoots()
 
-		flattened := original.flattened()
+		flattened := original.Flattened()
 		flattened[0], flattened[2], flattened[3] = nil, nil, nil
 		flattened[4], flattened[5], flattened[6], flattened[7] = nil, nil, nil, nil
 		flattened[8], flattened[9], flattened[10] = nil, nil, nil
@@ -60,7 +60,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 			assert.Equal(t, original.GetCell(1, 1), fours)
 		}
 
-		flattened = original.flattened()
+		flattened = original.Flattened()
 		flattened[0], flattened[2], flattened[3] = nil, nil, nil
 		flattened[4], flattened[5], flattened[6], flattened[7] = nil, nil, nil, nil
 		flattened[8], flattened[9], flattened[10] = nil, nil, nil
@@ -95,8 +95,9 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		corrupted.setCell(0, 0, corruptChunk)
 		err = corrupted.Repair(corrupted.getRowRoots(), corrupted.getColRoots())
 		var byzData *ErrByzantineData
-		if !errors.As(err, &byzData) || byzData.Axis != Row {
-			t.Errorf("did not return a ErrByzantineData for a bad row; got: %v", err)
+		if !errors.As(err, &byzData) {
+			// due to parallelisation, the ErrByzantineData axis may be either row or col
+			t.Errorf("did not return a ErrByzantineData for a bad row or col; got: %v", err)
 		}
 		// Construct the fraud proof
 		fraudProof := PseudoFraudProof{0, byzData.Index, byzData.Shares}
@@ -106,7 +107,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		if err != nil {
 			t.Errorf("could not decode fraud proof shares; got: %v", err)
 		}
-		root := corrupted.computeSharesRoot(rebuiltShares, fraudProof.Index)
+		root := corrupted.computeSharesRoot(rebuiltShares, byzData.Axis, fraudProof.Index)
 		if bytes.Equal(root, corrupted.getRowRoot(fraudProof.Index)) {
 			// If the roots match, then the fraud proof should be for invalid erasure coding.
 			parityShares, err := codec.Encode(rebuiltShares[0:corrupted.originalDataWidth])
@@ -125,8 +126,9 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		}
 		corrupted.setCell(0, 3, corruptChunk)
 		err = corrupted.Repair(corrupted.getRowRoots(), corrupted.getColRoots())
-		if !errors.As(err, &byzData) || byzData.Axis != Row {
-			t.Errorf("did not return a ErrByzantineData for a bad row; got %v", err)
+		if !errors.As(err, &byzData) {
+			// due to parallelisation, the ErrByzantineData axis may be either row or col
+			t.Errorf("did not return a ErrByzantineData for a bad row or col; got %v", err)
 		}
 
 		corrupted, err = original.deepCopy(codec)
@@ -150,16 +152,22 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		corrupted.setCell(0, 2, nil)
 		corrupted.setCell(0, 3, nil)
 		err = corrupted.Repair(corrupted.getRowRoots(), corrupted.getColRoots())
-		if !errors.As(err, &byzData) || byzData.Axis != Col {
-			t.Errorf("did not return a ErrByzantineData for a bad column; got %v", err)
+		if !errors.As(err, &byzData) {
+			// due to parallelisation, the ErrByzantineData axis may be either row or col
+			t.Errorf("did not return a ErrByzantineData for a bad col or row; got %v", err)
 		}
 	}
 }
 
 func BenchmarkRepair(b *testing.B) {
 	// For different ODS sizes
-	for originalDataWidth := 16; originalDataWidth <= 128; originalDataWidth *= 2 {
+	for originalDataWidth := 4; originalDataWidth <= 512; originalDataWidth *= 2 {
 		for codecName, codec := range codecs {
+			if codec.maxChunks() < originalDataWidth*originalDataWidth {
+				// Only test codecs that support this many chunks
+				continue
+			}
+
 			// Generate a new range original data square then extend it
 			square := genRandDS(originalDataWidth)
 			eds, err := ComputeExtendedDataSquare(square, codec, NewDefaultTree)
@@ -173,16 +181,17 @@ func BenchmarkRepair(b *testing.B) {
 
 			b.Run(
 				fmt.Sprintf(
-					"Repairing %dx%d ODS using %s",
-					originalDataWidth,
-					originalDataWidth,
+					"%s %dx%dx%d ODS",
 					codecName,
+					originalDataWidth,
+					originalDataWidth,
+					len(square[0]),
 				),
 				func(b *testing.B) {
 					for n := 0; n < b.N; n++ {
 						b.StopTimer()
 
-						flattened := eds.flattened()
+						flattened := eds.Flattened()
 						// Randomly remove 1/2 of the shares of each row
 						for r := 0; r < extendedDataWidth; r++ {
 							for c := 0; c < originalDataWidth; {
