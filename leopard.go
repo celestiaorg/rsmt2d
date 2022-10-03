@@ -26,7 +26,7 @@ func encode(data [][]byte) ([][]byte, error) {
 	enc, ok := encoderCache.Query(dataLen)
 	if !ok {
 		var err error
-		enc, err = reedsolomon.New(dataLen, dataLen, reedsolomon.WithLeopardGF16(true))
+		enc, err = reedsolomon.New(dataLen, dataLen, reedsolomon.WithLeopardGF(true))
 		if err != nil {
 			return nil, err
 		}
@@ -53,7 +53,7 @@ func decode(data [][]byte) ([][]byte, error) {
 	enc, ok := encoderCache.Query(half)
 	var err error
 	if !ok {
-		enc, err = reedsolomon.New(half, half, reedsolomon.WithLeopardGF16(true))
+		enc, err = reedsolomon.New(half, half, reedsolomon.WithLeopardGF(true))
 		if err != nil {
 			return nil, err
 		}
