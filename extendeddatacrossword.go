@@ -163,7 +163,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 		}
 		newCol := splitSlice{
 			head:        col[:r],
-			dataAtIndex: rebuiltShares[r],
+			dataAtIndex: rebuiltShares[c],
 			tail:        col[r+1:],
 		}
 		if noMissingDataSplitSlice(newCol) { // not completed
@@ -233,7 +233,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 		}
 		newRow := splitSlice{
 			head:        row[:c],
-			dataAtIndex: rebuiltShares[c],
+			dataAtIndex: rebuiltShares[r],
 			tail:        row[c+1:],
 		}
 		if noMissingDataSplitSlice(newRow) { // not completed
