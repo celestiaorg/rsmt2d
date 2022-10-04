@@ -38,6 +38,12 @@ type ErrByzantineData struct {
 	Shares [][]byte // Pre-repaired shares. Missing shares are nil.
 }
 
+type splitSlice struct {
+	head        [][]byte
+	dataAtIndex []byte
+	tail        [][]byte
+}
+
 func (e *ErrByzantineData) Error() string {
 	return fmt.Sprintf("byzantine %s: %d", e.Axis, e.Index)
 }
@@ -155,9 +161,13 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 		if col[r] != nil {
 			continue // not newly completed
 		}
-		col[r] = rebuiltShares[c]
-		if noMissingData(col) { // not completed
-			err := eds.verifyAgainstColRoots(colRoots, uint(c), col)
+		newCol := splitSlice{
+			head:        col[:r],
+			dataAtIndex: rebuiltShares[r],
+			tail:        col[r+1:],
+		}
+		if noMissingDataSplitSlice(newCol) { // not completed
+			err := eds.verifyAgainstColRootsSplit(colRoots, uint(c), newCol)
 			if err != nil {
 				return false, false, err
 			}
@@ -221,9 +231,13 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 		if row[c] != nil {
 			continue // not newly completed
 		}
-		row[c] = rebuiltShares[r]
-		if noMissingData(row) { // not completed
-			err := eds.verifyAgainstRowRoots(rowRoots, uint(r), row)
+		newRow := splitSlice{
+			head:        row[:c],
+			dataAtIndex: rebuiltShares[c],
+			tail:        row[c+1:],
+		}
+		if noMissingDataSplitSlice(newRow) { // not completed
+			err := eds.verifyAgainstRowRootsSplit(rowRoots, uint(r), newRow)
 			if err != nil {
 				return false, false, err
 			}
@@ -279,7 +293,36 @@ func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
 	root := eds.computeSharesRoot(shares, Row, r)
 
 	if !bytes.Equal(root, rowRoots[r]) {
+		panic("failed at verification")
 		return &ErrByzantineData{Row, r, nil}
+	}
+
+	return nil
+}
+
+func (eds *ExtendedDataSquare) verifyAgainstRowRootsSplit(
+	rowRoots [][]byte,
+	r uint,
+	shares splitSlice,
+) error {
+	root := eds.computeSplitSharesRoot(shares, Row, r)
+
+	if !bytes.Equal(root, rowRoots[r]) {
+		return &ErrByzantineData{Row, r, nil}
+	}
+
+	return nil
+}
+
+func (eds *ExtendedDataSquare) verifyAgainstColRootsSplit(
+	colRoots [][]byte,
+	c uint,
+	shares splitSlice,
+) error {
+	root := eds.computeSplitSharesRoot(shares, Col, c)
+
+	if !bytes.Equal(root, colRoots[c]) {
+		return &ErrByzantineData{Col, c, nil}
 	}
 
 	return nil
@@ -371,9 +414,36 @@ func noMissingData(input [][]byte) bool {
 	return true
 }
 
+func noMissingDataSplitSlice(input splitSlice) bool {
+	for _, d := range input.head {
+		if d == nil {
+			return false
+		}
+	}
+
+	for _, d := range input.tail {
+		if d == nil {
+			return false
+		}
+	}
+	return true
+}
+
 func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, axis Axis, i uint) []byte {
 	tree := eds.createTreeFn(axis, i)
 	for _, d := range shares {
+		tree.Push(d)
+	}
+	return tree.Root()
+}
+
+func (eds *ExtendedDataSquare) computeSplitSharesRoot(shares splitSlice, axis Axis, i uint) []byte {
+	tree := eds.createTreeFn(axis, i)
+	for _, d := range shares.head {
+		tree.Push(d)
+	}
+	tree.Push(shares.dataAtIndex)
+	for _, d := range shares.tail {
 		tree.Push(d)
 	}
 	return tree.Root()
