@@ -6,24 +6,24 @@ import (
 
 var _ Codec = leoRSCodec{}
 
-var encoderCache = newDoubleCache[reedsolomon.Encoder](defaultDoubleCacheOptions())
-
 func init() {
 	registerCodec(Leopard, newLeoRSCodec())
 }
 
-type leoRSCodec struct{}
+type leoRSCodec struct {
+	encoderCache *doubleCache[reedsolomon.Encoder]
+}
 
 func (l leoRSCodec) Encode(data [][]byte) ([][]byte, error) {
 	dataLen := len(data)
-	enc, ok := encoderCache.query(dataLen)
+	enc, ok := l.encoderCache.query(dataLen)
 	if !ok {
 		var err error
 		enc, err = reedsolomon.New(dataLen, dataLen, reedsolomon.WithLeopardGF(true))
 		if err != nil {
 			return nil, err
 		}
-		encoderCache.insert(dataLen, enc)
+		l.encoderCache.insert(dataLen, enc)
 	}
 
 	shards := make([][]byte, dataLen*2)
@@ -39,14 +39,14 @@ func (l leoRSCodec) Encode(data [][]byte) ([][]byte, error) {
 
 func (l leoRSCodec) Decode(data [][]byte) ([][]byte, error) {
 	half := len(data) / 2
-	enc, ok := encoderCache.query(half)
+	enc, ok := l.encoderCache.query(half)
 	var err error
 	if !ok {
 		enc, err = reedsolomon.New(half, half, reedsolomon.WithLeopardGF(true))
 		if err != nil {
 			return nil, err
 		}
-		encoderCache.insert(half, enc)
+		l.encoderCache.insert(half, enc)
 	}
 	err = enc.Reconstruct(data)
 	return data, err
@@ -57,5 +57,7 @@ func (l leoRSCodec) maxChunks() int {
 }
 
 func newLeoRSCodec() leoRSCodec {
-	return leoRSCodec{}
+	return leoRSCodec{
+		encoderCache: newDoubleCache[reedsolomon.Encoder](defaultDoubleCacheOptions()),
+	}
 }
