@@ -293,7 +293,6 @@ func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
 	root := eds.computeSharesRoot(shares, Row, r)
 
 	if !bytes.Equal(root, rowRoots[r]) {
-		panic("failed at verification")
 		return &ErrByzantineData{Row, r, nil}
 	}
 
