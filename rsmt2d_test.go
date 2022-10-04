@@ -16,8 +16,7 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 		shareSize int
 		codec     rsmt2d.Codec
 	}{
-		{"leopardFF8", bufferSize, rsmt2d.NewLeoRSFF8Codec()},
-		{"leopardFF16", bufferSize, rsmt2d.NewLeoRSFF16Codec()},
+		{"leopard", bufferSize, rsmt2d.NewLeoRSCodec()},
 		{"infectiousGF8", bufferSize, rsmt2d.NewRSGF8Codec()},
 	}
 
@@ -84,8 +83,7 @@ func TestEdsRepairTwice(t *testing.T) {
 		shareSize int
 		codec     rsmt2d.Codec
 	}{
-		{"leopardFF8", bufferSize, rsmt2d.NewLeoRSFF8Codec()},
-		{"leopardFF16", bufferSize, rsmt2d.NewLeoRSFF16Codec()},
+		{"leopardFF8", bufferSize, rsmt2d.NewLeoRSCodec()},
 		{"infectiousGF8", bufferSize, rsmt2d.NewRSGF8Codec()},
 	}
 
