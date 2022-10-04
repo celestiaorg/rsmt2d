@@ -1,44 +1,39 @@
-package utils
+package rsmt2d
 
 import (
 	"reflect"
 	"sync"
 )
 
-type Cache[T any] interface {
-	Insert(int, T)
-	Query(int) (T, bool)
-}
-
 var (
-	DefaultDoubleCacheCapacity = 1024 * 1024
+	defaultDoubleCacheCapacity = 1024 * 1024
 )
 
-type DoubleCacheOptions struct {
-	Capacity int
+type doubleCacheOptions struct {
+	capacity int
 }
 
-func DefaultDoubleCacheOptions() DoubleCacheOptions {
-	return DoubleCacheOptions{
-		Capacity: DefaultDoubleCacheCapacity,
+func defaultDoubleCacheOptions() doubleCacheOptions {
+	return doubleCacheOptions{
+		capacity: defaultDoubleCacheCapacity,
 	}
 }
 
-func (opts DoubleCacheOptions) WithCapacity(capacity int) DoubleCacheOptions {
-	opts.Capacity = capacity / 2
+func (opts doubleCacheOptions) withCapacity(capacity int) doubleCacheOptions {
+	opts.capacity = capacity / 2
 	return opts
 }
 
-type DoubleCache[T any] struct {
-	opts           DoubleCacheOptions
+type doubleCache[T any] struct {
+	opts           doubleCacheOptions
 	cacheMu        *sync.Mutex
 	cacheFrontSize int
 	cacheFront     map[int]T
 	cacheBack      map[int]T
 }
 
-func NewDoubleCache[T any](opts DoubleCacheOptions) *DoubleCache[T] {
-	return &DoubleCache[T]{
+func newDoubleCache[T any](opts doubleCacheOptions) *doubleCache[T] {
+	return &doubleCache[T]{
 		opts:           opts,
 		cacheMu:        new(sync.Mutex),
 		cacheFrontSize: 0,
@@ -47,16 +42,16 @@ func NewDoubleCache[T any](opts DoubleCacheOptions) *DoubleCache[T] {
 	}
 }
 
-func (r *DoubleCache[T]) Insert(id int, value T) {
+func (r *doubleCache[T]) insert(id int, value T) {
 	r.cacheMu.Lock()
 	defer r.cacheMu.Unlock()
 
 	size := int(reflect.TypeOf(value).Size())
-	if size > r.opts.Capacity {
+	if size > r.opts.capacity {
 		return
 	}
 
-	if r.cacheFrontSize+size > r.opts.Capacity {
+	if r.cacheFrontSize+size > r.opts.capacity {
 		r.cacheBack = r.cacheFront
 		r.cacheFrontSize = 0
 		r.cacheFront = make(map[int]T, 0)
@@ -66,7 +61,7 @@ func (r *DoubleCache[T]) Insert(id int, value T) {
 	r.cacheFront[id] = value
 }
 
-func (r *DoubleCache[T]) Query(id int) (T, bool) {
+func (r *doubleCache[T]) query(id int) (T, bool) {
 	r.cacheMu.Lock()
 	defer r.cacheMu.Unlock()
 
