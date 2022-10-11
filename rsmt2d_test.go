@@ -83,7 +83,7 @@ func TestEdsRepairTwice(t *testing.T) {
 		shareSize int
 		codec     rsmt2d.Codec
 	}{
-		{"leopardFF8", bufferSize, rsmt2d.NewLeoRSCodec()},
+		{"klauspost/leopard", bufferSize, rsmt2d.NewLeoRSCodec()},
 		{"infectiousGF8", bufferSize, rsmt2d.NewRSGF8Codec()},
 	}
 
