@@ -9,7 +9,7 @@ import (
 var _ Codec = &rsGF8Codec{}
 
 func init() {
-	registerCodec("RSGF8", NewRSGF8Codec())
+	registerCodec(RSGF8, NewRSGF8Codec())
 }
 
 type rsGF8Codec struct {

@@ -27,10 +27,3 @@ func registerCodec(ct string, codec Codec) {
 	}
 	codecs[ct] = codec
 }
-
-func NewLeoRSCodec() Codec {
-	if codec, has := codecs[Leopard]; has {
-		return codec
-	}
-	panic("cannot use codec LeopardFF16 without the 'leopard' build tag")
-}

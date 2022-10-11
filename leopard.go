@@ -9,7 +9,7 @@ import (
 var _ Codec = leoRSCodec{}
 
 func init() {
-	registerCodec(Leopard, newLeoRSCodec())
+	registerCodec(Leopard, NewLeoRSCodec())
 }
 
 type leoRSCodec struct {
@@ -67,8 +67,6 @@ func (l leoRSCodec) maxChunks() int {
 	return 32768 * 32768
 }
 
-func newLeoRSCodec() leoRSCodec {
-	return leoRSCodec{
-		encoderCache: newDoubleCache[reedsolomon.Encoder](defaultDoubleCacheOptions()),
-	}
+func NewLeoRSCodec() leoRSCodec {
+	return leoRSCodec{}
 }
