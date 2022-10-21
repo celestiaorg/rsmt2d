@@ -75,7 +75,7 @@ func (eds *ExtendedDataSquare) solveCrossword(
 	rowRoots [][]byte,
 	colRoots [][]byte,
 ) error {
-	rowColMutex := make([]sync.Mutex, eds.width)
+	var edsMutationMutex sync.Mutex
 
 	// Keep repeating until the square is solved
 	for {
@@ -92,7 +92,7 @@ func (eds *ExtendedDataSquare) solveCrossword(
 			i := i
 
 			errs.Go(func() error {
-				solvedRow, progressMadeRow, err := eds.solveCrosswordRow(i, rowRoots, colRoots, rowColMutex)
+				solvedRow, progressMadeRow, err := eds.solveCrosswordRow(i, rowRoots, colRoots, &edsMutationMutex)
 				if err != nil {
 					return err
 				}
@@ -113,7 +113,7 @@ func (eds *ExtendedDataSquare) solveCrossword(
 			i := i
 
 			errs.Go(func() error {
-				solvedCol, progressMadeCol, err := eds.solveCrosswordCol(i, rowRoots, colRoots, rowColMutex)
+				solvedCol, progressMadeCol, err := eds.solveCrosswordCol(i, rowRoots, colRoots, &edsMutationMutex)
 				if err != nil {
 					return err
 				}
@@ -153,7 +153,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	r int,
 	rowRoots [][]byte,
 	colRoots [][]byte,
-	rowColMutex []sync.Mutex,
+	edsMutationMutex *sync.Mutex,
 ) (bool, bool, error) {
 	isComplete := noMissingData(eds.row(uint(r)))
 	if isComplete {
@@ -183,6 +183,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 		return false, false, err
 	}
 
+	edsMutationMutex.Lock()
 	// Check that newly completed orthogonal vectors match their new merkle roots
 	for c := 0; c < int(eds.width); c++ {
 		col := eds.col(uint(c))
@@ -190,7 +191,6 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 			continue // not newly completed
 		}
 
-		rowColMutex[c].Lock()
 		col[r] = rebuiltShares[c]
 		if noMissingData(col) { // not completed
 			err := eds.verifyAgainstColRoots(colRoots, uint(c), col)
@@ -198,15 +198,13 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 				return false, false, err
 			}
 		}
-		rowColMutex[c].Unlock()
 	}
 
 	// Insert rebuilt shares into square.
 	for c, s := range rebuiltShares {
-		rowColMutex[c].Lock()
 		eds.setCell(uint(r), uint(c), s)
-		rowColMutex[c].Unlock()
 	}
+	edsMutationMutex.Unlock()
 
 	return true, true, nil
 }
@@ -220,7 +218,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	c int,
 	rowRoots [][]byte,
 	colRoots [][]byte,
-	rowColMutex []sync.Mutex,
+	edsMutationMutex *sync.Mutex,
 ) (bool, bool, error) {
 	isComplete := noMissingData(eds.col(uint(c)))
 	if isComplete {
@@ -251,6 +249,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 		return false, false, err
 	}
 
+	edsMutationMutex.Lock()
 	// Check that newly completed orthogonal vectors match their new merkle roots
 	for r := 0; r < int(eds.width); r++ {
 		row := eds.row(uint(r))
@@ -258,7 +257,6 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 			continue // not newly completed
 		}
 
-		rowColMutex[r].Lock()
 		row[c] = rebuiltShares[r]
 		if noMissingData(row) { // not completed
 			err := eds.verifyAgainstRowRoots(rowRoots, uint(r), row)
@@ -266,15 +264,13 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 				return false, false, err
 			}
 		}
-		rowColMutex[r].Unlock()
 	}
 
 	// Insert rebuilt shares into square.
 	for r, s := range rebuiltShares {
-		rowColMutex[r].Lock()
 		eds.setCell(uint(r), uint(c), s)
-		rowColMutex[r].Unlock()
 	}
+	edsMutationMutex.Unlock()
 
 	return true, true, nil
 }
