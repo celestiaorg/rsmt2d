@@ -75,6 +75,8 @@ func (eds *ExtendedDataSquare) solveCrossword(
 	rowRoots [][]byte,
 	colRoots [][]byte,
 ) error {
+	rowColMutex := make([]sync.Mutex, eds.width)
+
 	// Keep repeating until the square is solved
 	for {
 		errs, _ := errgroup.WithContext(context.Background())
@@ -90,7 +92,7 @@ func (eds *ExtendedDataSquare) solveCrossword(
 			i := i
 
 			errs.Go(func() error {
-				solvedRow, progressMadeRow, err := eds.solveCrosswordRow(i, rowRoots, colRoots)
+				solvedRow, progressMadeRow, err := eds.solveCrosswordRow(i, rowRoots, colRoots, rowColMutex)
 				if err != nil {
 					return err
 				}
@@ -111,7 +113,7 @@ func (eds *ExtendedDataSquare) solveCrossword(
 			i := i
 
 			errs.Go(func() error {
-				solvedCol, progressMadeCol, err := eds.solveCrosswordCol(i, rowRoots, colRoots)
+				solvedCol, progressMadeCol, err := eds.solveCrosswordCol(i, rowRoots, colRoots, rowColMutex)
 				if err != nil {
 					return err
 				}
@@ -151,6 +153,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	r int,
 	rowRoots [][]byte,
 	colRoots [][]byte,
+	rowColMutex []sync.Mutex,
 ) (bool, bool, error) {
 	isComplete := noMissingData(eds.row(uint(r)))
 	if isComplete {
@@ -187,7 +190,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 			continue // not newly completed
 		}
 
-		eds.rowColMutex[c].Lock()
+		rowColMutex[c].Lock()
 		col[r] = rebuiltShares[c]
 		if noMissingData(col) { // not completed
 			err := eds.verifyAgainstColRoots(colRoots, uint(c), col)
@@ -195,14 +198,14 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 				return false, false, err
 			}
 		}
-		eds.rowColMutex[c].Unlock()
+		rowColMutex[c].Unlock()
 	}
 
 	// Insert rebuilt shares into square.
 	for c, s := range rebuiltShares {
-		eds.rowColMutex[c].Lock()
+		rowColMutex[c].Lock()
 		eds.setCell(uint(r), uint(c), s)
-		eds.rowColMutex[c].Unlock()
+		rowColMutex[c].Unlock()
 	}
 
 	return true, true, nil
@@ -217,6 +220,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	c int,
 	rowRoots [][]byte,
 	colRoots [][]byte,
+	rowColMutex []sync.Mutex,
 ) (bool, bool, error) {
 	isComplete := noMissingData(eds.col(uint(c)))
 	if isComplete {
@@ -254,7 +258,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 			continue // not newly completed
 		}
 
-		eds.rowColMutex[r].Lock()
+		rowColMutex[r].Lock()
 		row[c] = rebuiltShares[r]
 		if noMissingData(row) { // not completed
 			err := eds.verifyAgainstRowRoots(rowRoots, uint(r), row)
@@ -262,14 +266,14 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 				return false, false, err
 			}
 		}
-		eds.rowColMutex[r].Unlock()
+		rowColMutex[r].Unlock()
 	}
 
 	// Insert rebuilt shares into square.
 	for r, s := range rebuiltShares {
-		eds.rowColMutex[r].Lock()
+		rowColMutex[r].Lock()
 		eds.setCell(uint(r), uint(c), s)
-		eds.rowColMutex[r].Unlock()
+		rowColMutex[r].Unlock()
 	}
 
 	return true, true, nil
