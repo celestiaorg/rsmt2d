@@ -275,14 +275,14 @@ func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
 	rowRoots [][]byte,
 	r uint,
 	oldShares [][]byte,
-	c int,
+	rebuiltIndex int,
 	rebuiltShare []byte,
 ) error {
 	var root []byte
-	if c < 0 || rebuiltShare == nil {
+	if rebuiltIndex < 0 || rebuiltShare == nil {
 		root = eds.computeSharesRoot(oldShares, Row, r)
 	} else {
-		root = eds.computeSharesRootWithRebuiltShare(oldShares, Row, r, c, rebuiltShare)
+		root = eds.computeSharesRootWithRebuiltShare(oldShares, Row, r, rebuiltIndex, rebuiltShare)
 	}
 
 	if !bytes.Equal(root, rowRoots[r]) {
@@ -296,14 +296,14 @@ func (eds *ExtendedDataSquare) verifyAgainstColRoots(
 	colRoots [][]byte,
 	c uint,
 	oldShares [][]byte,
-	r int,
+	rebuiltIndex int,
 	rebuiltShare []byte,
 ) error {
 	var root []byte
-	if r < 0 || rebuiltShare == nil {
+	if rebuiltIndex < 0 || rebuiltShare == nil {
 		root = eds.computeSharesRoot(oldShares, Col, c)
 	} else {
-		root = eds.computeSharesRootWithRebuiltShare(oldShares, Col, c, r, rebuiltShare)
+		root = eds.computeSharesRootWithRebuiltShare(oldShares, Col, c, rebuiltIndex, rebuiltShare)
 	}
 
 	if !bytes.Equal(root, colRoots[c]) {
