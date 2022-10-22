@@ -26,6 +26,34 @@ type leoRSCodec struct {
 
 func (l *leoRSCodec) Encode(data [][]byte) ([][]byte, error) {
 	dataLen := len(data)
+	enc, err := l.loadOrInitEncoder(dataLen)
+	if err != nil {
+		return nil, err
+	}
+
+	shards := make([][]byte, dataLen*2)
+	copy(shards, data)
+	for i := dataLen; i < len(shards); i++ {
+		shards[i] = make([]byte, len(data[0]))
+	}
+
+	if err := enc.Encode(shards); err != nil {
+		return nil, err
+	}
+	return shards[dataLen:], nil
+}
+
+func (l *leoRSCodec) Decode(data [][]byte) ([][]byte, error) {
+	half := len(data) / 2
+	enc, err := l.loadOrInitEncoder(half)
+	if err != nil {
+		return nil, err
+	}
+	err = enc.Reconstruct(data)
+	return data, err
+}
+
+func (l *leoRSCodec) loadOrInitEncoder(dataLen int) (reedsolomon.Encoder, error) {
 	enc, ok := l.encCache.Load(dataLen)
 	if !ok {
 		var err error
@@ -35,32 +63,8 @@ func (l *leoRSCodec) Encode(data [][]byte) ([][]byte, error) {
 		}
 		l.encCache.Store(dataLen, enc)
 	}
+	return enc.(reedsolomon.Encoder), nil
 
-	shards := make([][]byte, dataLen*2)
-	copy(shards, data)
-	for i := dataLen; i < len(shards); i++ {
-		shards[i] = make([]byte, len(data[0]))
-	}
-
-	if err := enc.(reedsolomon.Encoder).Encode(shards); err != nil {
-		return nil, err
-	}
-	return shards[dataLen:], nil
-}
-
-func (l *leoRSCodec) Decode(data [][]byte) ([][]byte, error) {
-	half := len(data) / 2
-	enc, ok := l.encCache.Load(half)
-	var err error
-	if !ok {
-		enc, err = reedsolomon.New(half, half, reedsolomon.WithLeopardGF(true))
-		if err != nil {
-			return nil, err
-		}
-		l.encCache.Store(half, enc)
-	}
-	err = enc.(reedsolomon.Encoder).Reconstruct(data)
-	return data, err
 }
 
 func (l *leoRSCodec) maxChunks() int {
