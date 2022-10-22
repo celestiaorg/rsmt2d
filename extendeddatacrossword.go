@@ -16,7 +16,7 @@ const (
 	Row Axis = iota
 	Col
 
-	NoShareInsertion = -1
+	noShareInsertion = -1
 )
 
 func (a Axis) String() string {
@@ -119,7 +119,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	rowRoots [][]byte,
 	colRoots [][]byte,
 ) (bool, bool, error) {
-	isComplete := noMissingData(eds.row(uint(r)), NoShareInsertion)
+	isComplete := noMissingData(eds.row(uint(r)), noShareInsertion)
 	if isComplete {
 		return true, false, nil
 	}
@@ -142,7 +142,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	}
 
 	// Check that rebuilt shares matches appropriate root
-	err = eds.verifyAgainstRowRoots(rowRoots, uint(r), rebuiltShares, NoShareInsertion, nil)
+	err = eds.verifyAgainstRowRoots(rowRoots, uint(r), rebuiltShares, noShareInsertion, nil)
 	if err != nil {
 		var byzErr *ErrByzantineData
 		if errors.As(err, &byzErr) {
@@ -183,7 +183,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	rowRoots [][]byte,
 	colRoots [][]byte,
 ) (bool, bool, error) {
-	isComplete := noMissingData(eds.col(uint(c)), NoShareInsertion)
+	isComplete := noMissingData(eds.col(uint(c)), noShareInsertion)
 	if isComplete {
 		return true, false, nil
 	}
@@ -207,7 +207,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	}
 
 	// Check that rebuilt shares matches appropriate root
-	err = eds.verifyAgainstColRoots(colRoots, uint(c), rebuiltShares, NoShareInsertion, nil)
+	err = eds.verifyAgainstColRoots(colRoots, uint(c), rebuiltShares, noShareInsertion, nil)
 	if err != nil {
 		var byzErr *ErrByzantineData
 		if errors.As(err, &byzErr) {
@@ -321,8 +321,8 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 
 	for i := uint(0); i < eds.width; i++ {
 		i := i
-		rowIsComplete := noMissingData(eds.row(i), NoShareInsertion)
-		colIsComplete := noMissingData(eds.col(i), NoShareInsertion)
+		rowIsComplete := noMissingData(eds.row(i), noShareInsertion)
+		colIsComplete := noMissingData(eds.col(i), noShareInsertion)
 
 		// if there's no missing data in this row
 		if rowIsComplete {
