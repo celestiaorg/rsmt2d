@@ -6,7 +6,7 @@ import (
 	"github.com/klauspost/reedsolomon"
 )
 
-var _ Codec = leoRSCodec{}
+var _ Codec = &leoRSCodec{}
 
 func init() {
 	registerCodec(Leopard, NewLeoRSCodec())
@@ -24,7 +24,7 @@ type leoRSCodec struct {
 	encCache sync.Map
 }
 
-func (l leoRSCodec) Encode(data [][]byte) ([][]byte, error) {
+func (l *leoRSCodec) Encode(data [][]byte) ([][]byte, error) {
 	dataLen := len(data)
 	enc, ok := l.encCache.Load(dataLen)
 	if !ok {
@@ -48,7 +48,7 @@ func (l leoRSCodec) Encode(data [][]byte) ([][]byte, error) {
 	return shards[dataLen:], nil
 }
 
-func (l leoRSCodec) Decode(data [][]byte) ([][]byte, error) {
+func (l *leoRSCodec) Decode(data [][]byte) ([][]byte, error) {
 	half := len(data) / 2
 	enc, ok := l.encCache.Load(half)
 	var err error
@@ -63,10 +63,10 @@ func (l leoRSCodec) Decode(data [][]byte) ([][]byte, error) {
 	return data, err
 }
 
-func (l leoRSCodec) maxChunks() int {
+func (l *leoRSCodec) maxChunks() int {
 	return 32768 * 32768
 }
 
-func NewLeoRSCodec() leoRSCodec {
-	return leoRSCodec{}
+func NewLeoRSCodec() *leoRSCodec {
+	return &leoRSCodec{}
 }
