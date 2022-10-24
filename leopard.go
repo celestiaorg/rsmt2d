@@ -1,54 +1,76 @@
-//go:build leopard
-
-// Note that if the build tag leopard is used, liblibleopard.a
-// has to be present where the linker will find it.
-// Otherwise go-leopard won't build.
 package rsmt2d
 
-import "github.com/celestiaorg/go-leopard"
+import (
+	"sync"
 
-var _ Codec = leoRSFF8Codec{}
-var _ Codec = leoRSFF16Codec{}
+	"github.com/klauspost/reedsolomon"
+)
+
+var _ Codec = &leoRSCodec{}
 
 func init() {
-	registerCodec(LeopardFF8, newLeoRSFF8Codec())
-	registerCodec(LeopardFF16, newLeoRSFF16Codec())
+	registerCodec(Leopard, NewLeoRSCodec())
 }
 
-type leoRSFF8Codec struct{}
-
-func (l leoRSFF8Codec) Encode(data [][]byte) ([][]byte, error) {
-	return leopard.Encode(data)
+type leoRSCodec struct {
+	// Cache the encoders of various sizes to not have to re-instantiate those
+	// as it is costly.
+	//
+	// Note that past sizes are not removed from the cache at all as the various
+	// data sizes are expected to relatively small and will not cause any memory issue.
+	//
+	// TODO: switch to a generic version of sync.Map with type reedsolomon.Encoder
+	// once it made it into the standard lib
+	encCache sync.Map
 }
 
-func (l leoRSFF8Codec) Decode(data [][]byte) ([][]byte, error) {
+func (l *leoRSCodec) Encode(data [][]byte) ([][]byte, error) {
+	dataLen := len(data)
+	enc, err := l.loadOrInitEncoder(dataLen)
+	if err != nil {
+		return nil, err
+	}
+
+	shards := make([][]byte, dataLen*2)
+	copy(shards, data)
+	for i := dataLen; i < len(shards); i++ {
+		shards[i] = make([]byte, len(data[0]))
+	}
+
+	if err := enc.Encode(shards); err != nil {
+		return nil, err
+	}
+	return shards[dataLen:], nil
+}
+
+func (l *leoRSCodec) Decode(data [][]byte) ([][]byte, error) {
 	half := len(data) / 2
-	return leopard.Decode(data[:half], data[half:])
+	enc, err := l.loadOrInitEncoder(half)
+	if err != nil {
+		return nil, err
+	}
+	err = enc.Reconstruct(data)
+	return data, err
 }
 
-func (l leoRSFF8Codec) maxChunks() int {
-	return 128 * 128
+func (l *leoRSCodec) loadOrInitEncoder(dataLen int) (reedsolomon.Encoder, error) {
+	enc, ok := l.encCache.Load(dataLen)
+	if !ok {
+		var err error
+		enc, err = reedsolomon.New(dataLen, dataLen, reedsolomon.WithLeopardGF(true))
+		if err != nil {
+			return nil, err
+		}
+		l.encCache.Store(dataLen, enc)
+	}
+	return enc.(reedsolomon.Encoder), nil
+
 }
 
-func newLeoRSFF8Codec() leoRSFF8Codec {
-	return leoRSFF8Codec{}
-}
-
-type leoRSFF16Codec struct{}
-
-func (leo leoRSFF16Codec) Encode(data [][]byte) ([][]byte, error) {
-	return leopard.Encode(data)
-}
-
-func (leo leoRSFF16Codec) Decode(data [][]byte) ([][]byte, error) {
-	half := len(data) / 2
-	return leopard.Decode(data[:half], data[half:])
-}
-
-func (leo leoRSFF16Codec) maxChunks() int {
+func (l *leoRSCodec) maxChunks() int {
 	return 32768 * 32768
 }
 
-func newLeoRSFF16Codec() leoRSFF16Codec {
-	return leoRSFF16Codec{}
+func NewLeoRSCodec() *leoRSCodec {
+	return &leoRSCodec{}
 }
