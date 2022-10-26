@@ -9,30 +9,43 @@ import (
 )
 
 func TestNewDataSquare(t *testing.T) {
-	result, err := newDataSquare([][]byte{{1, 2}}, NewDefaultTree)
-	if err != nil {
-		panic(err)
-	}
-	if !reflect.DeepEqual(result.squareRow, [][][]byte{{{1, 2}}}) {
-		t.Errorf("newDataSquare failed for 1x1 square")
-	}
-
-	result, err = newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}}, NewDefaultTree)
-	if err != nil {
-		panic(err)
-	}
-	if !reflect.DeepEqual(result.squareRow, [][][]byte{{{1, 2}, {3, 4}}, {{5, 6}, {7, 8}}}) {
-		t.Errorf("newDataSquare failed for 2x2 square")
+	tests := []struct {
+		name     string
+		cells    [][]byte
+		expected [][][]byte
+	}{
+		{"1x1", [][]byte{{1, 2}}, [][][]byte{{{1, 2}}}},
+		{"2x2", [][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}}, [][][]byte{{{1, 2}, {3, 4}}, {{5, 6}, {7, 8}}}},
 	}
 
-	_, err = newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}}, NewDefaultTree)
-	if err == nil {
-		t.Errorf("newDataSquare failed; inconsistent number of chunks accepted")
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result, err := newDataSquare(test.cells, NewDefaultTree)
+			if err != nil {
+				panic(err)
+			}
+			if !reflect.DeepEqual(result.squareRow, test.expected) {
+				t.Errorf("newDataSquare failed for %v square", test.name)
+			}
+		})
 	}
+}
 
-	_, err = newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7}}, NewDefaultTree)
-	if err == nil {
-		t.Errorf("newDataSquare failed; chunks of unequal size accepted")
+func TestInvalidDataSquareCreation(t *testing.T) {
+	tests := []struct {
+		name  string
+		cells [][]byte
+	}{
+		{"InconsistentChunkNumber", [][]byte{{1, 2}, {3, 4}, {5, 6}}},
+		{"UnequalChunkSize", [][]byte{{1, 2}, {3, 4}, {5, 6}, {7}}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := newDataSquare(test.cells, NewDefaultTree)
+			if err == nil {
+				t.Errorf("newDataSquare failed; chunks accepted with %v", test.name)
+			}
+		})
 	}
 }
 
@@ -85,21 +98,23 @@ func TestExtendSquare(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	err = ds.extendSquare(1, []byte{0})
-	if err == nil {
-		t.Errorf("extendSquare failed; error not returned when filler chunk size does not match data square chunk size")
-	}
-
-	ds, err = newDataSquare([][]byte{{1, 2}}, NewDefaultTree)
-	if err != nil {
-		panic(err)
-	}
 	err = ds.extendSquare(1, []byte{0, 0})
 	if err != nil {
 		panic(err)
 	}
 	if !reflect.DeepEqual(ds.squareRow, [][][]byte{{{1, 2}, {0, 0}}, {{0, 0}, {0, 0}}}) {
 		t.Errorf("extendSquare failed; unexpected result when extending 1x1 square to 2x2 square")
+	}
+}
+
+func TestInvalidSquareExtension(t *testing.T) {
+	ds, err := newDataSquare([][]byte{{1, 2}}, NewDefaultTree)
+	if err != nil {
+		panic(err)
+	}
+	err = ds.extendSquare(1, []byte{0})
+	if err == nil {
+		t.Errorf("extendSquare failed; error not returned when filler chunk size does not match data square chunk size")
 	}
 }
 
@@ -143,14 +158,14 @@ func TestRootAPI(t *testing.T) {
 	for i := uint(0); i < square.width; i++ {
 		if !reflect.DeepEqual(square.getRowRoots()[i], square.getRowRoot(i)) {
 			t.Errorf(
-				"Row root API results in different roots, expected %v go %v",
+				"Row root API results in different roots, expected %v got %v",
 				square.getRowRoots()[i],
 				square.getRowRoot(i),
 			)
 		}
 		if !reflect.DeepEqual(square.getColRoots()[i], square.getColRoot(i)) {
 			t.Errorf(
-				"Column root API results in different roots, expected %v go %v",
+				"Column root API results in different roots, expected %v got %v",
 				square.getColRoots()[i],
 				square.getColRoot(i),
 			)
@@ -167,6 +182,7 @@ func TestDefaultTreeProofs(t *testing.T) {
 	if err != nil {
 		t.Errorf("Got unexpected error: %v", err)
 	}
+
 	if len(proof) != 2 {
 		t.Errorf("computing row proof for (1, 1) in 2x2 square failed; expecting proof set of length 2")
 	}
@@ -175,24 +191,6 @@ func TestDefaultTreeProofs(t *testing.T) {
 	}
 	if numLeaves != 2 {
 		t.Errorf("computing row proof for (1, 1) in 2x2 square failed; expecting number of leaves to be 2")
-	}
-
-	result, err = newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}}, NewDefaultTree)
-	if err != nil {
-		panic(err)
-	}
-	_, proof, proofIndex, numLeaves, err = computeColProof(result, 1, 1)
-	if err != nil {
-		t.Errorf("Got unexpected error: %v", err)
-	}
-	if len(proof) != 2 {
-		t.Errorf("computing column proof for (1, 1) in 2x2 square failed; expecting proof set of length 2")
-	}
-	if proofIndex != 1 {
-		t.Errorf("computing column proof for (1, 1) in 2x2 square failed; expecting proof index of 1")
-	}
-	if numLeaves != 2 {
-		t.Errorf("computing column proof for (1, 1) in 2x2 square failed; expecting number of leaves to be 2")
 	}
 }
 
