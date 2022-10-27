@@ -176,8 +176,15 @@ func (ds *dataSquare) setColSlice(x uint, y uint, newCol [][]byte) error {
 }
 
 func (ds *dataSquare) resetRoots() {
-	ds.rowRoots = nil
-	ds.colRoots = nil
+	// don't write nil if it's already nil
+	// this prevents rewriting nil into shared memory slot
+	// when resetRoots is used from multiple routines
+	if ds.rowRoots != nil {
+		ds.rowRoots = nil
+	}
+	if ds.colRoots != nil {
+		ds.colRoots = nil
+	}
 }
 
 func (ds *dataSquare) computeRoots() {
