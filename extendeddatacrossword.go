@@ -15,7 +15,10 @@ type Axis int
 const (
 	Row Axis = iota
 	Col
+)
 
+const (
+	// noShareInsertion indicates that a new share hasn't been inserted in the eds
 	noShareInsertion = -1
 )
 
