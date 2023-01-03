@@ -92,3 +92,7 @@ func (c *rsGF8Codec) Decode(data [][]byte) ([][]byte, error) {
 func (c *rsGF8Codec) maxChunks() int {
 	return 128 * 128
 }
+
+func (c *rsGF8Codec) name() string {
+	return RSGF8
+}

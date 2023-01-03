@@ -4,6 +4,7 @@ package rsmt2d
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 
 	"golang.org/x/sync/errgroup"
@@ -14,6 +15,33 @@ type ExtendedDataSquare struct {
 	*dataSquare
 	codec             Codec
 	originalDataWidth uint
+}
+
+func (eds *ExtendedDataSquare) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		DataSquare [][]byte `json:"data_square"`
+		Codec      string   `json:"codec"`
+	}{
+		DataSquare: eds.dataSquare.Flattened(),
+		Codec:      eds.codec.name(),
+	})
+}
+
+func (eds *ExtendedDataSquare) UnmarshalJSON(b []byte) error {
+	var aux struct {
+		DataSquare [][]byte `json:"data_square"`
+		Codec      string   `json:"codec"`
+	}
+
+	if err := json.Unmarshal(b, &aux); err != nil {
+		return err
+	}
+	importedEds, err := ImportExtendedDataSquare(aux.DataSquare, codecs[aux.Codec], NewDefaultTree)
+	if err != nil {
+		return err
+	}
+	*eds = *importedEds
+	return nil
 }
 
 // ComputeExtendedDataSquare computes the extended data square for some chunks of data.
