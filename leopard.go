@@ -71,6 +71,10 @@ func (l *leoRSCodec) maxChunks() int {
 	return 32768 * 32768
 }
 
+func (l *leoRSCodec) name() string {
+	return Leopard
+}
+
 func NewLeoRSCodec() *leoRSCodec {
 	return &leoRSCodec{}
 }

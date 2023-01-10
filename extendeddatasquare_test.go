@@ -2,6 +2,7 @@ package rsmt2d
 
 import (
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"testing"
@@ -23,6 +24,31 @@ func TestComputeExtendedDataSquare(t *testing.T) {
 		{{9}, {26}, {47}, {69}},
 	}) {
 		t.Errorf("NewExtendedDataSquare failed for 2x2 square with chunk size 1")
+	}
+}
+
+func TestMarshalJSON(t *testing.T) {
+	codec := NewRSGF8Codec()
+	result, err := ComputeExtendedDataSquare([][]byte{
+		{1}, {2},
+		{3}, {4},
+	}, codec, NewDefaultTree)
+	if err != nil {
+		panic(err)
+	}
+
+	edsBytes, err := json.Marshal(result)
+	if err != nil {
+		t.Errorf("failed to marshal EDS: %v", err)
+	}
+
+	var eds ExtendedDataSquare
+	err = json.Unmarshal(edsBytes, &eds)
+	if err != nil {
+		t.Errorf("failed to marshal EDS: %v", err)
+	}
+	if !reflect.DeepEqual(result.squareRow, eds.squareRow) {
+		t.Errorf("eds not equal after json marshal/unmarshal")
 	}
 }
 
