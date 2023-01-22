@@ -17,6 +17,11 @@ const (
 	Col
 )
 
+const (
+	// noShareInsertion indicates that a new share hasn't been inserted in the eds
+	noShareInsertion = -1
+)
+
 func (a Axis) String() string {
 	switch a {
 	case Row:
@@ -117,7 +122,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	rowRoots [][]byte,
 	colRoots [][]byte,
 ) (bool, bool, error) {
-	isComplete := noMissingData(eds.row(uint(r)))
+	isComplete := noMissingData(eds.row(uint(r)), noShareInsertion)
 	if isComplete {
 		return true, false, nil
 	}
@@ -140,7 +145,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	}
 
 	// Check that rebuilt shares matches appropriate root
-	err = eds.verifyAgainstRowRoots(rowRoots, uint(r), rebuiltShares)
+	err = eds.verifyAgainstRowRoots(rowRoots, uint(r), rebuiltShares, noShareInsertion, nil)
 	if err != nil {
 		var byzErr *ErrByzantineData
 		if errors.As(err, &byzErr) {
@@ -155,9 +160,8 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 		if col[r] != nil {
 			continue // not newly completed
 		}
-		col[r] = rebuiltShares[c]
-		if noMissingData(col) { // not completed
-			err := eds.verifyAgainstColRoots(colRoots, uint(c), col)
+		if noMissingData(col, r) { // not completed
+			err := eds.verifyAgainstColRoots(colRoots, uint(c), col, r, rebuiltShares[c])
 			if err != nil {
 				return false, false, err
 			}
@@ -182,7 +186,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	rowRoots [][]byte,
 	colRoots [][]byte,
 ) (bool, bool, error) {
-	isComplete := noMissingData(eds.col(uint(c)))
+	isComplete := noMissingData(eds.col(uint(c)), noShareInsertion)
 	if isComplete {
 		return true, false, nil
 	}
@@ -206,7 +210,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	}
 
 	// Check that rebuilt shares matches appropriate root
-	err = eds.verifyAgainstColRoots(colRoots, uint(c), rebuiltShares)
+	err = eds.verifyAgainstColRoots(colRoots, uint(c), rebuiltShares, noShareInsertion, nil)
 	if err != nil {
 		var byzErr *ErrByzantineData
 		if errors.As(err, &byzErr) {
@@ -221,9 +225,8 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 		if row[c] != nil {
 			continue // not newly completed
 		}
-		row[c] = rebuiltShares[r]
-		if noMissingData(row) { // not completed
-			err := eds.verifyAgainstRowRoots(rowRoots, uint(r), row)
+		if noMissingData(row, c) { // not completed
+			err := eds.verifyAgainstRowRoots(rowRoots, uint(r), row, c, rebuiltShares[r])
 			if err != nil {
 				return false, false, err
 			}
@@ -274,9 +277,16 @@ func (eds *ExtendedDataSquare) rebuildShares(
 func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
 	rowRoots [][]byte,
 	r uint,
-	shares [][]byte,
+	oldShares [][]byte,
+	rebuiltIndex int,
+	rebuiltShare []byte,
 ) error {
-	root := eds.computeSharesRoot(shares, Row, r)
+	var root []byte
+	if rebuiltIndex < 0 || rebuiltShare == nil {
+		root = eds.computeSharesRoot(oldShares, Row, r)
+	} else {
+		root = eds.computeSharesRootWithRebuiltShare(oldShares, Row, r, rebuiltIndex, rebuiltShare)
+	}
 
 	if !bytes.Equal(root, rowRoots[r]) {
 		return &ErrByzantineData{Row, r, nil}
@@ -288,9 +298,16 @@ func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
 func (eds *ExtendedDataSquare) verifyAgainstColRoots(
 	colRoots [][]byte,
 	c uint,
-	shares [][]byte,
+	oldShares [][]byte,
+	rebuiltIndex int,
+	rebuiltShare []byte,
 ) error {
-	root := eds.computeSharesRoot(shares, Col, c)
+	var root []byte
+	if rebuiltIndex < 0 || rebuiltShare == nil {
+		root = eds.computeSharesRoot(oldShares, Col, c)
+	} else {
+		root = eds.computeSharesRootWithRebuiltShare(oldShares, Col, c, rebuiltIndex, rebuiltShare)
+	}
 
 	if !bytes.Equal(root, colRoots[c]) {
 		return &ErrByzantineData{Col, c, nil}
@@ -307,8 +324,8 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 
 	for i := uint(0); i < eds.width; i++ {
 		i := i
-		rowIsComplete := noMissingData(eds.row(i))
-		colIsComplete := noMissingData(eds.col(i))
+		rowIsComplete := noMissingData(eds.row(i), noShareInsertion)
+		colIsComplete := noMissingData(eds.col(i), noShareInsertion)
 
 		// if there's no missing data in this row
 		if rowIsComplete {
@@ -362,8 +379,11 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 	return errs.Wait()
 }
 
-func noMissingData(input [][]byte) bool {
-	for _, d := range input {
+func noMissingData(input [][]byte, rebuiltIndex int) bool {
+	for index, d := range input {
+		if index == rebuiltIndex {
+			continue
+		}
 		if d == nil {
 			return false
 		}
@@ -374,6 +394,18 @@ func noMissingData(input [][]byte) bool {
 func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, axis Axis, i uint) []byte {
 	tree := eds.createTreeFn(axis, i)
 	for _, d := range shares {
+		tree.Push(d)
+	}
+	return tree.Root()
+}
+
+func (eds *ExtendedDataSquare) computeSharesRootWithRebuiltShare(shares [][]byte, axis Axis, i uint, rebuiltIndex int, rebuiltShare []byte) []byte {
+	tree := eds.createTreeFn(axis, i)
+	for _, d := range shares[:rebuiltIndex] {
+		tree.Push(d)
+	}
+	tree.Push(rebuiltShare)
+	for _, d := range shares[rebuiltIndex+1:] {
 		tree.Push(d)
 	}
 	return tree.Root()
