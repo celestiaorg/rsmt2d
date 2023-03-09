@@ -76,5 +76,5 @@ func main() {
 Run benchmarks
 
 ```sh
-go test -tags leopard -benchmem -bench=.
+go test -benchmem -bench=.
 ```
