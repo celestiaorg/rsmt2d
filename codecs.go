@@ -3,6 +3,11 @@ package rsmt2d
 import "fmt"
 
 const (
+	// Leopard is a codec that was originally implemented in the C++ library
+	// https://github.com/catid/leopard. rsmt2d uses a Go port of the C++
+	// library in https://github.com/klauspost/reedsolomon. The Leopard codec
+	// uses 8-bit leopard for shards less than or equal to 256. The Leopard
+	// codec uses 16-bit leopard for shards greater than 256.
 	Leopard = "Leopard"
 )
 
