@@ -11,17 +11,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const SHARD_SIZE = 64
+
 var (
-	zero     = bytes.Repeat([]byte{0}, 64)
-	one      = bytes.Repeat([]byte{1}, 64)
-	two      = bytes.Repeat([]byte{2}, 64)
-	three    = bytes.Repeat([]byte{3}, 64)
-	four     = bytes.Repeat([]byte{4}, 64)
-	five     = bytes.Repeat([]byte{5}, 64)
-	eight    = bytes.Repeat([]byte{8}, 64)
-	eleven   = bytes.Repeat([]byte{11}, 64)
-	thirteen = bytes.Repeat([]byte{13}, 64)
-	fifteen  = bytes.Repeat([]byte{15}, 64)
+	zeros     = bytes.Repeat([]byte{0}, SHARD_SIZE)
+	ones      = bytes.Repeat([]byte{1}, SHARD_SIZE)
+	twos      = bytes.Repeat([]byte{2}, SHARD_SIZE)
+	threes    = bytes.Repeat([]byte{3}, SHARD_SIZE)
+	fours     = bytes.Repeat([]byte{4}, SHARD_SIZE)
+	fives     = bytes.Repeat([]byte{5}, SHARD_SIZE)
+	eights    = bytes.Repeat([]byte{8}, SHARD_SIZE)
+	elevens   = bytes.Repeat([]byte{11}, SHARD_SIZE)
+	thirteens = bytes.Repeat([]byte{13}, SHARD_SIZE)
+	fifteens  = bytes.Repeat([]byte{15}, SHARD_SIZE)
 )
 
 func TestComputeExtendedDataSquare(t *testing.T) {
@@ -35,23 +37,27 @@ func TestComputeExtendedDataSquare(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "1x1",
-			data: [][]byte{one},
+			// NOTE: data must contain byte slices that are a multiple of 64
+			// bytes.
+			// See https://github.com/catid/leopard/blob/22ddc7804998d31c8f1a2617ee720e063b1fa6cd/README.md?plain=1#L27
+			// See https://github.com/klauspost/reedsolomon/blob/fd3e6910a7e457563469172968f456ad9b7696b6/README.md?plain=1#L403
+			data: [][]byte{ones},
 			want: [][][]byte{
-				{one, one},
-				{one, one},
+				{ones, ones},
+				{ones, ones},
 			},
 		},
 		{
 			name: "2x2",
 			data: [][]byte{
-				one, two,
-				three, four,
+				ones, twos,
+				threes, fours,
 			},
 			want: [][][]byte{
-				{one, two, zero, three},
-				{three, four, eight, fifteen},
-				{two, eleven, thirteen, four},
-				{zero, thirteen, five, eight},
+				{ones, twos, zeros, threes},
+				{threes, fours, eights, fifteens},
+				{twos, elevens, thirteens, fours},
+				{zeros, thirteens, fives, eights},
 			},
 		},
 	}
@@ -68,8 +74,8 @@ func TestComputeExtendedDataSquare(t *testing.T) {
 func TestMarshalJSON(t *testing.T) {
 	codec := NewLeoRSCodec()
 	result, err := ComputeExtendedDataSquare([][]byte{
-		one, two,
-		three, four,
+		ones, twos,
+		threes, fours,
 	}, codec, NewDefaultTree)
 	if err != nil {
 		panic(err)
@@ -93,8 +99,8 @@ func TestMarshalJSON(t *testing.T) {
 func TestImmutableRoots(t *testing.T) {
 	codec := NewLeoRSCodec()
 	result, err := ComputeExtendedDataSquare([][]byte{
-		one, two,
-		three, four,
+		ones, twos,
+		threes, fours,
 	}, codec, NewDefaultTree)
 	if err != nil {
 		panic(err)
@@ -116,8 +122,8 @@ func TestImmutableRoots(t *testing.T) {
 func TestEDSRowColImmutable(t *testing.T) {
 	codec := NewLeoRSCodec()
 	result, err := ComputeExtendedDataSquare([][]byte{
-		one, two,
-		three, four,
+		ones, twos,
+		threes, fours,
 	}, codec, NewDefaultTree)
 	if err != nil {
 		panic(err)
