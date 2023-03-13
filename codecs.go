@@ -4,7 +4,6 @@ import "fmt"
 
 const (
 	Leopard = "Leopard"
-	RSGF8   = "RSFG8"
 )
 
 type Codec interface {
