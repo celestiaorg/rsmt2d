@@ -129,7 +129,9 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 		return err
 	}
 
-	// Extend extended square horizontally
+	// Extend extended square horizontally.
+	// Note that the parity data in `Q3` will be identical if it is vertically
+	// extended from `Q1` or horizontally extended from `Q2`.
 	//  ------- -------
 	// |       |       |
 	// |   O   |   E   |
