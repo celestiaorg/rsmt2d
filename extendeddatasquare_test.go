@@ -1,37 +1,81 @@
 package rsmt2d
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+const SHARD_SIZE = 64
+
+var (
+	zeros     = bytes.Repeat([]byte{0}, SHARD_SIZE)
+	ones      = bytes.Repeat([]byte{1}, SHARD_SIZE)
+	twos      = bytes.Repeat([]byte{2}, SHARD_SIZE)
+	threes    = bytes.Repeat([]byte{3}, SHARD_SIZE)
+	fours     = bytes.Repeat([]byte{4}, SHARD_SIZE)
+	fives     = bytes.Repeat([]byte{5}, SHARD_SIZE)
+	eights    = bytes.Repeat([]byte{8}, SHARD_SIZE)
+	elevens   = bytes.Repeat([]byte{11}, SHARD_SIZE)
+	thirteens = bytes.Repeat([]byte{13}, SHARD_SIZE)
+	fifteens  = bytes.Repeat([]byte{15}, SHARD_SIZE)
 )
 
 func TestComputeExtendedDataSquare(t *testing.T) {
-	codec := NewRSGF8Codec()
-	result, err := ComputeExtendedDataSquare([][]byte{
-		{1}, {2},
-		{3}, {4},
-	}, codec, NewDefaultTree)
-	if err != nil {
-		panic(err)
+	codec := NewLeoRSCodec()
+
+	type testCase struct {
+		name string
+		data [][]byte
+		want [][][]byte
 	}
-	if !reflect.DeepEqual(result.squareRow, [][][]byte{
-		{{1}, {2}, {7}, {13}},
-		{{3}, {4}, {13}, {31}},
-		{{5}, {14}, {19}, {41}},
-		{{9}, {26}, {47}, {69}},
-	}) {
-		t.Errorf("NewExtendedDataSquare failed for 2x2 square with chunk size 1")
+	testCases := []testCase{
+		{
+			name: "1x1",
+			// NOTE: data must contain byte slices that are a multiple of 64
+			// bytes.
+			// See https://github.com/catid/leopard/blob/22ddc7804998d31c8f1a2617ee720e063b1fa6cd/README.md?plain=1#L27
+			// See https://github.com/klauspost/reedsolomon/blob/fd3e6910a7e457563469172968f456ad9b7696b6/README.md?plain=1#L403
+			data: [][]byte{ones},
+			want: [][][]byte{
+				{ones, ones},
+				{ones, ones},
+			},
+		},
+		{
+			name: "2x2",
+			data: [][]byte{
+				ones, twos,
+				threes, fours,
+			},
+			want: [][][]byte{
+				{ones, twos, zeros, threes},
+				{threes, fours, eights, fifteens},
+				{twos, elevens, thirteens, fours},
+				{zeros, thirteens, fives, eights},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := ComputeExtendedDataSquare(tc.data, codec, NewDefaultTree)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.want, result.squareRow)
+		})
 	}
 }
 
 func TestMarshalJSON(t *testing.T) {
-	codec := NewRSGF8Codec()
+	codec := NewLeoRSCodec()
 	result, err := ComputeExtendedDataSquare([][]byte{
-		{1}, {2},
-		{3}, {4},
+		ones, twos,
+		threes, fours,
 	}, codec, NewDefaultTree)
 	if err != nil {
 		panic(err)
@@ -53,10 +97,10 @@ func TestMarshalJSON(t *testing.T) {
 }
 
 func TestImmutableRoots(t *testing.T) {
-	codec := NewRSGF8Codec()
+	codec := NewLeoRSCodec()
 	result, err := ComputeExtendedDataSquare([][]byte{
-		{1}, {2},
-		{3}, {4},
+		ones, twos,
+		threes, fours,
 	}, codec, NewDefaultTree)
 	if err != nil {
 		panic(err)
@@ -76,10 +120,10 @@ func TestImmutableRoots(t *testing.T) {
 }
 
 func TestEDSRowColImmutable(t *testing.T) {
-	codec := NewRSGF8Codec()
+	codec := NewLeoRSCodec()
 	result, err := ComputeExtendedDataSquare([][]byte{
-		{1}, {2},
-		{3}, {4},
+		ones, twos,
+		threes, fours,
 	}, codec, NewDefaultTree)
 	if err != nil {
 		panic(err)
