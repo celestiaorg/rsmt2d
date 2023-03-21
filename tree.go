@@ -6,6 +6,8 @@ import (
 	"github.com/celestiaorg/merkletree"
 )
 
+// test
+
 // TreeConstructorFn creates a fresh Tree instance to be used as the Merkle inside of rsmt2d.
 type TreeConstructorFn = func(axis Axis, index uint) Tree
 
