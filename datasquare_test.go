@@ -138,8 +138,12 @@ func TestLazyRootGeneration(t *testing.T) {
 	var colRoots [][]byte
 
 	for i := uint(0); i < square.width; i++ {
-		rowRoots = append(rowRoots, square.getRowRoot(i))
-		colRoots = append(rowRoots, square.getColRoot(i))
+		rowRoot, err := square.getRowRoot(i)
+		assert.NoError(t, err)
+		colRoot, err := square.getColRoot(i)
+		assert.NoError(t, err)
+		rowRoots = append(rowRoots, rowRoot)
+		colRoots = append(colRoots, colRoot)
 	}
 
 	square.computeRoots()
@@ -156,18 +160,22 @@ func TestRootAPI(t *testing.T) {
 	}
 
 	for i := uint(0); i < square.width; i++ {
-		if !reflect.DeepEqual(square.getRowRoots()[i], square.getRowRoot(i)) {
+		rowRoot, err := square.getRowRoot(i)
+		assert.NoError(t, err)
+		if !reflect.DeepEqual(square.getRowRoots()[i], rowRoot) {
 			t.Errorf(
 				"Row root API results in different roots, expected %v got %v",
 				square.getRowRoots()[i],
-				square.getRowRoot(i),
+				rowRoot,
 			)
 		}
-		if !reflect.DeepEqual(square.getColRoots()[i], square.getColRoot(i)) {
+		colRoot, err := square.getColRoot(i)
+		assert.NoError(t, err)
+		if !reflect.DeepEqual(square.getColRoots()[i], colRoot) {
 			t.Errorf(
 				"Column root API results in different roots, expected %v got %v",
 				square.getColRoots()[i],
-				square.getColRoot(i),
+				colRoot,
 			)
 		}
 	}
@@ -221,18 +229,6 @@ func computeRowProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, ui
 	}
 
 	merkleRoot, proof, proofIndex, numLeaves := treeProve(tree.(*DefaultTree), int(y))
-	return merkleRoot, proof, uint(proofIndex), uint(numLeaves), nil
-}
-
-func computeColProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
-	tree := ds.createTreeFn(Col, y)
-	data := ds.col(y)
-
-	for i := uint(0); i < ds.width; i++ {
-		tree.Push(data[i])
-	}
-	// TODO(ismail): check for overflow when casting from uint -> int
-	merkleRoot, proof, proofIndex, numLeaves := treeProve(tree.(*DefaultTree), int(x))
 	return merkleRoot, proof, uint(proofIndex), uint(numLeaves), nil
 }
 

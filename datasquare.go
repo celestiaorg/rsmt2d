@@ -198,12 +198,20 @@ func (ds *dataSquare) computeRoots() {
 
 		go func(i uint) {
 			defer wg.Done()
-			rowRoots[i] = ds.getRowRoot(i)
+			rowRoot, err := ds.getRowRoot(i)
+			if err != nil {
+				panic(err)
+			}
+			rowRoots[i] = rowRoot
 		}(i)
 
 		go func(i uint) {
 			defer wg.Done()
-			colRoots[i] = ds.getColRoot(i)
+			colRoot, err := ds.getColRoot(i)
+			if err != nil {
+				panic(err)
+			}
+			colRoots[i] = colRoot
 		}(i)
 	}
 
@@ -223,9 +231,9 @@ func (ds *dataSquare) getRowRoots() [][]byte {
 
 // getRowRoot calculates and returns the root of the selected row. Note: unlike the
 // getRowRoots method, getRowRoot does not write to the built-in cache.
-func (ds *dataSquare) getRowRoot(x uint) []byte {
+func (ds *dataSquare) getRowRoot(x uint) ([]byte, error) {
 	if ds.rowRoots != nil {
-		return ds.rowRoots[x]
+		return ds.rowRoots[x], nil
 	}
 
 	tree := ds.createTreeFn(Row, x)
@@ -247,9 +255,9 @@ func (ds *dataSquare) getColRoots() [][]byte {
 
 // getColRoot calculates and returns the root of the selected row. Note: unlike the
 // getColRoots method, getColRoot does not write to the built-in cache.
-func (ds *dataSquare) getColRoot(y uint) []byte {
+func (ds *dataSquare) getColRoot(y uint) ([]byte, error) {
 	if ds.colRoots != nil {
-		return ds.colRoots[y]
+		return ds.colRoots[y], nil
 	}
 
 	tree := ds.createTreeFn(Col, y)

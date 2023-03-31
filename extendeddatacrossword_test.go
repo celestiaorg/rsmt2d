@@ -121,8 +121,11 @@ func TestValidFraudProof(t *testing.T) {
 			if err != nil {
 				t.Errorf("could not decode fraud proof shares; got: %v", err)
 			}
-			root := corrupted.computeSharesRoot(rebuiltShares, byzData.Axis, fraudProof.Index)
-			if bytes.Equal(root, corrupted.getRowRoot(fraudProof.Index)) {
+			root, err := corrupted.computeSharesRoot(rebuiltShares, byzData.Axis, fraudProof.Index)
+			assert.NoError(t, err)
+			rowRoot, err := corrupted.getRowRoot(fraudProof.Index)
+			assert.NoError(t, err)
+			if bytes.Equal(root, rowRoot) {
 				// If the roots match, then the fraud proof should be for invalid erasure coding.
 				parityShares, err := codec.Encode(rebuiltShares[0:corrupted.originalDataWidth])
 				if err != nil {
