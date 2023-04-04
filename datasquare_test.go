@@ -146,7 +146,8 @@ func TestLazyRootGeneration(t *testing.T) {
 		colRoots = append(colRoots, colRoot)
 	}
 
-	square.computeRoots()
+	err = square.computeRoots()
+	assert.NoError(t, err)
 
 	if !reflect.DeepEqual(square.rowRoots, rowRoots) && !reflect.DeepEqual(square.colRoots, colRoots) {
 		t.Error("getRowRoot or getColRoot did not produce identical roots to computeRoots")
@@ -213,7 +214,8 @@ func BenchmarkEDSRoots(b *testing.B) {
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
 					square.resetRoots()
-					square.computeRoots()
+					err := square.computeRoots()
+					assert.NoError(b, err)
 				}
 			},
 		)

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math"
 	"sync"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // ErrUnevenChunks is thrown when non-nil chunks are not all of equal size.
@@ -187,37 +189,41 @@ func (ds *dataSquare) resetRoots() {
 	}
 }
 
-func (ds *dataSquare) computeRoots() {
-	var wg sync.WaitGroup
+func (ds *dataSquare) computeRoots() error {
+	g := new(errgroup.Group)
 
 	rowRoots := make([][]byte, ds.width)
 	colRoots := make([][]byte, ds.width)
 
 	for i := uint(0); i < ds.width; i++ {
-		wg.Add(2)
-
-		go func(i uint) {
-			defer wg.Done()
+		i := i // https://go.dev/doc/faq#closures_and_goroutines
+		g.Go(func() error {
 			rowRoot, err := ds.getRowRoot(i)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			rowRoots[i] = rowRoot
-		}(i)
+			return nil
+		})
 
-		go func(i uint) {
-			defer wg.Done()
+		g.Go(func() error {
 			colRoot, err := ds.getColRoot(i)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			colRoots[i] = colRoot
-		}(i)
+			return nil
+		})
 	}
 
-	wg.Wait()
+	err := g.Wait()
+	if err != nil {
+		return err
+	}
+
 	ds.rowRoots = rowRoots
 	ds.colRoots = colRoots
+	return nil
 }
 
 // getRowRoots returns the Merkle roots of all the rows in the square.
