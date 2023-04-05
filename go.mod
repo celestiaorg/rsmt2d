@@ -5,7 +5,6 @@ go 1.19
 require (
 	github.com/celestiaorg/merkletree v0.0.0-20210714075610-a84dc3ddbbe4
 	github.com/stretchr/testify v1.7.0
-	github.com/vivint/infectious v0.0.0-20200605153912-25a574ae18a3
 )
 
 require (
