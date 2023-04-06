@@ -9,9 +9,6 @@ const (
 	// uses 8-bit leopard for shards less than or equal to 256. The Leopard
 	// codec uses 16-bit leopard for shards greater than 256.
 	Leopard = "Leopard"
-	// RSGF8 stands for Reed-Solomon Galois Field 8-bit mode. This codec uses
-	// https://pkg.go.dev/github.com/vivint/infectious.
-	RSGF8 = "RSGF8"
 )
 
 type Codec interface {

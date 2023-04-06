@@ -27,7 +27,6 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		codec     Codec
 	}{
 		{"leopard", bufferSize, NewLeoRSCodec()},
-		{"infectiousGF8", bufferSize, NewRSGF8Codec()},
 	}
 
 	for _, test := range tests {
@@ -96,7 +95,6 @@ func TestValidFraudProof(t *testing.T) {
 		codec     Codec
 	}{
 		{"leopard", bufferSize, NewLeoRSCodec()},
-		{"infectiousGF8", bufferSize, NewRSGF8Codec()},
 	}
 
 	for _, test := range tests {
@@ -150,7 +148,6 @@ func TestCannotRepairSquareWithBadRoots(t *testing.T) {
 		codec     Codec
 	}{
 		{"leopard", bufferSize, NewLeoRSCodec()},
-		{"infectiousGF8", bufferSize, NewRSGF8Codec()},
 	}
 
 	for _, test := range tests {
