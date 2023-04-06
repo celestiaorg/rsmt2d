@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/celestiaorg/merkletree"
+	"github.com/minio/sha256-simd"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -154,6 +156,21 @@ func TestLazyRootGeneration(t *testing.T) {
 	}
 }
 
+func TestComputeRoots(t *testing.T) {
+	t.Run("default tree computeRoots() returns no error", func(t *testing.T) {
+		square, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
+		assert.NoError(t, err)
+		err = square.computeRoots()
+		assert.NoError(t, err)
+	})
+	t.Run("error tree computeRoots() returns an error", func(t *testing.T) {
+		square, err := newDataSquare([][]byte{{1}}, newErrorTree)
+		assert.NoError(t, err)
+		err = square.computeRoots()
+		assert.Error(t, err)
+	})
+}
+
 func TestRootAPI(t *testing.T) {
 	square, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
 	if err != nil {
@@ -242,4 +259,26 @@ func treeProve(d *DefaultTree, idx int) (merkleRoot []byte, proofSet [][]byte, p
 		d.Tree.Push(l)
 	}
 	return d.Tree.Prove()
+}
+
+type errorTree struct {
+	*merkletree.Tree
+	leaves [][]byte
+}
+
+func newErrorTree(axis Axis, index uint) Tree {
+	return &errorTree{
+		Tree:   merkletree.New(sha256.New()),
+		leaves: make([][]byte, 0, 128),
+	}
+}
+
+func (d *errorTree) Push(data []byte) error {
+	// ignore the idx, as this implementation doesn't need that info
+	d.leaves = append(d.leaves, data)
+	return nil
+}
+
+func (d *errorTree) Root() ([]byte, error) {
+	return nil, fmt.Errorf("error")
 }
