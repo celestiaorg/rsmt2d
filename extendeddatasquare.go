@@ -161,10 +161,7 @@ func (eds *ExtendedDataSquare) erasureExtendRow(codec Codec, i uint) error {
 	if err != nil {
 		return err
 	}
-	if err := eds.setRowSlice(i, eds.originalDataWidth, shares[len(shares)-int(eds.originalDataWidth):]); err != nil {
-		return err
-	}
-	return nil
+	return eds.setRowSlice(i, eds.originalDataWidth, shares[len(shares)-int(eds.originalDataWidth):])
 }
 
 func (eds *ExtendedDataSquare) erasureExtendCol(codec Codec, i uint) error {
@@ -175,10 +172,7 @@ func (eds *ExtendedDataSquare) erasureExtendCol(codec Codec, i uint) error {
 	if err != nil {
 		return err
 	}
-	if err := eds.setColSlice(eds.originalDataWidth, i, shares[len(shares)-int(eds.originalDataWidth):]); err != nil {
-		return err
-	}
-	return nil
+	return eds.setColSlice(eds.originalDataWidth, i, shares[len(shares)-int(eds.originalDataWidth):])
 }
 
 func (eds *ExtendedDataSquare) deepCopy(codec Codec) (ExtendedDataSquare, error) {
