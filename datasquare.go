@@ -190,7 +190,7 @@ func (ds *dataSquare) resetRoots() {
 }
 
 func (ds *dataSquare) computeRoots() error {
-	g := new(errgroup.Group)
+	var g errgroup.Group
 
 	rowRoots := make([][]byte, ds.width)
 	colRoots := make([][]byte, ds.width)
