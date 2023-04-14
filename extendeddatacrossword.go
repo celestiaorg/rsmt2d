@@ -51,11 +51,11 @@ func (e *ErrByzantineData) Error() string {
 // square (EDS), comparing repaired rows and columns against expected Merkle
 // roots.
 //
-// Input
+// # Input
 //
 // Missing shares must be nil.
 //
-// Output
+// # Output
 //
 // The EDS is modified in-place. If repairing is successful, the EDS will be
 // complete. If repairing is unsuccessful, the EDS will be the most-repaired
@@ -282,10 +282,14 @@ func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
 	rebuiltShare []byte,
 ) error {
 	var root []byte
+	var err error
 	if rebuiltIndex < 0 || rebuiltShare == nil {
-		root = eds.computeSharesRoot(oldShares, Row, r)
+		root, err = eds.computeSharesRoot(oldShares, Row, r)
 	} else {
-		root = eds.computeSharesRootWithRebuiltShare(oldShares, Row, r, rebuiltIndex, rebuiltShare)
+		root, err = eds.computeSharesRootWithRebuiltShare(oldShares, Row, r, rebuiltIndex, rebuiltShare)
+	}
+	if err != nil {
+		return err
 	}
 
 	if !bytes.Equal(root, rowRoots[r]) {
@@ -303,10 +307,14 @@ func (eds *ExtendedDataSquare) verifyAgainstColRoots(
 	rebuiltShare []byte,
 ) error {
 	var root []byte
+	var err error
 	if rebuiltIndex < 0 || rebuiltShare == nil {
-		root = eds.computeSharesRoot(oldShares, Col, c)
+		root, err = eds.computeSharesRoot(oldShares, Col, c)
 	} else {
-		root = eds.computeSharesRootWithRebuiltShare(oldShares, Col, c, rebuiltIndex, rebuiltShare)
+		root, err = eds.computeSharesRootWithRebuiltShare(oldShares, Col, c, rebuiltIndex, rebuiltShare)
+	}
+	if err != nil {
+		return err
 	}
 
 	if !bytes.Equal(root, colRoots[c]) {
@@ -331,8 +339,12 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 		if rowIsComplete {
 			errs.Go(func() error {
 				// ensure that the roots are equal
-				if !bytes.Equal(rowRoots[i], eds.getRowRoot(i)) {
-					return fmt.Errorf("bad root input: row %d expected %v got %v", i, rowRoots[i], eds.getRowRoot(i))
+				rowRoot, err := eds.getRowRoot(i)
+				if err != nil {
+					return err
+				}
+				if !bytes.Equal(rowRoots[i], rowRoot) {
+					return fmt.Errorf("bad root input: row %d expected %v got %v", i, rowRoots[i], rowRoot)
 				}
 				return nil
 			})
@@ -342,8 +354,12 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 		if colIsComplete {
 			errs.Go(func() error {
 				// ensure that the roots are equal
-				if !bytes.Equal(colRoots[i], eds.getColRoot(i)) {
-					return fmt.Errorf("bad root input: col %d expected %v got %v", i, colRoots[i], eds.getColRoot(i))
+				colRoot, err := eds.getColRoot(i)
+				if err != nil {
+					return err
+				}
+				if !bytes.Equal(colRoots[i], colRoot) {
+					return fmt.Errorf("bad root input: col %d expected %v got %v", i, colRoots[i], colRoot)
 				}
 				return nil
 			})
@@ -391,7 +407,7 @@ func noMissingData(input [][]byte, rebuiltIndex int) bool {
 	return true
 }
 
-func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, axis Axis, i uint) []byte {
+func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, axis Axis, i uint) ([]byte, error) {
 	tree := eds.createTreeFn(axis, i)
 	for _, d := range shares {
 		tree.Push(d)
@@ -399,7 +415,7 @@ func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, axis Axis, i u
 	return tree.Root()
 }
 
-func (eds *ExtendedDataSquare) computeSharesRootWithRebuiltShare(shares [][]byte, axis Axis, i uint, rebuiltIndex int, rebuiltShare []byte) []byte {
+func (eds *ExtendedDataSquare) computeSharesRootWithRebuiltShare(shares [][]byte, axis Axis, i uint, rebuiltIndex int, rebuiltShare []byte) ([]byte, error) {
 	tree := eds.createTreeFn(axis, i)
 	for _, d := range shares[:rebuiltIndex] {
 		tree.Push(d)
