@@ -139,14 +139,13 @@ func TestLazyRootGeneration(t *testing.T) {
 
 	for i := uint(0); i < square.width; i++ {
 		rowRoots = append(rowRoots, square.getRowRoot(i))
-		colRoots = append(rowRoots, square.getColRoot(i))
+		colRoots = append(colRoots, square.getColRoot(i))
 	}
 
 	square.computeRoots()
 
-	if !reflect.DeepEqual(square.rowRoots, rowRoots) && !reflect.DeepEqual(square.colRoots, colRoots) {
-		t.Error("getRowRoot or getColRoot did not produce identical roots to computeRoots")
-	}
+	assert.Equal(t, square.rowRoots, rowRoots)
+	assert.Equal(t, square.colRoots, colRoots)
 }
 
 func TestRootAPI(t *testing.T) {
