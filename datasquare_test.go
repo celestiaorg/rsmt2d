@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/celestiaorg/merkletree"
+	"github.com/minio/sha256-simd"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -138,15 +140,35 @@ func TestLazyRootGeneration(t *testing.T) {
 	var colRoots [][]byte
 
 	for i := uint(0); i < square.width; i++ {
-		rowRoots = append(rowRoots, square.getRowRoot(i))
-		colRoots = append(rowRoots, square.getColRoot(i))
+		rowRoot, err := square.getRowRoot(i)
+		assert.NoError(t, err)
+		colRoot, err := square.getColRoot(i)
+		assert.NoError(t, err)
+		rowRoots = append(rowRoots, rowRoot)
+		colRoots = append(colRoots, colRoot)
 	}
 
-	square.computeRoots()
+	err = square.computeRoots()
+	assert.NoError(t, err)
 
 	if !reflect.DeepEqual(square.rowRoots, rowRoots) && !reflect.DeepEqual(square.colRoots, colRoots) {
 		t.Error("getRowRoot or getColRoot did not produce identical roots to computeRoots")
 	}
+}
+
+func TestComputeRoots(t *testing.T) {
+	t.Run("default tree computeRoots() returns no error", func(t *testing.T) {
+		square, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
+		assert.NoError(t, err)
+		err = square.computeRoots()
+		assert.NoError(t, err)
+	})
+	t.Run("error tree computeRoots() returns an error", func(t *testing.T) {
+		square, err := newDataSquare([][]byte{{1}}, newErrorTree)
+		assert.NoError(t, err)
+		err = square.computeRoots()
+		assert.Error(t, err)
+	})
 }
 
 func TestRootAPI(t *testing.T) {
@@ -156,18 +178,22 @@ func TestRootAPI(t *testing.T) {
 	}
 
 	for i := uint(0); i < square.width; i++ {
-		if !reflect.DeepEqual(square.getRowRoots()[i], square.getRowRoot(i)) {
+		rowRoot, err := square.getRowRoot(i)
+		assert.NoError(t, err)
+		if !reflect.DeepEqual(square.getRowRoots()[i], rowRoot) {
 			t.Errorf(
 				"Row root API results in different roots, expected %v got %v",
 				square.getRowRoots()[i],
-				square.getRowRoot(i),
+				rowRoot,
 			)
 		}
-		if !reflect.DeepEqual(square.getColRoots()[i], square.getColRoot(i)) {
+		colRoot, err := square.getColRoot(i)
+		assert.NoError(t, err)
+		if !reflect.DeepEqual(square.getColRoots()[i], colRoot) {
 			t.Errorf(
 				"Column root API results in different roots, expected %v got %v",
 				square.getColRoots()[i],
-				square.getColRoot(i),
+				colRoot,
 			)
 		}
 	}
@@ -205,7 +231,8 @@ func BenchmarkEDSRoots(b *testing.B) {
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
 					square.resetRoots()
-					square.computeRoots()
+					err := square.computeRoots()
+					assert.NoError(b, err)
 				}
 			},
 		)
@@ -224,18 +251,6 @@ func computeRowProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, ui
 	return merkleRoot, proof, uint(proofIndex), uint(numLeaves), nil
 }
 
-func computeColProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
-	tree := ds.createTreeFn(Col, y)
-	data := ds.col(y)
-
-	for i := uint(0); i < ds.width; i++ {
-		tree.Push(data[i])
-	}
-	// TODO(ismail): check for overflow when casting from uint -> int
-	merkleRoot, proof, proofIndex, numLeaves := treeProve(tree.(*DefaultTree), int(x))
-	return merkleRoot, proof, uint(proofIndex), uint(numLeaves), nil
-}
-
 func treeProve(d *DefaultTree, idx int) (merkleRoot []byte, proofSet [][]byte, proofIndex uint64, numLeaves uint64) {
 	if err := d.Tree.SetIndex(uint64(idx)); err != nil {
 		panic(fmt.Sprintf("don't call prove on a already used tree: %v", err))
@@ -244,4 +259,26 @@ func treeProve(d *DefaultTree, idx int) (merkleRoot []byte, proofSet [][]byte, p
 		d.Tree.Push(l)
 	}
 	return d.Tree.Prove()
+}
+
+type errorTree struct {
+	*merkletree.Tree
+	leaves [][]byte
+}
+
+func newErrorTree(axis Axis, index uint) Tree {
+	return &errorTree{
+		Tree:   merkletree.New(sha256.New()),
+		leaves: make([][]byte, 0, 128),
+	}
+}
+
+func (d *errorTree) Push(data []byte) error {
+	// ignore the idx, as this implementation doesn't need that info
+	d.leaves = append(d.leaves, data)
+	return nil
+}
+
+func (d *errorTree) Root() ([]byte, error) {
+	return nil, fmt.Errorf("error")
 }

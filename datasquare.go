@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math"
 	"sync"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // ErrUnevenChunks is thrown when non-nil chunks are not all of equal size.
@@ -187,29 +189,41 @@ func (ds *dataSquare) resetRoots() {
 	}
 }
 
-func (ds *dataSquare) computeRoots() {
-	var wg sync.WaitGroup
+func (ds *dataSquare) computeRoots() error {
+	var g errgroup.Group
 
 	rowRoots := make([][]byte, ds.width)
 	colRoots := make([][]byte, ds.width)
 
 	for i := uint(0); i < ds.width; i++ {
-		wg.Add(2)
+		i := i // https://go.dev/doc/faq#closures_and_goroutines
+		g.Go(func() error {
+			rowRoot, err := ds.getRowRoot(i)
+			if err != nil {
+				return err
+			}
+			rowRoots[i] = rowRoot
+			return nil
+		})
 
-		go func(i uint) {
-			defer wg.Done()
-			rowRoots[i] = ds.getRowRoot(i)
-		}(i)
-
-		go func(i uint) {
-			defer wg.Done()
-			colRoots[i] = ds.getColRoot(i)
-		}(i)
+		g.Go(func() error {
+			colRoot, err := ds.getColRoot(i)
+			if err != nil {
+				return err
+			}
+			colRoots[i] = colRoot
+			return nil
+		})
 	}
 
-	wg.Wait()
+	err := g.Wait()
+	if err != nil {
+		return err
+	}
+
 	ds.rowRoots = rowRoots
 	ds.colRoots = colRoots
+	return nil
 }
 
 // getRowRoots returns the Merkle roots of all the rows in the square.
@@ -223,9 +237,9 @@ func (ds *dataSquare) getRowRoots() [][]byte {
 
 // getRowRoot calculates and returns the root of the selected row. Note: unlike the
 // getRowRoots method, getRowRoot does not write to the built-in cache.
-func (ds *dataSquare) getRowRoot(x uint) []byte {
+func (ds *dataSquare) getRowRoot(x uint) ([]byte, error) {
 	if ds.rowRoots != nil {
-		return ds.rowRoots[x]
+		return ds.rowRoots[x], nil
 	}
 
 	tree := ds.createTreeFn(Row, x)
@@ -247,9 +261,9 @@ func (ds *dataSquare) getColRoots() [][]byte {
 
 // getColRoot calculates and returns the root of the selected row. Note: unlike the
 // getColRoots method, getColRoot does not write to the built-in cache.
-func (ds *dataSquare) getColRoot(y uint) []byte {
+func (ds *dataSquare) getColRoot(y uint) ([]byte, error) {
 	if ds.colRoots != nil {
-		return ds.colRoots[y]
+		return ds.colRoots[y], nil
 	}
 
 	tree := ds.createTreeFn(Col, y)

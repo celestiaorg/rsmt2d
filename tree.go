@@ -6,7 +6,8 @@ import (
 	"github.com/celestiaorg/merkletree"
 )
 
-// TreeConstructorFn creates a fresh Tree instance to be used as the Merkle inside of rsmt2d.
+// TreeConstructorFn creates a fresh Tree instance to be used as the Merkle tree
+// inside of rsmt2d.
 type TreeConstructorFn = func(axis Axis, index uint) Tree
 
 // SquareIndex contains all information needed to identify the cell that is being
@@ -17,8 +18,8 @@ type SquareIndex struct {
 
 // Tree wraps Merkle tree implementations to work with rsmt2d
 type Tree interface {
-	Push(data []byte)
-	Root() []byte
+	Push(data []byte) error
+	Root() ([]byte, error)
 }
 
 var _ Tree = &DefaultTree{}
@@ -36,17 +37,18 @@ func NewDefaultTree(axis Axis, index uint) Tree {
 	}
 }
 
-func (d *DefaultTree) Push(data []byte) {
+func (d *DefaultTree) Push(data []byte) error {
 	// ignore the idx, as this implementation doesn't need that info
 	d.leaves = append(d.leaves, data)
+	return nil
 }
 
-func (d *DefaultTree) Root() []byte {
+func (d *DefaultTree) Root() ([]byte, error) {
 	if d.root == nil {
 		for _, l := range d.leaves {
 			d.Tree.Push(l)
 		}
 		d.root = d.Tree.Root()
 	}
-	return d.root
+	return d.root, nil
 }
