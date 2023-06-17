@@ -49,7 +49,7 @@ func newDataSquare(data [][]byte, treeCreator TreeConstructorFn) (*dataSquare, e
 
 		for j := 0; j < width; j++ {
 			if squareRow[i][j] != nil && len(squareRow[i][j]) != chunkSize {
-				return nil, errors.New("all chunks must be of equal size")
+				return nil, ErrUnevenChunks
 			}
 		}
 	}
