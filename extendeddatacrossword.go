@@ -36,7 +36,9 @@ func (a Axis) String() string {
 // ErrUnrepairableDataSquare is thrown when there is insufficient chunks to repair the square.
 var ErrUnrepairableDataSquare = errors.New("failed to solve data square")
 
-// ErrByzantineData is thrown when a repaired row or column does not match the expected row or column Merkle root.
+// ErrByzantineData is returned when a repaired row or column does not match the
+// expected row or column Merkle root. It is also returned when the parity data
+// from a row or a column is not equal to the encoded original data.
 type ErrByzantineData struct {
 	Axis   Axis     // Axis of the data.
 	Index  uint     // Row/Col index.
