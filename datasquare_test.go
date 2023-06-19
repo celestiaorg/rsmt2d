@@ -53,18 +53,20 @@ func TestInvalidDataSquareCreation(t *testing.T) {
 
 func TestSetCell(t *testing.T) {
 	ds, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
-	if err != nil {
-		panic(err)
-	}
+	assert.NoError(t, err)
 
-	// SetCell can only write to nil cells
-	assert.Panics(t, func() { ds.SetCell(0, 0, []byte{0}) })
-
-	// Set the cell to nil to allow modification
-	ds.setCell(0, 0, nil)
-
-	ds.SetCell(0, 0, []byte{42})
+	err = ds.setCell(0, 0, []byte{42})
+	assert.NoError(t, err)
 	assert.Equal(t, []byte{42}, ds.GetCell(0, 0))
+
+	// SetCell can only write nil cells so this should return an error.
+	err = ds.SetCell(0, 0, []byte{0})
+	assert.Error(t, err)
+
+	// SetCell can only write chunks of the same size as the data square so this
+	// should return an error.
+	err = ds.SetCell(0, 0, []byte{0, 0})
+	assert.Error(t, err)
 }
 
 func TestGetCell(t *testing.T) {
