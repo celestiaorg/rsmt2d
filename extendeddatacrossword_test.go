@@ -204,6 +204,10 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 						// due to parallelisation, the ErrByzantineData axis may be either row or col
 						t.Errorf("did not return a ErrByzantineData for a bad col or row; got %v", err)
 					}
+					if errors.Is(err, byzData) {
+						byzData = err.(*ErrByzantineData)
+						assert.Equal(t, test.axis, byzData.Axis)
+					}
 				})
 			}
 		})
