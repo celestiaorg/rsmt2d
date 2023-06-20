@@ -154,36 +154,24 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 }
 
 func (eds *ExtendedDataSquare) erasureExtendRow(codec Codec, i uint) error {
-	var shares [][]byte
-	var err error
-
-	shares, err = codec.Encode(eds.rowSlice(i, 0, eds.originalDataWidth))
+	parityShares, err := codec.Encode(eds.rowSlice(i, 0, eds.originalDataWidth))
 	if err != nil {
 		return err
 	}
-	if err := eds.setRowSlice(i, eds.originalDataWidth, shares[len(shares)-int(eds.originalDataWidth):]); err != nil {
-		return err
-	}
-	return nil
+	return eds.setRowSlice(i, eds.originalDataWidth, parityShares)
 }
 
 func (eds *ExtendedDataSquare) erasureExtendCol(codec Codec, i uint) error {
-	var shares [][]byte
-	var err error
-
-	shares, err = codec.Encode(eds.colSlice(0, i, eds.originalDataWidth))
+	parityShares, err := codec.Encode(eds.colSlice(0, i, eds.originalDataWidth))
 	if err != nil {
 		return err
 	}
-	if err := eds.setColSlice(eds.originalDataWidth, i, shares[len(shares)-int(eds.originalDataWidth):]); err != nil {
-		return err
-	}
-	return nil
+	return eds.setColSlice(eds.originalDataWidth, i, parityShares)
 }
 
 func (eds *ExtendedDataSquare) deepCopy(codec Codec) (ExtendedDataSquare, error) {
-	eds, err := ImportExtendedDataSquare(eds.Flattened(), codec, eds.createTreeFn)
-	return *eds, err
+	copy, err := ImportExtendedDataSquare(eds.Flattened(), codec, eds.createTreeFn)
+	return *copy, err
 }
 
 // Col returns a column slice.
