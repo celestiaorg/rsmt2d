@@ -151,9 +151,8 @@ func TestLazyRootGeneration(t *testing.T) {
 	err = square.computeRoots()
 	assert.NoError(t, err)
 
-	if !reflect.DeepEqual(square.rowRoots, rowRoots) && !reflect.DeepEqual(square.colRoots, colRoots) {
-		t.Error("getRowRoot or getColRoot did not produce identical roots to computeRoots")
-	}
+	assert.Equal(t, square.rowRoots, rowRoots)
+	assert.Equal(t, square.colRoots, colRoots)
 }
 
 func TestComputeRoots(t *testing.T) {
