@@ -332,9 +332,8 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 
 	for i := uint(0); i < eds.width; i++ {
 		i := i
-		rowIsComplete := noMissingData(eds.row(i), noShareInsertion)
-		colIsComplete := noMissingData(eds.col(i), noShareInsertion)
 
+		rowIsComplete := noMissingData(eds.row(i), noShareInsertion)
 		// if there's no missing data in this row
 		if rowIsComplete {
 			errs.Go(func() error {
@@ -348,8 +347,19 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 				}
 				return nil
 			})
+			errs.Go(func() error {
+				parityShares, err := eds.codec.Encode(eds.rowSlice(i, 0, eds.originalDataWidth))
+				if err != nil {
+					return err
+				}
+				if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.rowSlice(i, eds.originalDataWidth, eds.originalDataWidth))) {
+					return &ErrByzantineData{Row, i, eds.row(i)}
+				}
+				return nil
+			})
 		}
 
+		colIsComplete := noMissingData(eds.col(i), noShareInsertion)
 		// if there's no missing data in this col
 		if colIsComplete {
 			errs.Go(func() error {
@@ -363,22 +373,6 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 				}
 				return nil
 			})
-		}
-
-		if rowIsComplete {
-			errs.Go(func() error {
-				parityShares, err := eds.codec.Encode(eds.rowSlice(i, 0, eds.originalDataWidth))
-				if err != nil {
-					return err
-				}
-				if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.rowSlice(i, eds.originalDataWidth, eds.originalDataWidth))) {
-					return &ErrByzantineData{Row, i, eds.row(i)}
-				}
-				return nil
-			})
-		}
-
-		if colIsComplete {
 			errs.Go(func() error {
 				parityShares, err := eds.codec.Encode(eds.colSlice(0, i, eds.originalDataWidth))
 				if err != nil {
