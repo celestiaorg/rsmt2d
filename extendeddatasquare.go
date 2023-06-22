@@ -95,31 +95,45 @@ func ImportExtendedDataSquare(
 
 func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 	eds.originalDataWidth = eds.width
+
+	// Extend original square with filler chunks. O represents original data. F
+	// represents filler chunks.
+	//
+	//  ------- -------
+	// |       |       |
+	// |   O   |   F   |
+	// |       |       |
+	//  ------- -------
+	// |       |       |
+	// |   F   |   F   |
+	// |       |       |
+	//  ------- -------
 	if err := eds.extendSquare(eds.width, bytes.Repeat([]byte{0}, int(eds.chunkSize))); err != nil {
 		return err
 	}
 
 	errs, _ := errgroup.WithContext(context.Background())
 
-	// Extend original square horizontally and vertically
+	// Populate filler chunks in Q1 and Q2. E represents erasure data.
+	//
 	//  ------- -------
 	// |       |       |
 	// |   O → |   E   |
 	// |   ↓   |       |
 	//  ------- -------
-	// |       |
-	// |   E   |
-	// |       |
-	//  -------
+	// |       |       |
+	// |   E   |   F   |
+	// |       |       |
+	//  ------- -------
 	for i := uint(0); i < eds.originalDataWidth; i++ {
 		i := i
 
-		// Extend horizontally
+		// Encode Q0 and populate Q1 with erasure data
 		errs.Go(func() error {
 			return eds.erasureExtendRow(codec, i)
 		})
 
-		// Extend vertically
+		// Encode Q0 and populate Q2 with erasure data
 		errs.Go(func() error {
 			return eds.erasureExtendCol(codec, i)
 		})
@@ -129,9 +143,10 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 		return err
 	}
 
-	// Extend extended square horizontally.
-	// Note that the parity data in `Q3` will be identical if it is vertically
-	// extended from `Q1` or horizontally extended from `Q2`.
+	// Populate filler chunks in Q3. Note that the parity data in `Q3` will be
+	// identical if it is vertically extended from `Q1` or horizontally extended
+	// from `Q2`.
+	//
 	//  ------- -------
 	// |       |       |
 	// |   O   |   E   |
@@ -144,7 +159,7 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 	for i := eds.originalDataWidth; i < eds.width; i++ {
 		i := i
 
-		// Extend horizontally
+		// Encode Q2 and populate Q3 with erasure data
 		errs.Go(func() error {
 			return eds.erasureExtendRow(codec, i)
 		})
