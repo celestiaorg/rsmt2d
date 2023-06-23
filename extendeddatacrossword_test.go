@@ -213,7 +213,7 @@ func BenchmarkRepair(b *testing.B) {
 	// For different ODS sizes
 	for originalDataWidth := 4; originalDataWidth <= 512; originalDataWidth *= 2 {
 		for codecName, codec := range codecs {
-			if codec.maxChunks() < originalDataWidth*originalDataWidth {
+			if codec.MaxChunks() < originalDataWidth*originalDataWidth {
 				// Only test codecs that support this many chunks
 				continue
 			}
