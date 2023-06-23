@@ -243,13 +243,19 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	return true, true, nil
 }
 
+// rebuildShares attempts to rebuild a row or column of shares.
+// Returns
+// 1. An entire row or column of shares so original + parity shares.
+// 2. Whether the original shares could be decoded from the shares parameter.
+// 3. [Optional] an error.
 func (eds *ExtendedDataSquare) rebuildShares(
 	isExtendedPartIncomplete bool,
 	shares [][]byte,
 ) ([][]byte, bool, error) {
 	rebuiltShares, err := eds.codec.Decode(shares)
 	if err != nil {
-		// repair unsuccessful
+		// Decode was unsuccessful but don't propagate the error because that
+		// would halt the progress of solveCrosswordRow or solveCrosswordCol.
 		return nil, false, nil
 	}
 
