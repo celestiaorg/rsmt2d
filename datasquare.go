@@ -135,6 +135,9 @@ func (ds *dataSquare) setRowSlice(x uint, y uint, newRow [][]byte) error {
 			return errors.New("invalid chunk size")
 		}
 	}
+	if y+uint(len(newRow)) > ds.width {
+		return fmt.Errorf("cannot set row slice at (%d, %d) of length %d: because it would exceed the data square width %d", x, y, len(newRow), ds.width)
+	}
 
 	ds.dataMutex.Lock()
 	defer ds.dataMutex.Unlock()
@@ -164,6 +167,9 @@ func (ds *dataSquare) setColSlice(x uint, y uint, newCol [][]byte) error {
 		if len(newCol[i]) != int(ds.chunkSize) {
 			return errors.New("invalid chunk size")
 		}
+	}
+	if x+uint(len(newCol)) > ds.width {
+		return fmt.Errorf("cannot set col slice at (%d, %d) of length %d: because it would exceed the data square width %d", x, y, len(newCol), ds.width)
 	}
 
 	ds.dataMutex.Lock()
