@@ -71,6 +71,8 @@ func newDataSquare(data [][]byte, treeCreator TreeConstructorFn) (*dataSquare, e
 	}, nil
 }
 
+// extendSquare extends the original data square by extendedWidth and fills
+// the extended quadrants with fillerChunk.
 func (ds *dataSquare) extendSquare(extendedWidth uint, fillerChunk []byte) error {
 	if uint(len(fillerChunk)) != ds.chunkSize {
 		return errors.New("filler chunk size does not match data square chunk size")
