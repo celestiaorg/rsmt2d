@@ -192,13 +192,7 @@ func (eds *ExtendedDataSquare) deepCopy(codec Codec) (ExtendedDataSquare, error)
 // Col returns a column slice.
 // This slice is a copy of the internal column slice.
 func (eds *ExtendedDataSquare) Col(y uint) [][]byte {
-	col := make([][]byte, eds.width)
-	original := eds.col(y)
-	for i, cell := range original {
-		col[i] = make([]byte, eds.chunkSize)
-		copy(col[i], cell)
-	}
-	return col
+	return deepCopy(eds.col(y))
 }
 
 // ColRoots returns the Merkle roots of all the columns in the square.
