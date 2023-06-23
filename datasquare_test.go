@@ -52,21 +52,47 @@ func TestInvalidDataSquareCreation(t *testing.T) {
 }
 
 func TestSetCell(t *testing.T) {
-	ds, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
-	assert.NoError(t, err)
+	type testCase struct {
+		name         string
+		originalCell []byte
+		newCell      []byte
+		wantErr      bool
+	}
 
-	err = ds.setCell(0, 0, []byte{42})
-	assert.NoError(t, err)
-	assert.Equal(t, []byte{42}, ds.GetCell(0, 0))
+	testCases := []testCase{
+		{
+			name:         "can set cell if originally nil",
+			originalCell: nil,
+			newCell:      []byte{42},
+			wantErr:      false,
+		},
+		{
+			name:         "expect error if cell is not originally nil",
+			originalCell: []byte{1},
+			wantErr:      true,
+		},
+		{
+			name:         "expect error if new cell is not the correct chunk size",
+			originalCell: nil,
+			newCell:      []byte{1, 2}, // incorrect chunk size
+			wantErr:      true,
+		},
+	}
 
-	// SetCell can only write nil cells so this should return an error.
-	err = ds.SetCell(0, 0, []byte{0})
-	assert.Error(t, err)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ds, err := newDataSquare([][]byte{tc.originalCell, {2}, {3}, {4}}, NewDefaultTree)
+			assert.NoError(t, err)
 
-	// SetCell can only write chunks of the same size as the data square so this
-	// should return an error.
-	err = ds.SetCell(0, 0, []byte{0, 0})
-	assert.Error(t, err)
+			err = ds.SetCell(0, 0, tc.newCell)
+			if tc.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.newCell, ds.GetCell(0, 0))
+			}
+		})
+	}
 }
 
 func Test_setCell(t *testing.T) {
