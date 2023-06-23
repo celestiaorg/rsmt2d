@@ -69,6 +69,17 @@ func TestSetCell(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func Test_setCell(t *testing.T) {
+	ds, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
+	assert.NoError(t, err)
+
+	err = ds.setCell(0, 0, []byte{42})
+	assert.NoError(t, err)
+
+	err = ds.setCell(0, 0, []byte{0, 1}) // incorrect chunk size
+	assert.Error(t, err)
+}
+
 func TestGetCell(t *testing.T) {
 	ds, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
 	if err != nil {
