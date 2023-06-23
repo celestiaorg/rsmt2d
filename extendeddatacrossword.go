@@ -265,10 +265,9 @@ func (eds *ExtendedDataSquare) rebuildShares(
 		if err != nil {
 			return nil, true, err
 		}
-		startIndex := len(rebuiltExtendedShares) - int(eds.originalDataWidth)
 		rebuiltShares = append(
 			rebuiltShares[0:eds.originalDataWidth],
-			rebuiltExtendedShares[startIndex:]...,
+			rebuiltExtendedShares...,
 		)
 	} else {
 		// Otherwise copy them from the EDS.
