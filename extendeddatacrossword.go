@@ -36,7 +36,9 @@ func (a Axis) String() string {
 // ErrUnrepairableDataSquare is thrown when there is insufficient chunks to repair the square.
 var ErrUnrepairableDataSquare = errors.New("failed to solve data square")
 
-// ErrByzantineData is thrown when a repaired row or column does not match the expected row or column Merkle root.
+// ErrByzantineData is returned when a repaired row or column does not match the
+// expected row or column Merkle root. It is also returned when the parity data
+// from a row or a column is not equal to the encoded original data.
 type ErrByzantineData struct {
 	Axis   Axis     // Axis of the data.
 	Index  uint     // Row/Col index.
@@ -241,13 +243,19 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	return true, true, nil
 }
 
+// rebuildShares attempts to rebuild a row or column of shares.
+// Returns
+// 1. An entire row or column of shares so original + parity shares.
+// 2. Whether the original shares could be decoded from the shares parameter.
+// 3. [Optional] an error.
 func (eds *ExtendedDataSquare) rebuildShares(
 	isExtendedPartIncomplete bool,
 	shares [][]byte,
 ) ([][]byte, bool, error) {
 	rebuiltShares, err := eds.codec.Decode(shares)
 	if err != nil {
-		// repair unsuccessful
+		// Decode was unsuccessful but don't propagate the error because that
+		// would halt the progress of solveCrosswordRow or solveCrosswordCol.
 		return nil, false, nil
 	}
 
@@ -257,10 +265,9 @@ func (eds *ExtendedDataSquare) rebuildShares(
 		if err != nil {
 			return nil, true, err
 		}
-		startIndex := len(rebuiltExtendedShares) - int(eds.originalDataWidth)
 		rebuiltShares = append(
 			rebuiltShares[0:eds.originalDataWidth],
-			rebuiltExtendedShares[startIndex:]...,
+			rebuiltExtendedShares...,
 		)
 	} else {
 		// Otherwise copy them from the EDS.
@@ -332,9 +339,8 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 
 	for i := uint(0); i < eds.width; i++ {
 		i := i
-		rowIsComplete := noMissingData(eds.row(i), noShareInsertion)
-		colIsComplete := noMissingData(eds.col(i), noShareInsertion)
 
+		rowIsComplete := noMissingData(eds.row(i), noShareInsertion)
 		// if there's no missing data in this row
 		if rowIsComplete {
 			errs.Go(func() error {
@@ -348,8 +354,19 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 				}
 				return nil
 			})
+			errs.Go(func() error {
+				parityShares, err := eds.codec.Encode(eds.rowSlice(i, 0, eds.originalDataWidth))
+				if err != nil {
+					return err
+				}
+				if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.rowSlice(i, eds.originalDataWidth, eds.originalDataWidth))) {
+					return &ErrByzantineData{Row, i, eds.row(i)}
+				}
+				return nil
+			})
 		}
 
+		colIsComplete := noMissingData(eds.col(i), noShareInsertion)
 		// if there's no missing data in this col
 		if colIsComplete {
 			errs.Go(func() error {
@@ -363,22 +380,6 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 				}
 				return nil
 			})
-		}
-
-		if rowIsComplete {
-			errs.Go(func() error {
-				parityShares, err := eds.codec.Encode(eds.rowSlice(i, 0, eds.originalDataWidth))
-				if err != nil {
-					return err
-				}
-				if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.rowSlice(i, eds.originalDataWidth, eds.originalDataWidth))) {
-					return &ErrByzantineData{Row, i, eds.row(i)}
-				}
-				return nil
-			})
-		}
-
-		if colIsComplete {
 			errs.Go(func() error {
 				parityShares, err := eds.codec.Encode(eds.colSlice(0, i, eds.originalDataWidth))
 				if err != nil {

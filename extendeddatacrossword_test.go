@@ -177,12 +177,11 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 		shareSize int
 		cells     [][]byte
 		values    [][]byte
-		axis      Axis
 	}{
-		{"BadRow/OriginalData", bufferSize, [][]byte{{0, 0}}, [][]byte{corruptChunk}, Row},
-		{"BadRow/ExtendedData", bufferSize, [][]byte{{0, 3}}, [][]byte{corruptChunk}, Row},
-		{"BadColumn/OriginalData", bufferSize, [][]byte{{0, 0}, {0, 1}, {0, 2}, {0, 3}}, [][]byte{corruptChunk, nil, nil, nil}, Col},
-		{"BadColumn/OriginalData", bufferSize, [][]byte{{3, 0}, {0, 1}, {0, 2}, {0, 3}}, [][]byte{corruptChunk, nil, nil, nil}, Col},
+		{"BadRow/OriginalData", bufferSize, [][]byte{{0, 0}}, [][]byte{corruptChunk}},
+		{"BadRow/ExtendedData", bufferSize, [][]byte{{0, 3}}, [][]byte{corruptChunk}},
+		{"BadColumn/OriginalData", bufferSize, [][]byte{{0, 0}, {0, 1}, {0, 2}, {0, 3}}, [][]byte{corruptChunk, nil, nil, nil}},
+		{"BadColumn/OriginalData", bufferSize, [][]byte{{3, 0}, {0, 1}, {0, 2}, {0, 3}}, [][]byte{corruptChunk, nil, nil, nil}},
 	}
 
 	for codecName, codec := range codecs {
