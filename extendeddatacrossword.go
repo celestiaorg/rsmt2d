@@ -259,25 +259,6 @@ func (eds *ExtendedDataSquare) rebuildShares(
 		return nil, false, nil
 	}
 
-	if isExtendedPartIncomplete {
-		// If needed, rebuild the parity shares too.
-		rebuiltExtendedShares, err := eds.codec.Encode(rebuiltShares[0:eds.originalDataWidth])
-		if err != nil {
-			return nil, true, err
-		}
-		rebuiltShares = append(
-			rebuiltShares[0:eds.originalDataWidth],
-			rebuiltExtendedShares...,
-		)
-	} else {
-		// Otherwise copy them from the EDS.
-		startIndex := len(shares) - int(eds.originalDataWidth)
-		rebuiltShares = append(
-			rebuiltShares[0:eds.originalDataWidth],
-			shares[startIndex:]...,
-		)
-	}
-
 	return rebuiltShares, true, nil
 }
 
