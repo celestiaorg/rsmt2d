@@ -52,19 +52,92 @@ func TestInvalidDataSquareCreation(t *testing.T) {
 }
 
 func TestSetCell(t *testing.T) {
-	ds, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
-	if err != nil {
-		panic(err)
+	type testCase struct {
+		name         string
+		originalCell []byte
+		newCell      []byte
+		wantErr      bool
 	}
 
-	// SetCell can only write to nil cells
-	assert.Panics(t, func() { ds.SetCell(0, 0, []byte{0}) })
+	testCases := []testCase{
+		{
+			name:         "can set cell if originally nil",
+			originalCell: nil,
+			newCell:      []byte{42},
+			wantErr:      false,
+		},
+		{
+			name:         "expect error if cell is not originally nil",
+			originalCell: []byte{1},
+			wantErr:      true,
+		},
+		{
+			name:         "expect error if new cell is not the correct chunk size",
+			originalCell: nil,
+			newCell:      []byte{1, 2}, // incorrect chunk size
+			wantErr:      true,
+		},
+	}
 
-	// Set the cell to nil to allow modification
-	ds.setCell(0, 0, nil)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ds, err := newDataSquare([][]byte{tc.originalCell, {2}, {3}, {4}}, NewDefaultTree)
+			assert.NoError(t, err)
 
-	ds.SetCell(0, 0, []byte{42})
-	assert.Equal(t, []byte{42}, ds.GetCell(0, 0))
+			err = ds.SetCell(0, 0, tc.newCell)
+			if tc.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.newCell, ds.GetCell(0, 0))
+			}
+		})
+	}
+}
+
+func Test_setCell(t *testing.T) {
+	type testCase struct {
+		name         string
+		originalCell []byte
+		newCell      []byte
+		wantErr      bool
+	}
+
+	testCases := []testCase{
+		{
+			name:         "can set cell if originally nil",
+			originalCell: nil,
+			newCell:      []byte{42},
+			wantErr:      false,
+		},
+		{
+			name:         "can set cell if originally some value",
+			originalCell: []byte{1},
+			newCell:      []byte{42},
+			wantErr:      false,
+		},
+		{
+			name:         "expect error if new cell is not the correct chunk size",
+			originalCell: nil,
+			newCell:      []byte{1, 2}, // incorrect chunk size
+			wantErr:      true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ds, err := newDataSquare([][]byte{tc.originalCell, {2}, {3}, {4}}, NewDefaultTree)
+			assert.NoError(t, err)
+
+			err = ds.setCell(0, 0, tc.newCell)
+			if tc.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.newCell, ds.GetCell(0, 0))
+			}
+		})
+	}
 }
 
 func TestGetCell(t *testing.T) {
