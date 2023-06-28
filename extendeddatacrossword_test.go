@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // PseudoFraudProof is an example fraud proof.
@@ -19,70 +20,53 @@ type PseudoFraudProof struct {
 }
 
 func TestRepairExtendedDataSquare(t *testing.T) {
-	bufferSize := 64
-	tests := []struct {
-		name string
-		// Size of each share, in bytes
-		shareSize int
-		codec     Codec
-	}{
-		{"leopard", bufferSize, NewLeoRSCodec()},
-	}
+	codec := NewLeoRSCodec()
+	shareSize := 64
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			name, codec, shareSize := test.name, test.codec, test.shareSize
-			original := createTestEds(codec, shareSize)
+	// Verify that an EDS can be repaired after the maximum amount of erasures
+	t.Run("MaximumErasures", func(t *testing.T) {
+		original := createTestEds(codec, shareSize)
+		rowRoots := original.RowRoots()
+		colRoots := original.ColRoots()
 
-			rowRoots := original.RowRoots()
-			colRoots := original.ColRoots()
+		flattened := original.Flattened()
+		flattened[0], flattened[2], flattened[3] = nil, nil, nil
+		flattened[4], flattened[5], flattened[6], flattened[7] = nil, nil, nil, nil
+		flattened[8], flattened[9], flattened[10] = nil, nil, nil
+		flattened[12], flattened[13] = nil, nil
 
-			// Verify that an EDS can be repaired after the maximum amount of erasures
-			t.Run("MaximumErasures", func(t *testing.T) {
-				flattened := original.Flattened()
-				flattened[0], flattened[2], flattened[3] = nil, nil, nil
-				flattened[4], flattened[5], flattened[6], flattened[7] = nil, nil, nil, nil
-				flattened[8], flattened[9], flattened[10] = nil, nil, nil
-				flattened[12], flattened[13] = nil, nil
+		// Re-import the data square.
+		eds, err := ImportExtendedDataSquare(flattened, codec, NewDefaultTree)
+		require.NoError(t, err)
 
-				// Re-import the data square.
-				eds, err := ImportExtendedDataSquare(flattened, codec, NewDefaultTree)
-				if err != nil {
-					t.Errorf("ImportExtendedDataSquare failed: %v", err)
-				}
+		err = eds.Repair(rowRoots, colRoots)
+		require.NoError(t, err)
 
-				err = eds.Repair(rowRoots, colRoots)
-				if err != nil {
-					t.Errorf("unexpected err while repairing data square: %v, codec: :%s", err, name)
-				} else {
-					assert.Equal(t, original.GetCell(0, 0), bytes.Repeat([]byte{1}, shareSize))
-					assert.Equal(t, original.GetCell(0, 1), bytes.Repeat([]byte{2}, shareSize))
-					assert.Equal(t, original.GetCell(1, 0), bytes.Repeat([]byte{3}, shareSize))
-					assert.Equal(t, original.GetCell(1, 1), bytes.Repeat([]byte{4}, shareSize))
-				}
-			})
+		assert.Equal(t, original.GetCell(0, 0), bytes.Repeat([]byte{1}, shareSize))
+		assert.Equal(t, original.GetCell(0, 1), bytes.Repeat([]byte{2}, shareSize))
+		assert.Equal(t, original.GetCell(1, 0), bytes.Repeat([]byte{3}, shareSize))
+		assert.Equal(t, original.GetCell(1, 1), bytes.Repeat([]byte{4}, shareSize))
+	})
 
-			// Verify that an EDS returns an error when there are too many erasures
-			t.Run("Unrepairable", func(t *testing.T) {
-				flattened := original.Flattened()
-				flattened[0], flattened[2], flattened[3] = nil, nil, nil
-				flattened[4], flattened[5], flattened[6], flattened[7] = nil, nil, nil, nil
-				flattened[8], flattened[9], flattened[10] = nil, nil, nil
-				flattened[12], flattened[13], flattened[14] = nil, nil, nil
+	// Verify that an EDS returns an error when there are too many erasures
+	t.Run("Unrepairable", func(t *testing.T) {
+		original := createTestEds(codec, shareSize)
+		rowRoots := original.RowRoots()
+		colRoots := original.ColRoots()
 
-				// Re-import the data square.
-				eds, err := ImportExtendedDataSquare(flattened, codec, NewDefaultTree)
-				if err != nil {
-					t.Errorf("ImportExtendedDataSquare failed: %v", err)
-				}
+		flattened := original.Flattened()
+		flattened[0], flattened[2], flattened[3] = nil, nil, nil
+		flattened[4], flattened[5], flattened[6], flattened[7] = nil, nil, nil, nil
+		flattened[8], flattened[9], flattened[10] = nil, nil, nil
+		flattened[12], flattened[13], flattened[14] = nil, nil, nil
 
-				err = eds.Repair(rowRoots, colRoots)
-				if err != ErrUnrepairableDataSquare {
-					t.Errorf("did not return an error on trying to repair an unrepairable square")
-				}
-			})
-		})
-	}
+		// Re-import the data square.
+		eds, err := ImportExtendedDataSquare(flattened, codec, NewDefaultTree)
+		require.NoError(t, err)
+
+		err = eds.Repair(rowRoots, colRoots)
+		assert.ErrorAs(t, err, &ErrUnrepairableDataSquare)
+	})
 }
 
 func TestValidFraudProof(t *testing.T) {

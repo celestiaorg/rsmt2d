@@ -136,13 +136,17 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 		shares[c] = vectorData[c]
 	}
 
-	// Attempt rebuild
-	rebuiltShares, isDecoded, err := eds.rebuildShares(shares)
+	// Attempt to rebuild the shards in this row.
+	rebuiltShares, err := eds.codec.Decode(shares)
 	if err != nil {
+		if err == ErrTooFewShards {
+			// Decode was unsuccessful for this iteration but don't propagate the
+			// error because that would halt the progress of solveCrossword.
+			return false, false, nil
+		}
+		// Otherwise, Decode was unsuccessful for some other reason and we
+		// should propagate the error.
 		return false, false, err
-	}
-	if !isDecoded {
-		return false, false, nil
 	}
 
 	// Check that rebuilt shares matches appropriate root
@@ -200,13 +204,17 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 
 	}
 
-	// Attempt rebuild
-	rebuiltShares, isDecoded, err := eds.rebuildShares(shares)
+	// Attempt to rebuild the shards in this column.
+	rebuiltShares, err := eds.codec.Decode(shares)
 	if err != nil {
+		if err == ErrTooFewShards {
+			// Decode was unsuccessful for this iteration but don't propagate the
+			// error because that would halt the progress of solveCrossword.
+			return false, false, nil
+		}
+		// Otherwise, Decode was unsuccessful for some other reason and we
+		// should propagate the error.
 		return false, false, err
-	}
-	if !isDecoded {
-		return false, false, nil
 	}
 
 	// Check that rebuilt shares matches appropriate root
@@ -239,24 +247,6 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	}
 
 	return true, true, nil
-}
-
-// rebuildShares attempts to rebuild a row or column of shares.
-// Returns
-// 1. An entire row or column of shares so original + parity shares.
-// 2. Whether the original shares could be decoded from the shares parameter.
-// 3. [Optional] an error.
-func (eds *ExtendedDataSquare) rebuildShares(
-	shares [][]byte,
-) ([][]byte, bool, error) {
-	rebuiltShares, err := eds.codec.Decode(shares)
-	if err != nil {
-		// Decode was unsuccessful but don't propagate the error because that
-		// would halt the progress of solveCrosswordRow or solveCrosswordCol.
-		return nil, false, nil
-	}
-
-	return rebuiltShares, true, nil
 }
 
 func (eds *ExtendedDataSquare) verifyAgainstRowRoots(

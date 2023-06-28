@@ -43,6 +43,11 @@ func (l *leoRSCodec) Encode(data [][]byte) ([][]byte, error) {
 	return shards[dataLen:], nil
 }
 
+// Decode attempts to reconstruct the missing shards in data. The data
+// parameter should contain all original + parity shards where missing
+// shards should be `nil`. If reconstruction is successful, the original +
+// parity shards are returned. Returns ErrTooFewShards if not enough non-nil
+// shards exist in data to reconstruct the missing shards.
 func (l *leoRSCodec) Decode(data [][]byte) ([][]byte, error) {
 	half := len(data) / 2
 	enc, err := l.loadOrInitEncoder(half)
@@ -50,7 +55,13 @@ func (l *leoRSCodec) Decode(data [][]byte) ([][]byte, error) {
 		return nil, err
 	}
 	err = enc.Reconstruct(data)
-	return data, err
+	if err == reedsolomon.ErrTooFewShards || err == reedsolomon.ErrShardNoData {
+		return nil, ErrTooFewShards
+	}
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }
 
 func (l *leoRSCodec) loadOrInitEncoder(dataLen int) (reedsolomon.Encoder, error) {

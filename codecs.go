@@ -1,6 +1,9 @@
 package rsmt2d
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 const (
 	// Leopard is a codec that was originally implemented in the C++ library
@@ -15,8 +18,11 @@ type Codec interface {
 	// Encode encodes original data, automatically extracting share size.
 	// There must be no missing shares. Only returns parity shares.
 	Encode(data [][]byte) ([][]byte, error)
-	// Decode decodes sparse original + parity data, automatically extracting share size.
-	// Missing shares must be nil. Returns original + parity data.
+	// Decode attempts to reconstruct the missing shards in data. The data
+	// parameter should contain all original + parity shards where missing
+	// shards should be `nil`. If reconstruction is successful, the original +
+	// parity shards are returned. Returns ErrTooFewShards if not enough non-nil
+	// shards exist in data to reconstruct the missing shards.
 	Decode(data [][]byte) ([][]byte, error)
 	// MaxChunks returns the max. number of chunks each code supports in a 2D square.
 	MaxChunks() int
@@ -33,3 +39,7 @@ func registerCodec(ct string, codec Codec) {
 	}
 	codecs[ct] = codec
 }
+
+// ErrTooFewShards is returned by Decode if too few shards exist in the data to
+// reconstruct the `nil` shards.
+var ErrTooFewShards = errors.New("too few shards given to reconstruct all the shards in data")
