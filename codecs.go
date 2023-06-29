@@ -16,12 +16,12 @@ type Codec interface {
 	// There must be no missing shares. Only returns parity shares.
 	Encode(data [][]byte) ([][]byte, error)
 	// Decode decodes sparse original + parity data, automatically extracting share size.
-	// Missing shares must be nil. Returns original shares only.
+	// Missing shares must be nil. Returns original + parity data.
 	Decode(data [][]byte) ([][]byte, error)
-	// maxChunks returns the max. number of chunks each code supports in a 2D square.
-	maxChunks() int
-	// name returns the name of the codec.
-	name() string
+	// MaxChunks returns the max. number of chunks each code supports in a 2D square.
+	MaxChunks() int
+	// Name returns the name of the codec.
+	Name() string
 }
 
 // codecs is a global map used for keeping track of registered codecs for testing and JSON unmarshalling
