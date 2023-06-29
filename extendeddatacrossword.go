@@ -180,7 +180,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 // Returns
 // - if the column is solved (i.e. complete)
 // - if the column was previously unsolved and now solved
-// - an error if the repair is unsuccessful and solveCrossword should halt.
+// - an error if the repair is unsuccessful and solveCrossword should halt
 func (eds *ExtendedDataSquare) solveCrosswordCol(
 	c int,
 	rowRoots [][]byte,
