@@ -44,7 +44,8 @@ type ErrByzantineData struct {
 }
 
 func (e *ErrByzantineData) Error() string {
-	return fmt.Sprintf("byzantine %s: %d", e.Axis, e.Index)
+	return fmt.Sprintf(
+		"byzantine %s: %d", e.Axis, e.Index)
 }
 
 // Repair attempts to repair an incomplete extended data
@@ -145,7 +146,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	}
 
 	// Check that rebuilt shares matches appropriate root
-	err = eds.verifyAgainstRowRoots(rowRoots, uint(r), rebuiltShares, noShareInsertion, nil)
+	err = eds.verifyAgainstRowRoots(rowRoots, uint(r), rebuiltShares, noShareInsertion, nil) // TODO[?} here is where we should return a new error when attempting t crete the tree root from unordered shares
 	if err != nil {
 		var byzErr *ErrByzantineData
 		if errors.As(err, &byzErr) {
@@ -199,7 +200,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 
 	}
 
-	isExtendedPartIncomplete := !eds.colRangeNoMissingData(uint(c), eds.originalDataWidth, eds.width)
+	isExtendedPartIncomplete := !eds.colRangeNoMissingData(uint(c), eds.originalDataWidth, eds.width) // TODO[?} why not checking whether half of the shares in the column is available and then attempt to rebuild the missing ones? why just the parity part can be incomplete?
 	// Attempt rebuild
 	rebuiltShares, isDecoded, err := eds.rebuildShares(isExtendedPartIncomplete, shares)
 	if err != nil {
@@ -210,11 +211,12 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	}
 
 	// Check that rebuilt shares matches appropriate root
-	err = eds.verifyAgainstColRoots(colRoots, uint(c), rebuiltShares, noShareInsertion, nil)
+	err = eds.verifyAgainstColRoots(colRoots, uint(c), rebuiltShares, noShareInsertion, nil) // TODO[?] we should return a new error here when attempting to create the tree root from unordered shares, hence the ErrByzantineData may need to account for the index of those unordered shares (what if those unordered shares are part of the parity part? it is not clear whether nodes sample from the parity section or not?)
+	// TODO[?] Then we should in here, retrieve the roots of the opposite cols or rows based on the info enapsulated in the error, and return those data as part of the ErrUnorderedData (maybe or just the old one)
 	if err != nil {
 		var byzErr *ErrByzantineData
 		if errors.As(err, &byzErr) {
-			byzErr.Shares = shares
+			byzErr.Shares = shares // it seems these are not the erasure coded shares
 		}
 		return false, false, err
 	}
@@ -289,7 +291,7 @@ func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
 		root, err = eds.computeSharesRootWithRebuiltShare(oldShares, Row, r, rebuiltIndex, rebuiltShare)
 	}
 	if err != nil {
-		return err
+		return err // TODO[?] depending on the error type it might be the case that the shares were out of order, return the index of the share that was out of order
 	}
 
 	if !bytes.Equal(root, rowRoots[r]) {
@@ -332,6 +334,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 
 	for i := uint(0); i < eds.width; i++ {
 		i := i
+		// checks if all the shares in the extended data square for this row are present (original and parity)
 		rowIsComplete := noMissingData(eds.row(i), noShareInsertion)
 		colIsComplete := noMissingData(eds.col(i), noShareInsertion)
 
@@ -367,6 +370,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 
 		if rowIsComplete {
 			errs.Go(func() error {
+				// check if we take the first half of the row and encode it, we get the second half
 				parityShares, err := eds.codec.Encode(eds.rowSlice(i, 0, eds.originalDataWidth))
 				if err != nil {
 					return err
@@ -380,6 +384,7 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 
 		if colIsComplete {
 			errs.Go(func() error {
+				// check if we take the first half of the col and encode it, we get the second half
 				parityShares, err := eds.codec.Encode(eds.colSlice(0, i, eds.originalDataWidth))
 				if err != nil {
 					return err
@@ -412,7 +417,7 @@ func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, axis Axis, i u
 	for _, d := range shares {
 		tree.Push(d)
 	}
-	return tree.Root()
+	return tree.Root() // TODO[?] depending on the error type it might be the case that the shares were out of order, return the index of the share that was out of order, the index can be encapsulated in the error type
 }
 
 func (eds *ExtendedDataSquare) computeSharesRootWithRebuiltShare(shares [][]byte, axis Axis, i uint, rebuiltIndex int, rebuiltShare []byte) ([]byte, error) {
