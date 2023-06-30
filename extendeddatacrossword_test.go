@@ -231,6 +231,7 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 					var byzData *ErrByzantineData
 					assert.ErrorAs(t, err, &byzData, "did not return a ErrByzantineData for a bad col or row")
 					assert.NotEmpty(t, byzData.Shares)
+					assert.Contains(t, byzData.Shares, corruptChunk)
 				})
 			}
 		})
