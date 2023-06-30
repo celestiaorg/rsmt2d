@@ -151,7 +151,7 @@ var dump *ExtendedDataSquare
 func BenchmarkExtensionEncoding(b *testing.B) {
 	for i := 4; i < 513; i *= 2 {
 		for codecName, codec := range codecs {
-			if codec.maxChunks() < i*i {
+			if codec.MaxChunks() < i*i {
 				// Only test codecs that support this many chunks
 				continue
 			}
@@ -179,7 +179,7 @@ func BenchmarkExtensionEncoding(b *testing.B) {
 func BenchmarkExtensionWithRoots(b *testing.B) {
 	for i := 4; i < 513; i *= 2 {
 		for codecName, codec := range codecs {
-			if codec.maxChunks() < i*i {
+			if codec.MaxChunks() < i*i {
 				// Only test codecs that support this many chunks
 				continue
 			}

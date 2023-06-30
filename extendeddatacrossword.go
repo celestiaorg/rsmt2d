@@ -136,9 +136,8 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 		shares[c] = vectorData[c]
 	}
 
-	isExtendedPartIncomplete := !eds.rowRangeNoMissingData(uint(r), eds.originalDataWidth, eds.width)
 	// Attempt rebuild
-	rebuiltShares, isDecoded, err := eds.rebuildShares(isExtendedPartIncomplete, shares)
+	rebuiltShares, isDecoded, err := eds.rebuildShares(shares)
 	if err != nil {
 		return false, false, err
 	}
@@ -205,9 +204,8 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 
 	}
 
-	isExtendedPartIncomplete := !eds.colRangeNoMissingData(uint(c), eds.originalDataWidth, eds.width)
 	// Attempt rebuild
-	rebuiltShares, isDecoded, err := eds.rebuildShares(isExtendedPartIncomplete, shares)
+	rebuiltShares, isDecoded, err := eds.rebuildShares(shares)
 	if err != nil {
 		return false, false, err
 	}
@@ -257,7 +255,6 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 // 2. Whether the original shares could be decoded from the shares parameter.
 // 3. [Optional] an error.
 func (eds *ExtendedDataSquare) rebuildShares(
-	isExtendedPartIncomplete bool,
 	shares [][]byte,
 ) ([][]byte, bool, error) {
 	rebuiltShares, err := eds.codec.Decode(shares)
@@ -265,25 +262,6 @@ func (eds *ExtendedDataSquare) rebuildShares(
 		// Decode was unsuccessful but don't propagate the error because that
 		// would halt the progress of solveCrosswordRow or solveCrosswordCol.
 		return nil, false, nil
-	}
-
-	if isExtendedPartIncomplete {
-		// If needed, rebuild the parity shares too.
-		rebuiltExtendedShares, err := eds.codec.Encode(rebuiltShares[0:eds.originalDataWidth])
-		if err != nil {
-			return nil, true, err
-		}
-		rebuiltShares = append(
-			rebuiltShares[0:eds.originalDataWidth],
-			rebuiltExtendedShares...,
-		)
-	} else {
-		// Otherwise copy them from the EDS.
-		startIndex := len(shares) - int(eds.originalDataWidth)
-		rebuiltShares = append(
-			rebuiltShares[0:eds.originalDataWidth],
-			shares[startIndex:]...,
-		)
 	}
 
 	return rebuiltShares, true, nil
@@ -434,22 +412,4 @@ func (eds *ExtendedDataSquare) computeSharesRootWithRebuiltShare(shares [][]byte
 		tree.Push(d)
 	}
 	return tree.Root()
-}
-
-func (eds *ExtendedDataSquare) rowRangeNoMissingData(r, start, end uint) bool {
-	for c := start; c <= end && c < eds.width; c++ {
-		if eds.squareRow[r][c] == nil {
-			return false
-		}
-	}
-	return true
-}
-
-func (eds *ExtendedDataSquare) colRangeNoMissingData(c, start, end uint) bool {
-	for r := start; r <= end && r < eds.width; r++ {
-		if eds.squareRow[r][c] == nil {
-			return false
-		}
-	}
-	return true
 }

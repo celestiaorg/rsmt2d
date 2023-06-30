@@ -67,11 +67,11 @@ func (l *leoRSCodec) loadOrInitEncoder(dataLen int) (reedsolomon.Encoder, error)
 
 }
 
-func (l *leoRSCodec) maxChunks() int {
+func (l *leoRSCodec) MaxChunks() int {
 	return 32768 * 32768
 }
 
-func (l *leoRSCodec) name() string {
+func (l *leoRSCodec) Name() string {
 	return Leopard
 }
 

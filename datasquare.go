@@ -292,22 +292,31 @@ func (ds *dataSquare) GetCell(x uint, y uint) []byte {
 	return cell
 }
 
-// SetCell sets a specific cell. Cell to set must be `nil`.
-// Panics if attempting to set a cell that is not `nil`.
-func (ds *dataSquare) SetCell(x uint, y uint, newChunk []byte) {
+// SetCell sets a specific cell. The cell to set must be `nil`. Returns an error
+// if the cell to set is not `nil` or newChunk is not the correct size.
+func (ds *dataSquare) SetCell(x uint, y uint, newChunk []byte) error {
 	if ds.squareRow[x][y] != nil {
-		panic(fmt.Sprintf("cannot set cell (%d, %d) as it already has a value %x", x, y, ds.squareRow[x][y]))
+		return fmt.Errorf("cannot set cell (%d, %d) as it already has a value %x", x, y, ds.squareRow[x][y])
+	}
+	if len(newChunk) != int(ds.chunkSize) {
+		return fmt.Errorf("cannot set cell with chunk size %d because dataSquare chunk size is %d", len(newChunk), ds.chunkSize)
 	}
 	ds.squareRow[x][y] = newChunk
 	ds.squareCol[y][x] = newChunk
 	ds.resetRoots()
+	return nil
 }
 
-// setCell sets a specific cell.
-func (ds *dataSquare) setCell(x uint, y uint, newChunk []byte) {
+// setCell sets a specific cell. setCell will overwrite any existing value.
+// Returns an error if the newChunk is not the correct size.
+func (ds *dataSquare) setCell(x uint, y uint, newChunk []byte) error {
+	if len(newChunk) != int(ds.chunkSize) {
+		return fmt.Errorf("cannot set cell with chunk size %d because dataSquare chunk size is %d", len(newChunk), ds.chunkSize)
+	}
 	ds.squareRow[x][y] = newChunk
 	ds.squareCol[y][x] = newChunk
 	ds.resetRoots()
+	return nil
 }
 
 // Flattened returns the concatenated rows of the data square.

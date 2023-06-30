@@ -23,7 +23,7 @@ func (eds *ExtendedDataSquare) MarshalJSON() ([]byte, error) {
 		Codec      string   `json:"codec"`
 	}{
 		DataSquare: eds.dataSquare.Flattened(),
-		Codec:      eds.codec.name(),
+		Codec:      eds.codec.Name(),
 	})
 }
 
@@ -50,7 +50,7 @@ func ComputeExtendedDataSquare(
 	codec Codec,
 	treeCreatorFn TreeConstructorFn,
 ) (*ExtendedDataSquare, error) {
-	if len(data) > codec.maxChunks() {
+	if len(data) > codec.MaxChunks() {
 		return nil, errors.New("number of chunks exceeds the maximum")
 	}
 
@@ -74,7 +74,7 @@ func ImportExtendedDataSquare(
 	codec Codec,
 	treeCreatorFn TreeConstructorFn,
 ) (*ExtendedDataSquare, error) {
-	if len(data) > 4*codec.maxChunks() {
+	if len(data) > 4*codec.MaxChunks() {
 		return nil, errors.New("number of chunks exceeds the maximum")
 	}
 
