@@ -307,16 +307,13 @@ func (ds *dataSquare) SetCell(x uint, y uint, newChunk []byte) error {
 	return nil
 }
 
-// setCell sets a specific cell. setCell will overwrite any existing value.
-// Returns an error if the newChunk is not the correct size.
-func (ds *dataSquare) setCell(x uint, y uint, newChunk []byte) error {
-	if len(newChunk) != int(ds.chunkSize) {
-		return fmt.Errorf("cannot set cell with chunk size %d because dataSquare chunk size is %d", len(newChunk), ds.chunkSize)
-	}
+// setCell overwrites the contents of a specific cell. setCell does not perform
+// any input validation so most usecases should use `SetCell` instead of
+// `setCell`. This method exists strictly for testing.
+func (ds *dataSquare) setCell(x uint, y uint, newChunk []byte) {
 	ds.squareRow[x][y] = newChunk
 	ds.squareCol[y][x] = newChunk
 	ds.resetRoots()
-	return nil
 }
 
 // Flattened returns the concatenated rows of the data square.
