@@ -461,3 +461,12 @@ func (d *errorTree) Push(data []byte) error {
 func (d *errorTree) Root() ([]byte, error) {
 	return nil, fmt.Errorf("error")
 }
+
+// setCell overwrites the contents of a specific cell. setCell does not perform
+// any input validation so most use cases should use `SetCell` instead of
+// `setCell`. This method exists strictly for testing.
+func (ds *dataSquare) setCell(x uint, y uint, newChunk []byte) {
+	ds.squareRow[x][y] = newChunk
+	ds.squareCol[y][x] = newChunk
+	ds.resetRoots()
+}
