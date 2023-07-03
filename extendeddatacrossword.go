@@ -171,7 +171,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 
 	// Insert rebuilt shares into square.
 	for c, s := range rebuiltShares {
-		eds.setCell(uint(r), uint(c), s)
+		eds.SetCell(uint(r), uint(c), s)
 	}
 
 	return true, true, nil
@@ -235,7 +235,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 
 	// Insert rebuilt shares into square.
 	for r, s := range rebuiltShares {
-		eds.setCell(uint(r), uint(c), s)
+		eds.SetCell(uint(r), uint(c), s)
 	}
 
 	return true, true, nil
