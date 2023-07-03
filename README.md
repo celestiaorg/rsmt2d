@@ -71,10 +71,20 @@ func main() {
 }
 ```
 
-## Building From Source
+## Contributing
 
-Run benchmarks
+1. [Install Go](https://go.dev/doc/install) 1.19+
+1. [Install golangci-lint](https://golangci-lint.run/usage/install/)
+
+### Helpful Commands
 
 ```sh
+# Run unit tests
+go test ./...
+
+# Run benchmarks
 go test -benchmem -bench=.
+
+# Run linter
+golangci-lint run
 ```

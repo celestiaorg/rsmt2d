@@ -193,14 +193,19 @@ func TestInvalidSquareExtension(t *testing.T) {
 	}
 }
 
+// TestRoots verifies that the row roots and column roots are equal for a 1x1
+// square.
 func TestRoots(t *testing.T) {
 	result, err := newDataSquare([][]byte{{1, 2}}, NewDefaultTree)
-	if err != nil {
-		panic(err)
-	}
-	if !reflect.DeepEqual(result.getRowRoots(), result.getColRoots()) {
-		t.Errorf("computing roots failed; expecting row and column roots for 1x1 square to be equal")
-	}
+	assert.NoError(t, err)
+
+	rowRoots, err := result.getRowRoots()
+	assert.NoError(t, err)
+
+	colRoots, err := result.getColRoots()
+	assert.NoError(t, err)
+
+	assert.Equal(t, rowRoots, colRoots)
 }
 
 func TestLazyRootGeneration(t *testing.T) {
@@ -252,22 +257,19 @@ func TestRootAPI(t *testing.T) {
 	for i := uint(0); i < square.width; i++ {
 		rowRoot, err := square.getRowRoot(i)
 		assert.NoError(t, err)
-		if !reflect.DeepEqual(square.getRowRoots()[i], rowRoot) {
-			t.Errorf(
-				"Row root API results in different roots, expected %v got %v",
-				square.getRowRoots()[i],
-				rowRoot,
-			)
-		}
+
+		rowRoots, err := square.getRowRoots()
+		assert.NoError(t, err)
+
+		assert.Equal(t, rowRoots[i], rowRoot)
+
 		colRoot, err := square.getColRoot(i)
 		assert.NoError(t, err)
-		if !reflect.DeepEqual(square.getColRoots()[i], colRoot) {
-			t.Errorf(
-				"Column root API results in different roots, expected %v got %v",
-				square.getColRoots()[i],
-				colRoot,
-			)
-		}
+
+		colRoots, err := square.getColRoots()
+		assert.NoError(t, err)
+
+		assert.Equal(t, colRoots[i], colRoot)
 	}
 }
 

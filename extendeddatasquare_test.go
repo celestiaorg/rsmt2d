@@ -106,15 +106,27 @@ func TestImmutableRoots(t *testing.T) {
 		panic(err)
 	}
 
-	row := result.RowRoots()
-	row[0][0]++
-	if reflect.DeepEqual(row, result.RowRoots()) {
+	mutatedRowRoots, err := result.RowRoots()
+	assert.NoError(t, err)
+
+	mutatedRowRoots[0][0]++ // mutate
+
+	rowRoots, err := result.RowRoots()
+	assert.NoError(t, err)
+
+	if reflect.DeepEqual(mutatedRowRoots, rowRoots) {
 		t.Errorf("Exported EDS RowRoots was mutable")
 	}
 
-	col := result.ColRoots()
-	col[0][0]++
-	if reflect.DeepEqual(col, result.ColRoots()) {
+	mutatedColRoots, err := result.ColRoots()
+	assert.NoError(t, err)
+
+	mutatedColRoots[0][0]++ // mutate
+
+	colRoots, err := result.ColRoots()
+	assert.NoError(t, err)
+
+	if reflect.DeepEqual(mutatedColRoots, colRoots) {
 		t.Errorf("Exported EDS ColRoots was mutable")
 	}
 }
@@ -193,8 +205,8 @@ func BenchmarkExtensionWithRoots(b *testing.B) {
 						if err != nil {
 							b.Error(err)
 						}
-						_ = eds.RowRoots()
-						_ = eds.ColRoots()
+						_, _ = eds.RowRoots()
+						_, _ = eds.ColRoots()
 						dump = eds
 					}
 				},
