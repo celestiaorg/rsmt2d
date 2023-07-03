@@ -162,15 +162,15 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 		if col[r] != nil {
 			continue // not newly completed
 		}
-		if noMissingData(col, r) { // completed
+		eds.setCell(uint(r), uint(c), rebuiltShares[c]) // include the newly completed share
+		if noMissingData(col, r) {                      // completed
 			err := eds.verifyAgainstColRoots(colRoots, uint(c), col, r, rebuiltShares[c])
 			if err != nil {
 				var byzErr *ErrByzantineData
 				if errors.As(err, &byzErr) {
 					// make a copy of the column shares
 					colShares := make([][]byte, eds.width)
-					copy(colShares, col)
-					colShares[r] = col[r] // include the newly completed share
+					copy(colShares, eds.col(uint(c)))
 					byzErr.Shares = colShares
 				}
 				return false, false, err
@@ -234,15 +234,15 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 		if row[c] != nil {
 			continue // not newly completed
 		}
-		if noMissingData(row, c) { // not completed
-			err := eds.verifyAgainstRowRoots(rowRoots, uint(r), row, c, rebuiltShares[c])
+		eds.setCell(uint(r), uint(c), rebuiltShares[r]) // include the newly completed share
+		if noMissingData(row, c) {                      // completed
+			err := eds.verifyAgainstRowRoots(rowRoots, uint(r), row, c, rebuiltShares[r])
 			if err != nil {
 				var byzErr *ErrByzantineData
 				if errors.As(err, &byzErr) {
 					// make a copy of the column shares
 					rowShares := make([][]byte, eds.width)
 					copy(rowShares, eds.row(uint(r)))
-					rowShares[r] = rebuiltShares[r] // include the newly completed share
 					byzErr.Shares = rowShares
 				}
 				return false, false, err
