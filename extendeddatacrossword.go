@@ -311,6 +311,8 @@ func (eds *ExtendedDataSquare) verifyAgainstColRoots(
 	return nil
 }
 
+// prerepairSanityCheck checks that the roots of the rows and columns, if all the respective constituent shares are available, match the expected roots as supplied in rowRoots and colRoots.
+// It also verifies whether the complete rows and columns are correctly erasure coded.
 func (eds *ExtendedDataSquare) prerepairSanityCheck(
 	rowRoots [][]byte,
 	colRoots [][]byte,
@@ -327,10 +329,13 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 				// ensure that the roots are equal
 				rowRoot, err := eds.getRowRoot(i)
 				if err != nil {
-					return err
+					// any error regarding the root calculation signifies an issue in the shares e.g., out of order shares
+					// therefore, it should be treated as byzantine data
+					return &ErrByzantineData{Row, i, eds.row(i)}
 				}
 				if !bytes.Equal(rowRoots[i], rowRoot) {
-					return fmt.Errorf("bad root input: row %d expected %v got %v", i, rowRoots[i], rowRoot)
+					// if the roots are not equal, then the data is byzantine
+					return &ErrByzantineData{Row, i, eds.row(i)}
 				}
 				return nil
 			})
@@ -353,10 +358,13 @@ func (eds *ExtendedDataSquare) prerepairSanityCheck(
 				// ensure that the roots are equal
 				colRoot, err := eds.getColRoot(i)
 				if err != nil {
-					return err
+					// any error regarding the root calculation signifies an issue in the shares e.g., out of order shares
+					// therefore, it should be treated as byzantine data
+					return &ErrByzantineData{Col, i, eds.col(i)}
 				}
 				if !bytes.Equal(colRoots[i], colRoot) {
-					return fmt.Errorf("bad root input: col %d expected %v got %v", i, colRoots[i], colRoot)
+					// if the roots are not equal, then the data is byzantine
+					return &ErrByzantineData{Col, i, eds.col(i)}
 				}
 				return nil
 			})
