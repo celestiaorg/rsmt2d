@@ -286,26 +286,32 @@ func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
 	return nil
 }
 
+// verifyAgainstColRoots checks that the shares of column index `c` match their expected column root available in `colRoots`.
+// `colRoots` is a slice of the expected roots of the columns of the `eds`.
+// `shares` is a slice of the shares of the column index `c` of the `eds`.
+// `rebuiltIndex` is the index of the share that was rebuilt, if any.
+// `rebuiltShare` is the rebuilt share, if any.
 func (eds *ExtendedDataSquare) verifyAgainstColRoots(
 	colRoots [][]byte,
 	c uint,
-	oldShares [][]byte,
+	shares [][]byte,
 	rebuiltIndex int,
 	rebuiltShare []byte,
 ) error {
 	var root []byte
 	var err error
 	if rebuiltIndex < 0 || rebuiltShare == nil {
-		root, err = eds.computeSharesRoot(oldShares, Col, c)
+		root, err = eds.computeSharesRoot(shares, Col, c)
 	} else {
-		root, err = eds.computeSharesRootWithRebuiltShare(oldShares, Col, c, rebuiltIndex, rebuiltShare)
+		root, err = eds.computeSharesRootWithRebuiltShare(shares, Col, c, rebuiltIndex, rebuiltShare)
 	}
 	if err != nil {
-		return err
+		// the shares are set to nil, as the caller will populate them
+		return &ErrByzantineData{Col, c, nil}
 	}
 
 	if !bytes.Equal(root, colRoots[c]) {
-		return &ErrByzantineData{Col, c, nil}
+		return &ErrByzantineData{Col, c, nil} // the shares are set to nil, as the caller will populate them
 	}
 
 	return nil
@@ -397,6 +403,7 @@ func noMissingData(input [][]byte, rebuiltIndex int) bool {
 	return true
 }
 
+// computeSharesRoot computes the root of the shares of the specified axis (column or row) and index `i`.
 func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, axis Axis, i uint) ([]byte, error) {
 	tree := eds.createTreeFn(axis, i)
 	for _, d := range shares {
@@ -405,6 +412,7 @@ func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, axis Axis, i u
 	return tree.Root() // TODO[?] depending on the error type it might be the case that the shares were out of order, return the index of the share that was out of order, the index can be encapsulated in the error type
 }
 
+// computeSharesRootWithRebuiltShare computes the root of the shares with the rebuilt share `rebuiltShare` at the specified index `rebuiltIndex`.
 func (eds *ExtendedDataSquare) computeSharesRootWithRebuiltShare(shares [][]byte, axis Axis, i uint, rebuiltIndex int, rebuiltShare []byte) ([]byte, error) {
 	tree := eds.createTreeFn(axis, i)
 	for _, d := range shares[:rebuiltIndex] {
