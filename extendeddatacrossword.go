@@ -163,7 +163,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 			continue // not newly completed
 		}
 		if noMissingData(col, r) { // completed
-			err := eds.verifyAgainstColRoots(colRoots, uint(c), col, r, rebuiltShares[r])
+			err := eds.verifyAgainstColRoots(colRoots, uint(c), col, r, rebuiltShares[c])
 			if err != nil {
 				var byzErr *ErrByzantineData
 				if errors.As(err, &byzErr) {
