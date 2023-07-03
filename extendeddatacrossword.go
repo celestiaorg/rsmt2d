@@ -162,7 +162,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 		if col[r] != nil {
 			continue // not newly completed
 		}
-		if noMissingData(col, r) { // completed TODO[?] or half completed?
+		if noMissingData(col, r) { // completed
 			err := eds.verifyAgainstColRoots(colRoots, uint(c), col, r, rebuiltShares[r])
 			if err != nil {
 				var byzErr *ErrByzantineData
@@ -219,8 +219,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	}
 
 	// Check that rebuilt shares matches appropriate root
-	err = eds.verifyAgainstColRoots(colRoots, uint(c), rebuiltShares, noShareInsertion, nil) // TODO[?] we should return a new error here when attempting to create the tree root from unordered shares, hence the ErrByzantineData may need to account for the index of those unordered shares (what if those unordered shares are part of the parity part? it is not clear whether nodes sample from the parity section or not?)
-	// TODO[?] Then we should in here, retrieve the roots of the opposite cols or rows based on the info enapsulated in the error, and return those data as part of the ErrUnorderedData (maybe or just the old one)
+	err = eds.verifyAgainstColRoots(colRoots, uint(c), rebuiltShares, noShareInsertion, nil)
 	if err != nil {
 		var byzErr *ErrByzantineData
 		if errors.As(err, &byzErr) {
@@ -430,7 +429,7 @@ func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, axis Axis, i u
 	for _, d := range shares {
 		tree.Push(d)
 	}
-	return tree.Root() // TODO[?] depending on the error type it might be the case that the shares were out of order, return the index of the share that was out of order, the index can be encapsulated in the error type
+	return tree.Root()
 }
 
 // computeSharesRootWithRebuiltShare computes the root of the shares with the rebuilt share `rebuiltShare` at the specified index `rebuiltIndex`.
