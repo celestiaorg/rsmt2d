@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/celestiaorg/rsmt2d"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEdsRepairRoundtripSimple(t *testing.T) {
@@ -39,8 +40,11 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 				t.Errorf("ComputeExtendedDataSquare failed: %v", err)
 			}
 
-			rowRoots := eds.RowRoots()
-			colRoots := eds.ColRoots()
+			rowRoots, err := eds.RowRoots()
+			assert.NoError(t, err)
+
+			colRoots, err := eds.ColRoots()
+			assert.NoError(t, err)
 
 			// Save all shares in flattened form.
 			flattened := make([][]byte, 0, eds.Width()*eds.Width())
@@ -105,8 +109,11 @@ func TestEdsRepairTwice(t *testing.T) {
 				t.Errorf("ComputeExtendedDataSquare failed: %v", err)
 			}
 
-			rowRoots := eds.RowRoots()
-			colRoots := eds.ColRoots()
+			rowRoots, err := eds.RowRoots()
+			assert.NoError(t, err)
+
+			colRoots, err := eds.ColRoots()
+			assert.NoError(t, err)
 
 			// Save all shares in flattened form.
 			flattened := make([][]byte, 0, eds.Width()*eds.Width())
@@ -155,7 +162,6 @@ func TestEdsRepairTwice(t *testing.T) {
 				// Should now pass, since sufficient data.
 				t.Errorf("RepairExtendedDataSquare failed: %v", err)
 			}
-
 		})
 	}
 }

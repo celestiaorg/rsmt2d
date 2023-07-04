@@ -235,12 +235,15 @@ func (ds *dataSquare) computeRoots() error {
 }
 
 // getRowRoots returns the Merkle roots of all the rows in the square.
-func (ds *dataSquare) getRowRoots() [][]byte {
+func (ds *dataSquare) getRowRoots() ([][]byte, error) {
 	if ds.rowRoots == nil {
-		ds.computeRoots()
+		err := ds.computeRoots()
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return ds.rowRoots
+	return ds.rowRoots, nil
 }
 
 // getRowRoot calculates and returns the root of the selected row. Note: unlike the
@@ -252,19 +255,25 @@ func (ds *dataSquare) getRowRoot(x uint) ([]byte, error) {
 
 	tree := ds.createTreeFn(Row, x)
 	for _, d := range ds.row(x) {
-		tree.Push(d)
+		err := tree.Push(d)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return tree.Root()
 }
 
 // getColRoots returns the Merkle roots of all the columns in the square.
-func (ds *dataSquare) getColRoots() [][]byte {
+func (ds *dataSquare) getColRoots() ([][]byte, error) {
 	if ds.colRoots == nil {
-		ds.computeRoots()
+		err := ds.computeRoots()
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return ds.colRoots
+	return ds.colRoots, nil
 }
 
 // getColRoot calculates and returns the root of the selected row. Note: unlike the
@@ -276,7 +285,10 @@ func (ds *dataSquare) getColRoot(y uint) ([]byte, error) {
 
 	tree := ds.createTreeFn(Col, y)
 	for _, d := range ds.col(y) {
-		tree.Push(d)
+		err := tree.Push(d)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return tree.Root()

@@ -178,7 +178,13 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 
 	// Insert rebuilt shares into square.
 	for c, s := range rebuiltShares {
-		eds.SetCell(uint(r), uint(c), s)
+		cellToSet := eds.GetCell(uint(r), uint(c))
+		if cellToSet == nil {
+			err := eds.SetCell(uint(r), uint(c), s)
+			if err != nil {
+				return false, false, err
+			}
+		}
 	}
 
 	return true, true, nil
@@ -204,7 +210,6 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	vectorData := eds.col(uint(c))
 	for r := 0; r < int(eds.width); r++ {
 		shares[r] = vectorData[r]
-
 	}
 
 	// Attempt rebuild
@@ -242,7 +247,13 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 
 	// Insert rebuilt shares into square.
 	for r, s := range rebuiltShares {
-		eds.SetCell(uint(r), uint(c), s)
+		cellToSet := eds.GetCell(uint(r), uint(c))
+		if cellToSet == nil {
+			err := eds.SetCell(uint(r), uint(c), s)
+			if err != nil {
+				return false, false, err
+			}
+		}
 	}
 
 	return true, true, nil
@@ -396,7 +407,10 @@ func noMissingData(input [][]byte, rebuiltIndex int) bool {
 func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, axis Axis, i uint) ([]byte, error) {
 	tree := eds.createTreeFn(axis, i)
 	for _, d := range shares {
-		tree.Push(d)
+		err := tree.Push(d)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return tree.Root()
 }
@@ -404,11 +418,22 @@ func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, axis Axis, i u
 func (eds *ExtendedDataSquare) computeSharesRootWithRebuiltShare(shares [][]byte, axis Axis, i uint, rebuiltIndex int, rebuiltShare []byte) ([]byte, error) {
 	tree := eds.createTreeFn(axis, i)
 	for _, d := range shares[:rebuiltIndex] {
-		tree.Push(d)
+		err := tree.Push(d)
+		if err != nil {
+			return nil, err
+		}
 	}
-	tree.Push(rebuiltShare)
+
+	err := tree.Push(rebuiltShare)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, d := range shares[rebuiltIndex+1:] {
-		tree.Push(d)
+		err := tree.Push(d)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return tree.Root()
 }

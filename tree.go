@@ -30,7 +30,7 @@ type DefaultTree struct {
 	root   []byte
 }
 
-func NewDefaultTree(axis Axis, index uint) Tree {
+func NewDefaultTree(_ Axis, _ uint) Tree {
 	return &DefaultTree{
 		Tree:   merkletree.New(sha256.New()),
 		leaves: make([][]byte, 0, 128),
