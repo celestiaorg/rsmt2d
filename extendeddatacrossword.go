@@ -40,9 +40,16 @@ var ErrUnrepairableDataSquare = errors.New("failed to solve data square")
 // expected row or column Merkle root. It is also returned when the parity data
 // from a row or a column is not equal to the encoded original data.
 type ErrByzantineData struct {
-	Axis   Axis     // Axis of the data.
-	Index  uint     // Row/Col index.
-	Shares [][]byte // Pre-repaired shares. Missing shares are nil.
+	// Axis describes if this ErrByzantineData is for a row or column.
+	Axis Axis
+	// Index is the row or column index.
+	Index uint
+	// Shares contain the shares in the row or column that the client can
+	// determine proofs for (either through sampling or using shares decoded
+	// from the extended data square). In other words, it contains shares whose
+	// individual inclusion is guaranteed to be provable by the full node (i.e.
+	// shares usable in a bad encoding fraud proof). Missing shares are nil.
+	Shares [][]byte
 }
 
 func (e *ErrByzantineData) Error() string {
