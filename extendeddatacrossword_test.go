@@ -219,16 +219,18 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 			for _, test := range tests {
 				t.Run(test.name, func(t *testing.T) {
 					eds := createTestEds(codec, shareSize)
-					for i, coords := range test.coords {
-						x := coords[0]
-						y := coords[1]
-						eds.setCell(x, y, test.values[i])
-					}
+
 					rowRoots, err := eds.getRowRoots()
 					assert.NoError(t, err)
 
 					colRoots, err := eds.getColRoots()
 					assert.NoError(t, err)
+
+					for i, coords := range test.coords {
+						x := coords[0]
+						y := coords[1]
+						eds.setCell(x, y, test.values[i])
+					}
 
 					err = eds.Repair(rowRoots, colRoots)
 					assert.Error(t, err)
