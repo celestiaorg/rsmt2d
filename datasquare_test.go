@@ -95,47 +95,40 @@ func TestSetCell(t *testing.T) {
 	}
 }
 
+// Test_setCell verifies that setCell can overwrite cells without performing any
+// input validation.
 func Test_setCell(t *testing.T) {
 	type testCase struct {
-		name         string
-		originalCell []byte
-		newCell      []byte
-		wantErr      bool
+		name     string
+		original []byte
+		new      []byte
 	}
 
 	testCases := []testCase{
 		{
-			name:         "can set cell if originally nil",
-			originalCell: nil,
-			newCell:      []byte{42},
-			wantErr:      false,
+			name:     "can set cell if originally nil",
+			original: nil,
+			new:      []byte{42},
 		},
 		{
-			name:         "can set cell if originally some value",
-			originalCell: []byte{1},
-			newCell:      []byte{42},
-			wantErr:      false,
+			name:     "can set cell if originally some value",
+			original: []byte{1},
+			new:      []byte{42},
 		},
 		{
-			name:         "expect error if new cell is not the correct chunk size",
-			originalCell: nil,
-			newCell:      []byte{1, 2}, // incorrect chunk size
-			wantErr:      true,
+			name:     "can set cell to nil",
+			original: []byte{1},
+			new:      nil,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ds, err := newDataSquare([][]byte{tc.originalCell, {2}, {3}, {4}}, NewDefaultTree)
+			ds, err := newDataSquare([][]byte{tc.original, {2}, {3}, {4}}, NewDefaultTree)
 			assert.NoError(t, err)
 
-			err = ds.setCell(0, 0, tc.newCell)
-			if tc.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tc.newCell, ds.GetCell(0, 0))
-			}
+			ds.setCell(0, 0, tc.new)
+			assert.Equal(t, tc.new, ds.GetCell(0, 0))
 		})
 	}
 }
@@ -467,4 +460,13 @@ func (d *errorTree) Push(data []byte) error {
 
 func (d *errorTree) Root() ([]byte, error) {
 	return nil, fmt.Errorf("error")
+}
+
+// setCell overwrites the contents of a specific cell. setCell does not perform
+// any input validation so most use cases should use `SetCell` instead of
+// `setCell`. This method exists strictly for testing.
+func (ds *dataSquare) setCell(x uint, y uint, newChunk []byte) {
+	ds.squareRow[x][y] = newChunk
+	ds.squareCol[y][x] = newChunk
+	ds.resetRoots()
 }
