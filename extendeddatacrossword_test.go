@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // PseudoFraudProof is an example fraud proof.
@@ -34,8 +35,11 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 			name, codec, shareSize := test.name, test.codec, test.shareSize
 			original := createTestEds(codec, shareSize)
 
-			rowRoots := original.RowRoots()
-			colRoots := original.ColRoots()
+			rowRoots, err := original.RowRoots()
+			require.NoError(t, err)
+
+			colRoots, err := original.ColRoots()
+			require.NoError(t, err)
 
 			// Verify that an EDS can be repaired after the maximum amount of erasures
 			t.Run("MaximumErasures", func(t *testing.T) {
@@ -108,7 +112,15 @@ func TestValidFraudProof(t *testing.T) {
 				t.Fatalf("unexpected err while copying original data: %v, codec: :%s", err, name)
 			}
 			corrupted.setCell(0, 0, corruptChunk)
-			err = corrupted.Repair(corrupted.getRowRoots(), corrupted.getColRoots())
+			assert.NoError(t, err)
+
+			rowRoots, err := corrupted.getRowRoots()
+			assert.NoError(t, err)
+
+			colRoots, err := corrupted.getColRoots()
+			assert.NoError(t, err)
+
+			err = corrupted.Repair(rowRoots, colRoots)
 			errors.As(err, &byzData)
 
 			// Construct the fraud proof
@@ -155,11 +167,15 @@ func TestCannotRepairSquareWithBadRoots(t *testing.T) {
 			codec, shareSize := test.codec, test.shareSize
 			original := createTestEds(codec, shareSize)
 
-			rowRoots := original.RowRoots()
-			colRoots := original.ColRoots()
+			rowRoots, err := original.RowRoots()
+			require.NoError(t, err)
+
+			colRoots, err := original.ColRoots()
+			require.NoError(t, err)
 
 			original.setCell(0, 0, corruptChunk)
-			err := original.Repair(rowRoots, colRoots)
+			require.NoError(t, err)
+			err = original.Repair(rowRoots, colRoots)
 			if err == nil {
 				t.Errorf("did not return an error on trying to repair a square with bad roots")
 			}
@@ -208,7 +224,13 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 						y := coords[1]
 						eds.setCell(x, y, test.values[i])
 					}
-					err := eds.Repair(eds.getRowRoots(), eds.getColRoots())
+					rowRoots, err := eds.getRowRoots()
+					assert.NoError(t, err)
+
+					colRoots, err := eds.getColRoots()
+					assert.NoError(t, err)
+
+					err = eds.Repair(rowRoots, colRoots)
 					assert.Error(t, err)
 
 					// due to parallelisation, the ErrByzantineData axis may be either row or col
@@ -237,8 +259,11 @@ func BenchmarkRepair(b *testing.B) {
 			}
 
 			extendedDataWidth := originalDataWidth * 2
-			rowRoots := eds.RowRoots()
-			colRoots := eds.ColRoots()
+			rowRoots, err := eds.RowRoots()
+			assert.NoError(b, err)
+
+			colRoots, err := eds.ColRoots()
+			assert.NoError(b, err)
 
 			b.Run(
 				fmt.Sprintf(

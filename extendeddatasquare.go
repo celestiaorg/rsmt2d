@@ -185,8 +185,8 @@ func (eds *ExtendedDataSquare) erasureExtendCol(codec Codec, i uint) error {
 }
 
 func (eds *ExtendedDataSquare) deepCopy(codec Codec) (ExtendedDataSquare, error) {
-	copy, err := ImportExtendedDataSquare(eds.Flattened(), codec, eds.createTreeFn)
-	return *copy, err
+	imported, err := ImportExtendedDataSquare(eds.Flattened(), codec, eds.createTreeFn)
+	return *imported, err
 }
 
 // Col returns a column slice.
@@ -196,8 +196,12 @@ func (eds *ExtendedDataSquare) Col(y uint) [][]byte {
 }
 
 // ColRoots returns the Merkle roots of all the columns in the square.
-func (eds *ExtendedDataSquare) ColRoots() [][]byte {
-	return deepCopy(eds.getColRoots())
+func (eds *ExtendedDataSquare) ColRoots() ([][]byte, error) {
+	colRoots, err := eds.getColRoots()
+	if err != nil {
+		return nil, err
+	}
+	return deepCopy(colRoots), nil
 }
 
 // Row returns a row slice.
@@ -207,8 +211,12 @@ func (eds *ExtendedDataSquare) Row(x uint) [][]byte {
 }
 
 // RowRoots returns the Merkle roots of all the rows in the square.
-func (eds *ExtendedDataSquare) RowRoots() [][]byte {
-	return deepCopy(eds.getRowRoots())
+func (eds *ExtendedDataSquare) RowRoots() ([][]byte, error) {
+	rowRoots, err := eds.getRowRoots()
+	if err != nil {
+		return nil, err
+	}
+	return deepCopy(rowRoots), nil
 }
 
 func deepCopy(original [][]byte) [][]byte {
