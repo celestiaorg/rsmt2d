@@ -195,7 +195,8 @@ func (eds *ExtendedDataSquare) Col(y uint) [][]byte {
 	return deepCopy(eds.col(y))
 }
 
-// ColRoots returns the Merkle roots of all the columns in the square.
+// ColRoots returns the Merkle roots of all the columns in the square. Returns
+// an error if the EDS is incomplete (i.e. some shares are nil).
 func (eds *ExtendedDataSquare) ColRoots() ([][]byte, error) {
 	colRoots, err := eds.getColRoots()
 	if err != nil {
@@ -210,7 +211,8 @@ func (eds *ExtendedDataSquare) Row(x uint) [][]byte {
 	return deepCopy(eds.row(x))
 }
 
-// RowRoots returns the Merkle roots of all the rows in the square.
+// RowRoots returns the Merkle roots of all the rows in the square. Returns an
+// error if the EDS is incomplete (i.e. some shares are nil).
 func (eds *ExtendedDataSquare) RowRoots() ([][]byte, error) {
 	rowRoots, err := eds.getRowRoots()
 	if err != nil {
