@@ -337,10 +337,9 @@ func Test_setRowSlice(t *testing.T) {
 		if tc.wantErr {
 			assert.Error(t, err)
 			return
-		} else {
-			assert.NoError(t, err)
-			assert.Equal(t, tc.want, ds.Flattened())
 		}
+		assert.NoError(t, err)
+		assert.Equal(t, tc.want, ds.Flattened())
 	}
 }
 
@@ -394,10 +393,9 @@ func Test_setColSlice(t *testing.T) {
 		if tc.wantErr {
 			assert.Error(t, err)
 			return
-		} else {
-			assert.NoError(t, err)
-			assert.Equal(t, tc.want, ds.Flattened())
 		}
+		assert.NoError(t, err)
+		assert.Equal(t, tc.want, ds.Flattened())
 	}
 }
 
@@ -425,7 +423,10 @@ func computeRowProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, ui
 	data := ds.row(x)
 
 	for i := uint(0); i < ds.width; i++ {
-		tree.Push(data[i])
+		err := tree.Push(data[i])
+		if err != nil {
+			return nil, nil, 0, 0, err
+		}
 	}
 
 	merkleRoot, proof, proofIndex, numLeaves := treeProve(tree.(*DefaultTree), int(y))
@@ -447,7 +448,7 @@ type errorTree struct {
 	leaves [][]byte
 }
 
-func newErrorTree(axis Axis, index uint) Tree {
+func newErrorTree(_ Axis, _ uint) Tree {
 	return &errorTree{
 		Tree:   merkletree.New(sha256.New()),
 		leaves: make([][]byte, 0, 128),

@@ -112,6 +112,7 @@ func TestValidFraudProof(t *testing.T) {
 				t.Fatalf("unexpected err while copying original data: %v, codec: :%s", err, name)
 			}
 			corrupted.setCell(0, 0, corruptChunk)
+			assert.NoError(t, err)
 
 			rowRoots, err := corrupted.getRowRoots()
 			assert.NoError(t, err)
@@ -173,6 +174,7 @@ func TestCannotRepairSquareWithBadRoots(t *testing.T) {
 			require.NoError(t, err)
 
 			original.setCell(0, 0, corruptChunk)
+			require.NoError(t, err)
 			err = original.Repair(rowRoots, colRoots)
 			if err == nil {
 				t.Errorf("did not return an error on trying to repair a square with bad roots")

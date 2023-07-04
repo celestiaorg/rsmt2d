@@ -185,8 +185,8 @@ func (eds *ExtendedDataSquare) erasureExtendCol(codec Codec, i uint) error {
 }
 
 func (eds *ExtendedDataSquare) deepCopy(codec Codec) (ExtendedDataSquare, error) {
-	copy, err := ImportExtendedDataSquare(eds.Flattened(), codec, eds.createTreeFn)
-	return *copy, err
+	imported, err := ImportExtendedDataSquare(eds.Flattened(), codec, eds.createTreeFn)
+	return *imported, err
 }
 
 // Col returns a column slice.

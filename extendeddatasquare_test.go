@@ -11,19 +11,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const SHARD_SIZE = 64
+const ShardSize = 64
 
 var (
-	zeros     = bytes.Repeat([]byte{0}, SHARD_SIZE)
-	ones      = bytes.Repeat([]byte{1}, SHARD_SIZE)
-	twos      = bytes.Repeat([]byte{2}, SHARD_SIZE)
-	threes    = bytes.Repeat([]byte{3}, SHARD_SIZE)
-	fours     = bytes.Repeat([]byte{4}, SHARD_SIZE)
-	fives     = bytes.Repeat([]byte{5}, SHARD_SIZE)
-	eights    = bytes.Repeat([]byte{8}, SHARD_SIZE)
-	elevens   = bytes.Repeat([]byte{11}, SHARD_SIZE)
-	thirteens = bytes.Repeat([]byte{13}, SHARD_SIZE)
-	fifteens  = bytes.Repeat([]byte{15}, SHARD_SIZE)
+	zeros     = bytes.Repeat([]byte{0}, ShardSize)
+	ones      = bytes.Repeat([]byte{1}, ShardSize)
+	twos      = bytes.Repeat([]byte{2}, ShardSize)
+	threes    = bytes.Repeat([]byte{3}, ShardSize)
+	fours     = bytes.Repeat([]byte{4}, ShardSize)
+	fives     = bytes.Repeat([]byte{5}, ShardSize)
+	eights    = bytes.Repeat([]byte{8}, ShardSize)
+	elevens   = bytes.Repeat([]byte{11}, ShardSize)
+	thirteens = bytes.Repeat([]byte{13}, ShardSize)
+	fifteens  = bytes.Repeat([]byte{15}, ShardSize)
 )
 
 func TestComputeExtendedDataSquare(t *testing.T) {
@@ -182,7 +182,6 @@ func BenchmarkExtensionEncoding(b *testing.B) {
 				},
 			)
 		}
-
 	}
 }
 
@@ -212,7 +211,6 @@ func BenchmarkExtensionWithRoots(b *testing.B) {
 				},
 			)
 		}
-
 	}
 }
 
@@ -223,7 +221,10 @@ func genRandDS(width int) [][]byte {
 	count := width * width
 	for i := 0; i < count; i++ {
 		share := make([]byte, 256)
-		rand.Read(share)
+		_, err := rand.Read(share)
+		if err != nil {
+			panic(err)
+		}
 		ds = append(ds, share)
 	}
 	return ds

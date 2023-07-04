@@ -285,7 +285,10 @@ func (ds *dataSquare) getColRoot(y uint) ([]byte, error) {
 
 	tree := ds.createTreeFn(Col, y)
 	for _, d := range ds.col(y) {
-		tree.Push(d)
+		err := tree.Push(d)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return tree.Root()
