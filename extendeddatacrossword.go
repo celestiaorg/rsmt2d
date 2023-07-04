@@ -173,10 +173,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 			if err != nil {
 				var byzErr *ErrByzantineData
 				if errors.As(err, &byzErr) {
-					// make a copy of the column shares
-					colShares := make([][]byte, eds.width)
-					copy(colShares, eds.col(uint(c)))
-					byzErr.Shares = colShares
+					byzErr.Shares = shares
 				}
 				return false, false, err
 			}
@@ -249,10 +246,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 			if err != nil {
 				var byzErr *ErrByzantineData
 				if errors.As(err, &byzErr) {
-					// make a copy of the column shares
-					rowShares := make([][]byte, eds.width)
-					copy(rowShares, eds.row(uint(r)))
-					byzErr.Shares = rowShares
+					byzErr.Shares = shares
 				}
 				return false, false, err
 			}
