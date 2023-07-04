@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
 	"golang.org/x/sync/errgroup"
 )
 
@@ -162,8 +161,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 		if col[r] != nil {
 			continue // not newly completed
 		}
-		eds.setCell(uint(r), uint(c), rebuiltShares[c]) // include the newly completed share
-		if noMissingData(col, r) {                      // completed
+		if noMissingData(col, r) { // completed
 			err := eds.verifyAgainstColRoots(colRoots, uint(c), col, r, rebuiltShares[c])
 			if err != nil {
 				var byzErr *ErrByzantineData
@@ -179,9 +177,9 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	}
 
 	// Insert rebuilt shares into square.
-	// for c, s := range rebuiltShares {
-	// 	eds.setCell(uint(r), uint(c), s)
-	// }
+	for c, s := range rebuiltShares {
+		eds.setCell(uint(r), uint(c), s)
+	}
 
 	return true, true, nil
 }
@@ -234,8 +232,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 		if row[c] != nil {
 			continue // not newly completed
 		}
-		eds.setCell(uint(r), uint(c), rebuiltShares[r]) // include the newly completed share
-		if noMissingData(row, c) {                      // completed
+		if noMissingData(row, c) { // completed
 			err := eds.verifyAgainstRowRoots(rowRoots, uint(r), row, c, rebuiltShares[r])
 			if err != nil {
 				var byzErr *ErrByzantineData
@@ -251,9 +248,9 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	}
 
 	// Insert rebuilt shares into square.
-	// for r, s := range rebuiltShares {
-	// 	eds.setCell(uint(r), uint(c), s)
-	// }
+	for r, s := range rebuiltShares {
+		eds.setCell(uint(r), uint(c), s)
+	}
 
 	return true, true, nil
 }
