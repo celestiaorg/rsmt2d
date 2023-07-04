@@ -307,15 +307,6 @@ func (ds *dataSquare) SetCell(x uint, y uint, newChunk []byte) error {
 	return nil
 }
 
-// setCell overwrites the contents of a specific cell. setCell does not perform
-// any input validation so most usecases should use `SetCell` instead of
-// `setCell`. This method exists strictly for testing.
-func (ds *dataSquare) setCell(x uint, y uint, newChunk []byte) {
-	ds.squareRow[x][y] = newChunk
-	ds.squareCol[y][x] = newChunk
-	ds.resetRoots()
-}
-
 // Flattened returns the concatenated rows of the data square.
 func (ds *dataSquare) Flattened() [][]byte {
 	flattened := [][]byte(nil)
