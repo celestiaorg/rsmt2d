@@ -418,6 +418,9 @@ func BenchmarkEDSRoots(b *testing.B) {
 	}
 }
 
+// computeRowProof returns the merkle root, proof, proofIndex, and numLeaves for
+// the share at coordinates (x, y). Returns an error if the shares in the row
+// fail to push to the Merkle tree.
 func computeRowProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
 	tree := ds.createTreeFn(Row, x)
 	data := ds.row(x)
