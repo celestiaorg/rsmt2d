@@ -1,6 +1,7 @@
 package rsmt2d
 
 import (
+	cryptorand "crypto/rand"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -37,7 +38,7 @@ func generateRandData(count int) [][]byte {
 	out := make([][]byte, count)
 	for i := 0; i < count; i++ {
 		randData := make([]byte, count)
-		_, err := rand.Read(randData)
+		_, err := cryptorand.Read(randData)
 		if err != nil {
 			panic(err)
 		}
