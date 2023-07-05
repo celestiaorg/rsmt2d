@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"math/rand"
-	"testing"
-
+	"github.com/celestiaorg/celestia-app/pkg/wrapper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"math/rand"
+	"testing"
 )
 
 // PseudoFraudProof is an example fraud proof.
@@ -260,6 +260,65 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 	}
 }
 
+func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
+	shareSize := 64
+	corruptChunk := bytes.Repeat([]byte{66}, shareSize)
+
+	tests := []struct {
+		name   string
+		coords [][]uint
+		values [][]byte
+	}{
+		{
+			name:   "corrupt a chunk in the original data square",
+			coords: [][]uint{{0, 0}},
+			values: [][]byte{corruptChunk},
+		},
+		{
+			name:   "corrupt a chunk in the extended data square",
+			coords: [][]uint{{0, 3}},
+			values: [][]byte{corruptChunk},
+		},
+		{
+			name:   "corrupt a chunk at (0, 0) and delete shares from the rest of the row",
+			coords: [][]uint{{0, 0}, {0, 1}, {0, 2}, {0, 3}},
+			values: [][]byte{corruptChunk, nil, nil, nil},
+		},
+		{
+			name:   "corrupt a chunk at (3, 0) and delete part of the first row ",
+			coords: [][]uint{{3, 0}, {0, 1}, {0, 2}, {0, 3}},
+			values: [][]byte{corruptChunk, nil, nil, nil},
+		},
+	}
+
+	for codecName, codec := range codecs {
+		t.Run(codecName, func(t *testing.T) {
+			for _, test := range tests {
+				t.Run(test.name, func(t *testing.T) {
+					eds := createTestEds(codec, shareSize)
+					for i, coords := range test.coords {
+						x := coords[0]
+						y := coords[1]
+						eds.setCell(x, y, test.values[i])
+					}
+					rowRoots, err := eds.getRowRoots()
+					assert.NoError(t, err)
+
+					colRoots, err := eds.getColRoots()
+					assert.NoError(t, err)
+
+					err = eds.Repair(rowRoots, colRoots)
+					assert.Error(t, err)
+
+					// due to parallelisation, the ErrByzantineData axis may be either row or col
+					var byzData *ErrByzantineData
+					assert.ErrorAs(t, err, &byzData, "did not return a ErrByzantineData for a bad col or row")
+				})
+			}
+		})
+	}
+}
+
 func BenchmarkRepair(b *testing.B) {
 	// For different ODS sizes
 	for originalDataWidth := 4; originalDataWidth <= 512; originalDataWidth *= 2 {
@@ -337,6 +396,23 @@ func createTestEds(codec Codec, shareSize int) *ExtendedDataSquare {
 		ones, twos,
 		threes, fours,
 	}, codec, NewDefaultTree)
+	if err != nil {
+		panic(err)
+	}
+
+	return eds
+}
+
+func createTestEdsWithNMT(codec Codec, shareSize int) *ExtendedDataSquare {
+	ones := bytes.Repeat([]byte{1}, shareSize)
+	twos := bytes.Repeat([]byte{2}, shareSize)
+	threes := bytes.Repeat([]byte{3}, shareSize)
+	fours := bytes.Repeat([]byte{4}, shareSize)
+
+	eds, err := ComputeExtendedDataSquare([][]byte{
+		ones, twos,
+		threes, fours,
+	}, codec, wrapper.NewConstructor(uint64(shareSize)))
 	if err != nil {
 		panic(err)
 	}
