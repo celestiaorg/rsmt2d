@@ -75,7 +75,7 @@ func (eds *ExtendedDataSquare) Repair(
 	rowRoots [][]byte,
 	colRoots [][]byte,
 ) error {
-	err := eds.prerepairSanityCheck(rowRoots, colRoots)
+	err := eds.preRepairSanityCheck(rowRoots, colRoots)
 	if err != nil {
 		return err
 	}
@@ -335,7 +335,10 @@ func (eds *ExtendedDataSquare) verifyAgainstColRoots(
 	return nil
 }
 
-func (eds *ExtendedDataSquare) prerepairSanityCheck(
+// preRepairSanityCheck returns an error if any row or column in the EDS is
+// complete and the computed Merkle root for that row or column doesn't match
+// the given root in rowRoots or colRoots.
+func (eds *ExtendedDataSquare) preRepairSanityCheck(
 	rowRoots [][]byte,
 	colRoots [][]byte,
 ) error {
