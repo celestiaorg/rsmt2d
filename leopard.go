@@ -66,8 +66,16 @@ func (l *LeoRSCodec) loadOrInitEncoder(dataLen int) (reedsolomon.Encoder, error)
 	return enc.(reedsolomon.Encoder), nil
 }
 
+// MaxChunks returns the max number of chunks this codec supports in a 2D
+// original data square.
 func (l *LeoRSCodec) MaxChunks() int {
-	return 32768 * 32768
+	// klauspost/reedsolomon supports an EDS width of 65536. See:
+	// https://github.com/klauspost/reedsolomon/blob/523164698be98f1603cf1235f5a1de17728b2091/leopard.go#L42C31-L42C36
+	maxEDSWidth := 65536
+	// An EDS width of 65536 is an ODS width of 32768.
+	maxODSWidth := maxEDSWidth / 2
+	// The max number of chunks in a 2D original data square is 32768 * 32768.
+	return maxODSWidth * maxODSWidth
 }
 
 func (l *LeoRSCodec) Name() string {
