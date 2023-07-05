@@ -171,6 +171,10 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 		if noMissingData(col, r) { // not completed
 			err := eds.verifyAgainstColRoots(colRoots, uint(c), col, r, rebuiltShares[c])
 			if err != nil {
+				var byzErr *ErrByzantineData
+				if errors.As(err, &byzErr) {
+					byzErr.Shares = shares
+				}
 				return false, false, err
 			}
 		}
@@ -240,6 +244,10 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 		if noMissingData(row, c) { // not completed
 			err := eds.verifyAgainstRowRoots(rowRoots, uint(r), row, c, rebuiltShares[r])
 			if err != nil {
+				var byzErr *ErrByzantineData
+				if errors.As(err, &byzErr) {
+					byzErr.Shares = shares
+				}
 				return false, false, err
 			}
 		}
