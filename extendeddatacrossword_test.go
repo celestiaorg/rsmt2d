@@ -212,6 +212,22 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 			coords: [][]uint{{3, 0}, {0, 1}, {0, 2}, {0, 3}},
 			values: [][]byte{corruptChunk, nil, nil, nil},
 		},
+		{
+			// This test case sets all shares along the diagonal to nil so that
+			// the prerepairSanityCheck does not return an error and it can
+			// verify that solveCrossword returns an ErrByzantineData with
+			// shares populated.
+			name: "set all shares along the diagonal to nil and then corrupt the cell at (0, 1)",
+			// In the ASCII diagram below, _ represents a nil share and C
+			// represents a corrupted share.
+			//
+			// _ C O O
+			// O _ O O
+			// O O _ O
+			// O O O _
+			coords: [][]uint{{0, 0}, {1, 1}, {2, 2}, {3, 3}, {0, 1}},
+			values: [][]byte{nil, nil, nil, nil, corruptChunk},
+		},
 	}
 
 	for codecName, codec := range codecs {
@@ -236,6 +252,8 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 					// due to parallelisation, the ErrByzantineData axis may be either row or col
 					var byzData *ErrByzantineData
 					assert.ErrorAs(t, err, &byzData, "did not return a ErrByzantineData for a bad col or row")
+					assert.NotEmpty(t, byzData.Shares)
+					assert.Contains(t, byzData.Shares, corruptChunk)
 				})
 			}
 		})
