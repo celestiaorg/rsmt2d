@@ -161,6 +161,7 @@ var dump *ExtendedDataSquare
 // BenchmarkExtension benchmarks extending datasquares sizes 4-128 using all
 // supported codecs (encoding only)
 func BenchmarkExtensionEncoding(b *testing.B) {
+	chunkSize := 256
 	for i := 4; i < 513; i *= 2 {
 		for codecName, codec := range codecs {
 			if codec.MaxChunks() < i*i {
@@ -168,7 +169,7 @@ func BenchmarkExtensionEncoding(b *testing.B) {
 				continue
 			}
 
-			square := genRandDS(i)
+			square := genRandDS(i, chunkSize)
 			b.Run(
 				fmt.Sprintf("%s %dx%dx%d ODS", codecName, i, i, len(square[0])),
 				func(b *testing.B) {
@@ -188,6 +189,7 @@ func BenchmarkExtensionEncoding(b *testing.B) {
 // BenchmarkExtension benchmarks extending datasquares sizes 4-128 using all
 // supported codecs (both encoding and root computation)
 func BenchmarkExtensionWithRoots(b *testing.B) {
+	chunkSize := 256
 	for i := 4; i < 513; i *= 2 {
 		for codecName, codec := range codecs {
 			if codec.MaxChunks() < i*i {
@@ -195,7 +197,7 @@ func BenchmarkExtensionWithRoots(b *testing.B) {
 				continue
 			}
 
-			square := genRandDS(i)
+			square := genRandDS(i, chunkSize)
 			b.Run(
 				fmt.Sprintf("%s %dx%dx%d ODS", codecName, i, i, len(square[0])),
 				func(b *testing.B) {
@@ -216,11 +218,11 @@ func BenchmarkExtensionWithRoots(b *testing.B) {
 
 // genRandDS make a datasquare of random data, with width describing the number
 // of shares on a single side of the ds
-func genRandDS(width int) [][]byte {
+func genRandDS(width int, chunkSize int) [][]byte {
 	var ds [][]byte
 	count := width * width
 	for i := 0; i < count; i++ {
-		share := make([]byte, 256)
+		share := make([]byte, chunkSize)
 		_, err := rand.Read(share)
 		if err != nil {
 			panic(err)
