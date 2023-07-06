@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/celestiaorg/nmt"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"math/rand"
 	"testing"
 )
@@ -258,48 +260,6 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 	}
 }
 
-func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
-	shareSize := 64
-	// corruptChunk := bytes.Repeat([]byte{66}, shareSize)
-
-	tests := []struct {
-		name   string
-		coords [][]uint
-		values [][]byte
-	}{
-		{
-			name:   "no corruption",
-			coords: [][]uint{},
-			values: [][]byte{},
-		},
-	}
-
-	for codecName, codec := range codecs {
-		t.Run(codecName, func(t *testing.T) {
-			for _, test := range tests {
-				t.Run(test.name, func(t *testing.T) {
-					eds := createTestEdsWithNMT(codec, shareSize)
-					rowRoots, err := eds.getRowRoots()
-					assert.NoError(t, err)
-
-					colRoots, err := eds.getColRoots()
-					assert.NoError(t, err)
-
-					for i, coords := range test.coords {
-						x := coords[0]
-						y := coords[1]
-						eds.setCell(x, y, test.values[i])
-					}
-
-					err = eds.Repair(rowRoots, colRoots)
-					assert.NoError(t, err)
-
-				})
-			}
-		})
-	}
-}
-
 func BenchmarkRepair(b *testing.B) {
 	// For different ODS sizes
 	for originalDataWidth := 4; originalDataWidth <= 512; originalDataWidth *= 2 {
@@ -388,30 +348,37 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 	shareSize := 64
 	namespaceSize := 1
 	tests := []struct {
-		name        string
-		sharesValue []int
-		wantErr     bool
+		name          string
+		sharesValue   []int
+		wantErr       bool
+		errType       error
+		corruptedAxis Axis
 	}{
 		{
 			name:        "no corruption",
 			sharesValue: []int{1, 2, 3, 4},
 			wantErr:     false,
+			errType:     nil,
 		},
 		{
 			// make rows shares unordered, columns are still ordered
 			// 2 1
 			// 4 3
-			name:        "rows with unordered shares",
-			sharesValue: []int{2, 1, 4, 3},
-			wantErr:     true, // repair should error out during root construction
+			name:          "rows with unordered shares",
+			sharesValue:   []int{2, 1, 4, 3},
+			wantErr:       true, // repair should error out during root construction
+			errType:       &ErrByzantineData{},
+			corruptedAxis: Row,
 		},
 		{
 			// make column shares unordered, rows are still ordered
 			// 3 4
 			// 1 2
-			name:        "columns with unordered shares",
-			sharesValue: []int{3, 4, 1, 2},
-			wantErr:     true, // repair should error out during root construction
+			name:          "columns with unordered shares",
+			sharesValue:   []int{3, 4, 1, 2},
+			wantErr:       true, // repair should error out during root construction
+			errType:       &ErrByzantineData{},
+			corruptedAxis: Col,
 		},
 	}
 
@@ -431,8 +398,15 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 
 					// create an eds with supposedly sampled shares, which might be corrupted
 					corruptEds := createTestEdsWithNMT(t, codec, shareSize, namespaceSize, test.sharesValue...)
+					assert.NotNil(t, eds)
 					err = corruptEds.Repair(dAHeaderRoots, dAHeaderCols)
 					assert.Equal(t, err != nil, test.wantErr)
+					if test.wantErr {
+						assert.ErrorAs(t, err, &test.errType)
+						var byzErr *ErrByzantineData
+						errors.As(err, &byzErr)
+						// assert.Equal(t, byzErr.Axis, test.corruptedAxis)
+					}
 
 				})
 			}
