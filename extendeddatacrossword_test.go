@@ -365,7 +365,7 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 		t.Run(codecName, func(t *testing.T) {
 			for _, test := range tests {
 				t.Run(test.name, func(t *testing.T) {
-					eds := createTestEdsWithNMT(t, codec, shareSize, 1)
+					eds := createTestEdsWithNMT(t, codec, shareSize, 1, 1, 2, 3, 4)
 					assert.NotNil(t, eds)
 					rowRoots, err := eds.getRowRoots()
 					assert.NoError(t, err)
@@ -373,6 +373,7 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 					colRoots, err := eds.getColRoots()
 					assert.NoError(t, err)
 
+					// corruptEds := createTestEdsWithNMT(t, codec, shareSize, 1)
 					for i, coords := range test.coords {
 						x := coords[0]
 						y := coords[1]
@@ -388,23 +389,19 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 	}
 }
 
-func createTestEdsWithNMT(t *testing.T, codec Codec, shareSize, namespaceSize int) *ExtendedDataSquare {
+func createTestEdsWithNMT(t *testing.T, codec Codec, shareSize, namespaceSize int, sharesValue ...int) *ExtendedDataSquare {
 	// the first namespaceSize bytes of each share are the namespace
 	// assert.True(t, shareSize > namespaceSize)
 
-	ones := bytes.Repeat([]byte{1}, shareSize)
-	twos := bytes.Repeat([]byte{2}, shareSize)
-	threes := bytes.Repeat([]byte{3}, shareSize)
-	fours := bytes.Repeat([]byte{4}, shareSize)
+	// create shares of shareSize bytes
+	shares := make([][]byte, len(sharesValue))
+	for i, shareValue := range sharesValue {
+		shares[i] = bytes.Repeat([]byte{byte(shareValue)}, shareSize)
+	}
 	edsWidth := 4            // number of shares per row/column in the extended data square
 	odsWidth := edsWidth / 2 // number of shares per row/column in the original data square
 
-	eds, err := ComputeExtendedDataSquare([][]byte{
-		ones, twos, threes, fours,
-		// original data square would be like
-		// row1: 1 2
-		// row2: 3 4
-	}, codec, NewConstructor(uint64(odsWidth), nmt.NamespaceIDSize(namespaceSize)))
+	eds, err := ComputeExtendedDataSquare(shares, codec, NewConstructor(uint64(odsWidth), nmt.NamespaceIDSize(namespaceSize)))
 
 	if err != nil {
 		panic(err)
