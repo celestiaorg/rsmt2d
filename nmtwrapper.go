@@ -13,7 +13,7 @@ var (
 	_ Tree              = &ErasuredNamespacedMerkleTree{}
 )
 
-const NamespaceSize = 32
+// const NamespaceSize = 32
 
 var ParitySharesNamespaceBytes = []byte{1}
 
@@ -36,10 +36,11 @@ type ErasuredNamespacedMerkleTree struct {
 	// 2*squareSize. shareIndex is used to help determine which quadrant each
 	// leaf belongs to, along with keeping track of how many leaves have been
 	// added to the tree so far.
-	shareIndex uint64
+	shareIndex    uint64
+	namespaceSize int
 }
 
-// Tree is an interface that wraps the methods of the underlying
+// NMTTree is an interface that wraps the methods of the underlying
 // NamespaceMerkleTree that are used by ErasuredNamespacedMerkleTree. This
 // interface is mainly used for testing. It is not recommended to use this
 // interface by implementing a different implementation.
@@ -56,10 +57,15 @@ func NewErasuredNamespacedMerkleTree(squareSize uint64, axisIndex uint, options 
 	if squareSize == 0 {
 		panic("cannot create a ErasuredNamespacedMerkleTree of squareSize == 0")
 	}
-	options = append(options, nmt.NamespaceIDSize(NamespaceSize))
+	// options = append(options, nmt.NamespaceIDSize(NamespaceSize))
+	// read the options to extract the namespace size
+	opts := &nmt.Options{}
+	for _, setter := range options {
+		setter(opts)
+	}
 	options = append(options, nmt.IgnoreMaxNamespace(true))
 	tree := nmt.New(sha256.New(), options...)
-	return ErasuredNamespacedMerkleTree{squareSize: squareSize, options: options, tree: tree, axisIndex: uint64(axisIndex), shareIndex: 0}
+	return ErasuredNamespacedMerkleTree{squareSize: squareSize, namespaceSize: int(opts.NamespaceIDSize), options: options, tree: tree, axisIndex: uint64(axisIndex), shareIndex: 0}
 }
 
 type constructor struct {
@@ -94,16 +100,16 @@ func (w *ErasuredNamespacedMerkleTree) Push(data []byte) error {
 	if w.axisIndex+1 > 2*w.squareSize || w.shareIndex+1 > 2*w.squareSize {
 		return fmt.Errorf("pushed past predetermined square size: boundary at %d index at %d %d", 2*w.squareSize, w.axisIndex, w.shareIndex)
 	}
-	if len(data) < NamespaceSize {
+	if len(data) < w.namespaceSize {
 		return fmt.Errorf("data is too short to contain namespace ID")
 	}
-	nidAndData := make([]byte, NamespaceSize+len(data))
-	copy(nidAndData[NamespaceSize:], data)
+	nidAndData := make([]byte, w.namespaceSize+len(data))
+	copy(nidAndData[w.namespaceSize:], data)
 	// use the parity namespace if the cell is not in Q0 of the extended data square
 	if w.isQuadrantZero() {
-		copy(nidAndData[:NamespaceSize], data[:NamespaceSize])
+		copy(nidAndData[:w.namespaceSize], data[:w.namespaceSize])
 	} else {
-		copy(nidAndData[:NamespaceSize], ParitySharesNamespaceBytes)
+		copy(nidAndData[:w.namespaceSize], ParitySharesNamespaceBytes)
 	}
 	err := w.tree.Push(nidAndData)
 	if err != nil {

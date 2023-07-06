@@ -5,13 +5,15 @@ go 1.20
 require (
 	github.com/celestiaorg/merkletree v0.0.0-20210714075610-a84dc3ddbbe4
 	github.com/celestiaorg/nmt v0.17.0
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.4
 )
 
 require (
 	github.com/klauspost/reedsolomon v1.11.1
 	golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0
 )
+
+require github.com/stretchr/objx v0.5.0 // indirect
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
