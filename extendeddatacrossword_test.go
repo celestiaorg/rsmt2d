@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/celestiaorg/nmt"
 	"math/rand"
 	"testing"
 
@@ -364,7 +365,7 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 		t.Run(codecName, func(t *testing.T) {
 			for _, test := range tests {
 				t.Run(test.name, func(t *testing.T) {
-					eds := createTestEdsWithNMT(codec, shareSize)
+					eds := createTestEdsWithNMT(t, codec, shareSize, 1)
 					assert.NotNil(t, eds)
 					rowRoots, err := eds.getRowRoots()
 					assert.NoError(t, err)
@@ -387,20 +388,23 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 	}
 }
 
-func createTestEdsWithNMT(codec Codec, shareSize int) *ExtendedDataSquare {
+func createTestEdsWithNMT(t *testing.T, codec Codec, shareSize, namespaceSize int) *ExtendedDataSquare {
+	// the first namespaceSize bytes of each share are the namespace
+	// assert.True(t, shareSize > namespaceSize)
+
 	ones := bytes.Repeat([]byte{1}, shareSize)
 	twos := bytes.Repeat([]byte{2}, shareSize)
 	threes := bytes.Repeat([]byte{3}, shareSize)
 	fours := bytes.Repeat([]byte{4}, shareSize)
-	// edsWidth := 4            // number of shares per row/column in the extended data square
-	// odsWidth := edsWidth / 2 // number of shares per row/column in the original data square
+	edsWidth := 4            // number of shares per row/column in the extended data square
+	odsWidth := edsWidth / 2 // number of shares per row/column in the original data square
 
 	eds, err := ComputeExtendedDataSquare([][]byte{
 		ones, twos, threes, fours,
 		// original data square would be like
 		// row1: 1 2
 		// row2: 3 4
-	}, codec, NewDefaultTree)
+	}, codec, NewConstructor(uint64(odsWidth), nmt.NamespaceIDSize(namespaceSize)))
 
 	if err != nil {
 		panic(err)
