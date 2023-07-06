@@ -343,3 +343,68 @@ func createTestEds(codec Codec, shareSize int) *ExtendedDataSquare {
 
 	return eds
 }
+
+func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
+	shareSize := 64
+	// corruptChunk := bytes.Repeat([]byte{66}, shareSize)
+
+	tests := []struct {
+		name   string
+		coords [][]uint
+		values [][]byte
+	}{
+		{
+			name:   "no corruption",
+			coords: [][]uint{},
+			values: [][]byte{},
+		},
+	}
+
+	for codecName, codec := range codecs {
+		t.Run(codecName, func(t *testing.T) {
+			for _, test := range tests {
+				t.Run(test.name, func(t *testing.T) {
+					eds := createTestEdsWithNMT(codec, shareSize)
+					assert.NotNil(t, eds)
+					rowRoots, err := eds.getRowRoots()
+					assert.NoError(t, err)
+
+					colRoots, err := eds.getColRoots()
+					assert.NoError(t, err)
+
+					for i, coords := range test.coords {
+						x := coords[0]
+						y := coords[1]
+						eds.setCell(x, y, test.values[i])
+					}
+
+					err = eds.Repair(rowRoots, colRoots)
+					assert.NoError(t, err)
+
+				})
+			}
+		})
+	}
+}
+
+func createTestEdsWithNMT(codec Codec, shareSize int) *ExtendedDataSquare {
+	ones := bytes.Repeat([]byte{1}, shareSize)
+	twos := bytes.Repeat([]byte{2}, shareSize)
+	threes := bytes.Repeat([]byte{3}, shareSize)
+	fours := bytes.Repeat([]byte{4}, shareSize)
+	// edsWidth := 4            // number of shares per row/column in the extended data square
+	// odsWidth := edsWidth / 2 // number of shares per row/column in the original data square
+
+	eds, err := ComputeExtendedDataSquare([][]byte{
+		ones, twos, threes, fours,
+		// original data square would be like
+		// row1: 1 2
+		// row2: 3 4
+	}, codec, NewDefaultTree)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return eds
+}
