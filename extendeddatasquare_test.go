@@ -96,6 +96,49 @@ func TestMarshalJSON(t *testing.T) {
 	}
 }
 
+func TestNewExtendedDataSquare(t *testing.T) {
+	t.Run("returns an error if edsWidth is not even", func(t *testing.T) {
+		edsWidth := uint(1)
+		chunkSize := uint(512)
+
+		_, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, chunkSize)
+		assert.Error(t, err)
+	})
+	t.Run("returns a 4x4 EDS", func(t *testing.T) {
+		edsWidth := uint(4)
+		chunkSize := uint(512)
+
+		got, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, chunkSize)
+		assert.NoError(t, err)
+		assert.Equal(t, edsWidth, got.width)
+		assert.Equal(t, chunkSize, got.chunkSize)
+	})
+	t.Run("returns a 4x4 EDS that can be populated via SetCell", func(t *testing.T) {
+		edsWidth := uint(4)
+		chunkSize := uint(512)
+
+		got, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, chunkSize)
+		assert.NoError(t, err)
+
+		chunk := bytes.Repeat([]byte{1}, int(chunkSize))
+		err = got.SetCell(0, 0, chunk)
+		assert.NoError(t, err)
+		assert.Equal(t, chunk, got.squareRow[0][0])
+	})
+	t.Run("returns an error when SetCell is invoked on an EDS with a chunk that is not the correct size", func(t *testing.T) {
+		edsWidth := uint(4)
+		chunkSize := uint(512)
+		incorrectChunkSize := uint(513)
+
+		got, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, chunkSize)
+		assert.NoError(t, err)
+
+		chunk := bytes.Repeat([]byte{1}, int(incorrectChunkSize))
+		err = got.SetCell(0, 0, chunk)
+		assert.Error(t, err)
+	})
+}
+
 func TestImmutableRoots(t *testing.T) {
 	codec := NewLeoRSCodec()
 	result, err := ComputeExtendedDataSquare([][]byte{
