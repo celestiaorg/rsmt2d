@@ -18,7 +18,8 @@ type Codec interface {
 	// Decode decodes sparse original + parity data, automatically extracting share size.
 	// Missing shares must be nil. Returns original + parity data.
 	Decode(data [][]byte) ([][]byte, error)
-	// MaxChunks returns the max. number of chunks each code supports in a 2D square.
+	// MaxChunks returns the max number of chunks this codec supports in a 2D
+	// original data square.
 	MaxChunks() int
 	// Name returns the name of the codec.
 	Name() string
