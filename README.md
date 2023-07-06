@@ -41,11 +41,7 @@ func main() {
         // ComputeExtendedDataSquare failed
     }
 
-    // Save all shares in flattened form.
-    flattened := make([][]byte, 0, eds.Width()*eds.Width())
-    for i := uint(0); i < eds.Width(); i++ {
-        flattened = append(flattened, eds.Row(i)...)
-    }
+    flattened := eds.Flattened()
 
     // Delete some shares, just enough so that repairing is possible.
     flattened[0], flattened[2], flattened[3] = nil, nil, nil
