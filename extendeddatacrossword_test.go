@@ -347,17 +347,32 @@ func createTestEds(codec Codec, shareSize int) *ExtendedDataSquare {
 
 func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 	shareSize := 64
-	// corruptChunk := bytes.Repeat([]byte{66}, shareSize)
-
+	namespaceSize := 1
 	tests := []struct {
-		name   string
-		coords [][]uint
-		values [][]byte
+		name        string
+		sharesValue []int
+		wantErr     bool
 	}{
 		{
-			name:   "no corruption",
-			coords: [][]uint{},
-			values: [][]byte{},
+			name:        "no corruption",
+			sharesValue: []int{1, 2, 3, 4},
+			wantErr:     false,
+		},
+		{
+			// make rows shares unordered, columns are still ordered
+			// 2 1
+			// 4 3
+			name:        "rows with unordered shares",
+			sharesValue: []int{2, 1, 4, 3},
+			wantErr:     true, // repair should error out during root construction
+		},
+		{
+			// make column shares unordered, rows are still ordered
+			// 3 4
+			// 1 2
+			name:        "columns with unordered shares",
+			sharesValue: []int{3, 4, 1, 2},
+			wantErr:     true, // repair should error out during root construction
 		},
 	}
 
@@ -365,23 +380,20 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 		t.Run(codecName, func(t *testing.T) {
 			for _, test := range tests {
 				t.Run(test.name, func(t *testing.T) {
-					eds := createTestEdsWithNMT(t, codec, shareSize, 1, 1, 2, 3, 4)
+
+					// create a DA header
+					eds := createTestEdsWithNMT(t, codec, shareSize, namespaceSize, 1, 2, 3, 4)
 					assert.NotNil(t, eds)
-					rowRoots, err := eds.getRowRoots()
+					dAHeaderRoots, err := eds.getRowRoots()
 					assert.NoError(t, err)
 
-					colRoots, err := eds.getColRoots()
+					dAHeaderCols, err := eds.getColRoots()
 					assert.NoError(t, err)
 
-					// corruptEds := createTestEdsWithNMT(t, codec, shareSize, 1)
-					for i, coords := range test.coords {
-						x := coords[0]
-						y := coords[1]
-						eds.setCell(x, y, test.values[i])
-					}
-
-					err = eds.Repair(rowRoots, colRoots)
-					assert.NoError(t, err)
+					// create an eds with supposedly sampled shares, which might be corrupted
+					corruptEds := createTestEdsWithNMT(t, codec, shareSize, namespaceSize, test.sharesValue...)
+					err = corruptEds.Repair(dAHeaderRoots, dAHeaderCols)
+					assert.Equal(t, err != nil, test.wantErr)
 
 				})
 			}
@@ -391,7 +403,7 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 
 func createTestEdsWithNMT(t *testing.T, codec Codec, shareSize, namespaceSize int, sharesValue ...int) *ExtendedDataSquare {
 	// the first namespaceSize bytes of each share are the namespace
-	// assert.True(t, shareSize > namespaceSize)
+	assert.True(t, shareSize > namespaceSize)
 
 	// create shares of shareSize bytes
 	shares := make([][]byte, len(sharesValue))
