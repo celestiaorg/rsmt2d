@@ -1,6 +1,7 @@
 package rsmt2d
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/celestiaorg/nmt"
 	"github.com/celestiaorg/nmt/namespace"
@@ -13,12 +14,10 @@ var (
 	_ Tree              = &ErasuredNamespacedMerkleTree{}
 )
 
-// const NamespaceSize = 32
-
 var ParitySharesNamespaceBytes = []byte{1}
 
 // ErasuredNamespacedMerkleTree wraps NamespaceMerkleTree to conform to the
-// rsmt2d.Tree interface while also providing the correct namespaces to the
+// Tree interface while also providing the correct namespaces to the
 // underlying NamespaceMerkleTree. It does this by adding the already included
 // namespace to the first half of the tree, and then uses the parity namespace
 // ID for each share pushed to the second half of the tree. This allows for the
@@ -97,6 +96,7 @@ func (c constructor) NewTree(_ Axis, axisIndex uint) Tree {
 // rsmt.Tree interface. NOTE: panics if an error is encountered while pushing or
 // if the tree size is exceeded.
 func (w *ErasuredNamespacedMerkleTree) Push(data []byte) error {
+	ParitySharesNamespaceBytes := bytes.Repeat([]byte{0xFF}, w.namespaceSize)
 	if w.axisIndex+1 > 2*w.squareSize || w.shareIndex+1 > 2*w.squareSize {
 		return fmt.Errorf("pushed past predetermined square size: boundary at %d index at %d %d", 2*w.squareSize, w.axisIndex, w.shareIndex)
 	}
