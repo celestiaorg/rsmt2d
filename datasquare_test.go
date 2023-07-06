@@ -271,12 +271,12 @@ func TestDefaultTreeProofs(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	_, proof, proofIndex, numLeaves, err := computeRowProof(result, 1, 1)
+	_, proofSet, proofIndex, numLeaves, err := computeRowProof(result, 1, 1)
 	if err != nil {
 		t.Errorf("Got unexpected error: %v", err)
 	}
 
-	if len(proof) != 2 {
+	if len(proofSet) != 2 {
 		t.Errorf("computing row proof for (1, 1) in 2x2 square failed; expecting proof set of length 2")
 	}
 	if proofIndex != 1 {
@@ -418,10 +418,10 @@ func BenchmarkEDSRoots(b *testing.B) {
 	}
 }
 
-// computeRowProof returns the merkle root, proof, proofIndex, and numLeaves for
-// the share at coordinates (x, y). Returns an error if the shares in the row
-// fail to push to the Merkle tree.
-func computeRowProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
+// computeRowProof returns the merkleRoot, proofSet, proofIndex, and numLeaves
+// for the share at coordinates (x, y). Returns an error if the shares in the
+// row fail to push to the Merkle tree.
+func computeRowProof(ds *dataSquare, x uint, y uint) (merkleRoot []byte, proofSet [][]byte, proofIndex uint64, numLeaves uint64, err error) {
 	tree := ds.createTreeFn(Row, x)
 	data := ds.row(x)
 
@@ -432,10 +432,12 @@ func computeRowProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, ui
 		}
 	}
 
-	merkleRoot, proof, proofIndex, numLeaves := treeProve(tree.(*DefaultTree), int(y))
-	return merkleRoot, proof, uint(proofIndex), uint(numLeaves), nil
+	merkleRoot, proofSet, proofIndex, numLeaves = treeProve(tree.(*DefaultTree), int(y))
+	return merkleRoot, proofSet, proofIndex, numLeaves, nil
 }
 
+// treeProve returns the merkleRoot, proofSet, proofIndex, and numLeaves
+// for the node at index idx in the tree d.
 func treeProve(d *DefaultTree, idx int) (merkleRoot []byte, proofSet [][]byte, proofIndex uint64, numLeaves uint64) {
 	if err := d.Tree.SetIndex(uint64(idx)); err != nil {
 		panic(fmt.Sprintf("don't call prove on a already used tree: %v", err))
