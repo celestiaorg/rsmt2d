@@ -7,9 +7,6 @@ import (
 	"github.com/celestiaorg/nmt"
 	"math/rand"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // PseudoFraudProof is an example fraud proof.
@@ -255,6 +252,48 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 					assert.ErrorAs(t, err, &byzData, "did not return a ErrByzantineData for a bad col or row")
 					assert.NotEmpty(t, byzData.Shares)
 					assert.Contains(t, byzData.Shares, corruptChunk)
+				})
+			}
+		})
+	}
+}
+
+func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
+	shareSize := 64
+	// corruptChunk := bytes.Repeat([]byte{66}, shareSize)
+
+	tests := []struct {
+		name   string
+		coords [][]uint
+		values [][]byte
+	}{
+		{
+			name:   "no corruption",
+			coords: [][]uint{},
+			values: [][]byte{},
+		},
+	}
+
+	for codecName, codec := range codecs {
+		t.Run(codecName, func(t *testing.T) {
+			for _, test := range tests {
+				t.Run(test.name, func(t *testing.T) {
+					eds := createTestEdsWithNMT(codec, shareSize)
+					rowRoots, err := eds.getRowRoots()
+					assert.NoError(t, err)
+
+					colRoots, err := eds.getColRoots()
+					assert.NoError(t, err)
+
+					for i, coords := range test.coords {
+						x := coords[0]
+						y := coords[1]
+						eds.setCell(x, y, test.values[i])
+					}
+
+					err = eds.Repair(rowRoots, colRoots)
+					assert.NoError(t, err)
+
 				})
 			}
 		})
