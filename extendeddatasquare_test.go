@@ -96,6 +96,49 @@ func TestMarshalJSON(t *testing.T) {
 	}
 }
 
+func TestNewExtendedDataSquare(t *testing.T) {
+	t.Run("returns an error if edsWidth is not even", func(t *testing.T) {
+		edsWidth := uint(1)
+		chunkSize := uint(512)
+
+		_, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, chunkSize)
+		assert.Error(t, err)
+	})
+	t.Run("returns a 4x4 EDS", func(t *testing.T) {
+		edsWidth := uint(4)
+		chunkSize := uint(512)
+
+		got, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, chunkSize)
+		assert.NoError(t, err)
+		assert.Equal(t, edsWidth, got.width)
+		assert.Equal(t, chunkSize, got.chunkSize)
+	})
+	t.Run("returns a 4x4 EDS that can be populated via SetCell", func(t *testing.T) {
+		edsWidth := uint(4)
+		chunkSize := uint(512)
+
+		got, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, chunkSize)
+		assert.NoError(t, err)
+
+		chunk := bytes.Repeat([]byte{1}, int(chunkSize))
+		err = got.SetCell(0, 0, chunk)
+		assert.NoError(t, err)
+		assert.Equal(t, chunk, got.squareRow[0][0])
+	})
+	t.Run("returns an error when SetCell is invoked on an EDS with a chunk that is not the correct size", func(t *testing.T) {
+		edsWidth := uint(4)
+		chunkSize := uint(512)
+		incorrectChunkSize := uint(513)
+
+		got, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, chunkSize)
+		assert.NoError(t, err)
+
+		chunk := bytes.Repeat([]byte{1}, int(incorrectChunkSize))
+		err = got.SetCell(0, 0, chunk)
+		assert.Error(t, err)
+	})
+}
+
 func TestImmutableRoots(t *testing.T) {
 	codec := NewLeoRSCodec()
 	result, err := ComputeExtendedDataSquare([][]byte{
@@ -161,6 +204,7 @@ var dump *ExtendedDataSquare
 // BenchmarkExtension benchmarks extending datasquares sizes 4-128 using all
 // supported codecs (encoding only)
 func BenchmarkExtensionEncoding(b *testing.B) {
+	chunkSize := 256
 	for i := 4; i < 513; i *= 2 {
 		for codecName, codec := range codecs {
 			if codec.MaxChunks() < i*i {
@@ -168,7 +212,7 @@ func BenchmarkExtensionEncoding(b *testing.B) {
 				continue
 			}
 
-			square := genRandDS(i)
+			square := genRandDS(i, chunkSize)
 			b.Run(
 				fmt.Sprintf("%s %dx%dx%d ODS", codecName, i, i, len(square[0])),
 				func(b *testing.B) {
@@ -188,6 +232,7 @@ func BenchmarkExtensionEncoding(b *testing.B) {
 // BenchmarkExtension benchmarks extending datasquares sizes 4-128 using all
 // supported codecs (both encoding and root computation)
 func BenchmarkExtensionWithRoots(b *testing.B) {
+	chunkSize := 256
 	for i := 4; i < 513; i *= 2 {
 		for codecName, codec := range codecs {
 			if codec.MaxChunks() < i*i {
@@ -195,7 +240,7 @@ func BenchmarkExtensionWithRoots(b *testing.B) {
 				continue
 			}
 
-			square := genRandDS(i)
+			square := genRandDS(i, chunkSize)
 			b.Run(
 				fmt.Sprintf("%s %dx%dx%d ODS", codecName, i, i, len(square[0])),
 				func(b *testing.B) {
@@ -216,11 +261,11 @@ func BenchmarkExtensionWithRoots(b *testing.B) {
 
 // genRandDS make a datasquare of random data, with width describing the number
 // of shares on a single side of the ds
-func genRandDS(width int) [][]byte {
+func genRandDS(width int, chunkSize int) [][]byte {
 	var ds [][]byte
 	count := width * width
 	for i := 0; i < count; i++ {
-		share := make([]byte, 256)
+		share := make([]byte, chunkSize)
 		_, err := rand.Read(share)
 		if err != nil {
 			panic(err)
