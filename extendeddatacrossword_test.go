@@ -358,7 +358,6 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 		coords        [][]uint
 		values        [][]byte
 		wantErr       bool
-		errType       error
 		corruptedAxis Axis
 		corruptedInd  uint
 	}{
@@ -370,7 +369,6 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 			// disturbs the order of shares in the first row, erases the rest of the eds
 			name:          "rows with unordered shares",
 			wantErr:       true, // repair should error out during root construction
-			errType:       &ErrByzantineData{},
 			corruptedAxis: Row,
 			coords: [][]uint{
 				{0, 0},
@@ -400,7 +398,6 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 			// disturbs the order of shares in the first column, erases the rest of the eds
 			name:          "columns with unordered shares",
 			wantErr:       true, // repair should error out during root construction
-			errType:       &ErrByzantineData{},
 			corruptedAxis: Col,
 			coords: [][]uint{
 				{0, 0},
@@ -453,8 +450,8 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 					err = corruptEds.Repair(dAHeaderRoots, dAHeaderCols)
 					assert.Equal(t, err != nil, test.wantErr)
 					if test.wantErr {
-						assert.ErrorAs(t, err, &test.errType)
 						var byzErr *ErrByzantineData
+						assert.ErrorAs(t, err, byzErr)
 						errors.As(err, &byzErr)
 						assert.Equal(t, byzErr.Axis, test.corruptedAxis)
 						assert.Equal(t, byzErr.Index, test.corruptedInd)
