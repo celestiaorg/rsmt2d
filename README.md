@@ -18,15 +18,15 @@ import (
 )
 
 func main() {
-    // Size of each share, in bytes
-    bufferSize := 64
+    // shareSize is the size of each share (in bytes).
+    shareSize := 512
     // Init new codec
     codec := rsmt2d.NewLeoRSCodec()
 
-    ones := bytes.Repeat([]byte{1}, bufferSize)
-    twos := bytes.Repeat([]byte{2}, bufferSize)
-    threes := bytes.Repeat([]byte{3}, bufferSize)
-    fours := bytes.Repeat([]byte{4}, bufferSize)
+    ones := bytes.Repeat([]byte{1}, shareSize)
+    twos := bytes.Repeat([]byte{2}, shareSize)
+    threes := bytes.Repeat([]byte{3}, shareSize)
+    fours := bytes.Repeat([]byte{4}, shareSize)
 
     // Compute parity shares
     eds, err := rsmt2d.ComputeExtendedDataSquare(
