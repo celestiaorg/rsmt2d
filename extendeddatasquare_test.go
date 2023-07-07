@@ -251,7 +251,7 @@ func TestFlattenedODS(t *testing.T) {
 		threes, fours,
 	}
 
-	got := example.FlattenedsODS()
+	got := example.FlattenedODS()
 	assert.Equal(t, want, got)
 }
 

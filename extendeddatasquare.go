@@ -239,7 +239,7 @@ func (eds *ExtendedDataSquare) FlattenedEDS() [][]byte {
 }
 
 // FlattenedODS returns the original data square as a flattened slice of bytes.
-func (eds *ExtendedDataSquare) FlattenedsODS() (flattened [][]byte) {
+func (eds *ExtendedDataSquare) FlattenedODS() (flattened [][]byte) {
 	flattened = make([][]byte, eds.originalDataWidth*eds.originalDataWidth)
 	for i := uint(0); i < eds.originalDataWidth; i++ {
 		row := eds.Row(i)
