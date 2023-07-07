@@ -54,8 +54,7 @@ func newErasuredNamespacedMerkleTree(squareSize uint64, axisIndex uint, options 
 	if squareSize == 0 {
 		panic("cannot create a erasuredNamespacedMerkleTree of squareSize == 0")
 	}
-	// options = append(options, nmt.NamespaceIDSize(NamespaceSize))
-	// read the options to extract the namespace size
+	// read the options to extract the namespace size, and use it to construct erasuredNamespacedMerkleTree
 	opts := &nmt.Options{}
 	for _, setter := range options {
 		setter(opts)
@@ -72,7 +71,7 @@ type constructor struct {
 
 // newConstructor creates a tree constructor function as required by rsmt2d to
 // calculate the data root. It creates that tree using the
-// wrapper.erasuredNamespacedMerkleTree.
+// erasuredNamespacedMerkleTree.
 func newConstructor(squareSize uint64, opts ...nmt.Option) TreeConstructorFn {
 	return constructor{
 		squareSize: squareSize,
@@ -89,9 +88,9 @@ func (c constructor) NewTree(_ Axis, axisIndex uint) Tree {
 }
 
 // Push adds the provided data to the underlying NamespaceMerkleTree, and
-// automatically uses the first DefaultNamespaceIDLen number of bytes as the
+// automatically uses the first erasuredNamespacedMerkleTree.namespaceSize number of bytes as the
 // namespace unless the data pushed to the second half of the tree. Fulfills the
-// rsmt.Tree interface. NOTE: panics if an error is encountered while pushing or
+// rsmt2d.Tree interface. NOTE: panics if an error is encountered while pushing or
 // if the tree size is exceeded.
 func (w *erasuredNamespacedMerkleTree) Push(data []byte) error {
 	ParitySharesNamespaceBytes := bytes.Repeat([]byte{0xFF}, w.namespaceSize)
@@ -117,7 +116,7 @@ func (w *erasuredNamespacedMerkleTree) Push(data []byte) error {
 	return nil
 }
 
-// Root fulfills the rsmt.Tree interface by generating and returning the
+// Root fulfills the rsmt2d.Tree interface by generating and returning the
 // underlying NamespaceMerkleTree Root.
 func (w *erasuredNamespacedMerkleTree) Root() ([]byte, error) {
 	root, err := w.tree.Root()
