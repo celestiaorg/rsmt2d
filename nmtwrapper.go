@@ -1,5 +1,9 @@
 package rsmt2d
 
+// The contents of this file have been adapted from the source file available at https://github.com/celestiaorg/celestia-app/blob/main/pkg/wrapper/nmt_wrapper.go,
+// solely for the purpose of testing rsmt2d expected behavior when integrated with a NamespaceMerkleTree.
+// Please note that this file has undergone several modifications and may not match the original file exactly.
+
 import (
 	"bytes"
 	"fmt"
@@ -11,8 +15,7 @@ import (
 
 // Fulfills the Tree interface and TreeConstructorFn function
 var (
-	_ TreeConstructorFn = newConstructor(0)
-	_ Tree              = &erasuredNamespacedMerkleTree{}
+	_ Tree = &erasuredNamespacedMerkleTree{}
 )
 
 // erasuredNamespacedMerkleTree wraps NamespaceMerkleTree to conform to the
