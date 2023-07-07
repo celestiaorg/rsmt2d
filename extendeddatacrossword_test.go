@@ -451,7 +451,7 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 					assert.Equal(t, err != nil, test.wantErr)
 					if test.wantErr {
 						var byzErr *ErrByzantineData
-						assert.ErrorAs(t, err, byzErr)
+						assert.ErrorAs(t, err, &byzErr)
 						errors.As(err, &byzErr)
 						assert.Equal(t, byzErr.Axis, test.corruptedAxis)
 						assert.Equal(t, byzErr.Index, test.corruptedInd)
