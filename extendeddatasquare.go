@@ -44,7 +44,8 @@ func (eds *ExtendedDataSquare) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// ComputeExtendedDataSquare computes the extended data square for some chunks of data.
+// ComputeExtendedDataSquare computes the extended data square for some chunks
+// of original data.
 func ComputeExtendedDataSquare(
 	data [][]byte,
 	codec Codec,
@@ -55,6 +56,10 @@ func ComputeExtendedDataSquare(
 	}
 
 	chunkSize := getChunkSize(data)
+	err := codec.ValidateChunkSize(int(chunkSize))
+	if err != nil {
+		return nil, err
+	}
 	ds, err := newDataSquare(data, treeCreatorFn, uint(chunkSize))
 	if err != nil {
 		return nil, err
@@ -80,6 +85,10 @@ func ImportExtendedDataSquare(
 	}
 
 	chunkSize := getChunkSize(data)
+	err := codec.ValidateChunkSize(int(chunkSize))
+	if err != nil {
+		return nil, err
+	}
 	ds, err := newDataSquare(data, treeCreatorFn, uint(chunkSize))
 	if err != nil {
 		return nil, err

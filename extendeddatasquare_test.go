@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const ShardSize = 64
@@ -65,6 +66,32 @@ func TestComputeExtendedDataSquare(t *testing.T) {
 			assert.Equal(t, tc.want, result.squareRow)
 		})
 	}
+
+	t.Run("returns an error if chunkSize is not a multiple of 64", func(t *testing.T) {
+		chunk := bytes.Repeat([]byte{1}, 65)
+		_, err := ComputeExtendedDataSquare([][]byte{chunk}, NewLeoRSCodec(), NewDefaultTree)
+		assert.Error(t, err)
+	})
+}
+
+func TestImportExtendedDataSquare(t *testing.T) {
+	t.Run("is able to import an EDS", func(t *testing.T) {
+		eds := createExampleEds(t, ShardSize)
+		got, err := ImportExtendedDataSquare(eds.Flattened(), NewLeoRSCodec(), NewDefaultTree)
+		assert.NoError(t, err)
+		assert.Equal(t, eds.Flattened(), got.Flattened())
+	})
+	t.Run("returns an error if the number of chunks exceeds the maximum", func(t *testing.T) {
+		codec := NewLeoRSCodec()
+		data := make([][]byte, codec.MaxChunks()+1)
+		_, err := ImportExtendedDataSquare(data, codec, NewDefaultTree)
+		assert.Error(t, err)
+	})
+	t.Run("returns an error if chunkSize is not a multiple of 64", func(t *testing.T) {
+		chunk := bytes.Repeat([]byte{1}, 65)
+		_, err := ImportExtendedDataSquare([][]byte{chunk}, NewLeoRSCodec(), NewDefaultTree)
+		assert.Error(t, err)
+	})
 }
 
 func TestMarshalJSON(t *testing.T) {
@@ -276,4 +303,19 @@ func genRandDS(width int, chunkSize int) [][]byte {
 		ds = append(ds, share)
 	}
 	return ds
+}
+
+func createExampleEds(t *testing.T, chunkSize int) (eds *ExtendedDataSquare) {
+	ones := bytes.Repeat([]byte{1}, chunkSize)
+	twos := bytes.Repeat([]byte{2}, chunkSize)
+	threes := bytes.Repeat([]byte{3}, chunkSize)
+	fours := bytes.Repeat([]byte{4}, chunkSize)
+	ods := [][]byte{
+		ones, twos,
+		threes, fours,
+	}
+
+	eds, err := ComputeExtendedDataSquare(ods, NewLeoRSCodec(), NewDefaultTree)
+	require.NoError(t, err)
+	return eds
 }
