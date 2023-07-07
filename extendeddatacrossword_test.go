@@ -352,10 +352,9 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 	one := bytes.Repeat([]byte{1}, shareSize)
 	two := bytes.Repeat([]byte{2}, shareSize)
 	three := bytes.Repeat([]byte{3}, shareSize)
-	// four := bytes.Repeat([]byte{4}, shareSize)
+	sharesValue := []int{1, 2, 3, 4}
 	tests := []struct {
 		name          string
-		sharesValue   []int
 		coords        [][]uint
 		values        [][]byte
 		wantErr       bool
@@ -364,14 +363,12 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 		corruptedInd  uint
 	}{
 		{
-			name:        "no corruption",
-			sharesValue: []int{1, 2, 3, 4},
-			wantErr:     false,
+			name:    "no corruption",
+			wantErr: false,
 		},
 		{
 			// disturbs the order of shares in the first row, erases the rest of the eds
 			name:          "rows with unordered shares",
-			sharesValue:   []int{1, 2, 3, 4},
 			wantErr:       true, // repair should error out during root construction
 			errType:       &ErrByzantineData{},
 			corruptedAxis: Row,
@@ -402,7 +399,6 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 		{
 			// disturbs the order of shares in the first column, erases the rest of the eds
 			name:          "columns with unordered shares",
-			sharesValue:   []int{1, 2, 3, 4},
 			wantErr:       true, // repair should error out during root construction
 			errType:       &ErrByzantineData{},
 			corruptedAxis: Col,
@@ -445,7 +441,7 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 			for _, test := range tests {
 				t.Run(test.name, func(t *testing.T) {
 					// create an eds with the given shares
-					corruptEds := createTestEdsWithNMT(t, codec, shareSize, namespaceSize, test.sharesValue...)
+					corruptEds := createTestEdsWithNMT(t, codec, shareSize, namespaceSize, sharesValue...)
 					assert.NotNil(t, eds)
 					// corrupt it by setting the values at the given coordinates
 					for i, coords := range test.coords {
