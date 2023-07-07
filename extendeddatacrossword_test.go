@@ -384,17 +384,16 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 
 	for codecName, codec := range codecs {
 		t.Run(codecName, func(t *testing.T) {
+			// create a DA header
+			eds := createTestEdsWithNMT(t, codec, shareSize, namespaceSize, 1, 2, 3, 4)
+			assert.NotNil(t, eds)
+			dAHeaderRoots, err := eds.getRowRoots()
+			assert.NoError(t, err)
+
+			dAHeaderCols, err := eds.getColRoots()
+			assert.NoError(t, err)
 			for _, test := range tests {
 				t.Run(test.name, func(t *testing.T) {
-
-					// create a DA header
-					eds := createTestEdsWithNMT(t, codec, shareSize, namespaceSize, 1, 2, 3, 4)
-					assert.NotNil(t, eds)
-					dAHeaderRoots, err := eds.getRowRoots()
-					assert.NoError(t, err)
-
-					dAHeaderCols, err := eds.getColRoots()
-					assert.NoError(t, err)
 
 					// create an eds with supposedly sampled shares, which might be corrupted
 					corruptEds := createTestEdsWithNMT(t, codec, shareSize, namespaceSize, test.sharesValue...)
