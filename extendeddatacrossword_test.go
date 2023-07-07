@@ -347,12 +347,19 @@ func createTestEds(codec Codec, shareSize int) *ExtendedDataSquare {
 func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 	shareSize := 64
 	namespaceSize := 1
+	one := bytes.Repeat([]byte{1}, shareSize)
+	two := bytes.Repeat([]byte{2}, shareSize)
+	three := bytes.Repeat([]byte{3}, shareSize)
+	// four := bytes.Repeat([]byte{4}, shareSize)
 	tests := []struct {
 		name          string
 		sharesValue   []int
+		coords        [][]uint
+		values        [][]byte
 		wantErr       bool
 		errType       error
 		corruptedAxis Axis
+		corruptedInd  int
 	}{
 		{
 			name:        "no corruption",
@@ -363,22 +370,40 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 		{
 			// make rows shares unordered, columns are still ordered
 			// 2 1
-			// 4 3
+			// - -
 			name:          "rows with unordered shares",
-			sharesValue:   []int{2, 1, 4, 3},
+			sharesValue:   []int{1, 2, 3, 4},
 			wantErr:       true, // repair should error out during root construction
 			errType:       &ErrByzantineData{},
 			corruptedAxis: Row,
+			coords: [][]uint{{0, 0}, {0, 1},
+				{1, 0}, {1, 1}, {1, 2}, {1, 3},
+				{2, 0}, {2, 1}, {2, 2}, {2, 3},
+				{3, 0}, {3, 1}, {3, 2}, {3, 3}},
+			values: [][]byte{two, one,
+				nil, nil, nil, nil,
+				nil, nil, nil, nil,
+				nil, nil, nil, nil},
+			corruptedInd: 0,
 		},
 		{
 			// make column shares unordered, rows are still ordered
-			// 3 4
-			// 1 2
+			// 3 -
+			// 1 -
 			name:          "columns with unordered shares",
-			sharesValue:   []int{3, 4, 1, 2},
+			sharesValue:   []int{1, 2, 3, 4},
 			wantErr:       true, // repair should error out during root construction
 			errType:       &ErrByzantineData{},
 			corruptedAxis: Col,
+			coords: [][]uint{{0, 0}, {0, 1}, {0, 2}, {0, 3},
+				{1, 0}, {1, 1}, {1, 2}, {1, 3},
+				{2, 1}, {2, 2}, {2, 3},
+				{3, 1}, {3, 2}, {3, 3}},
+			values: [][]byte{three, nil, nil, nil,
+				one, nil, nil, nil,
+				nil, nil, nil,
+				nil, nil, nil},
+			corruptedInd: 0,
 		},
 	}
 
@@ -394,17 +419,23 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 			assert.NoError(t, err)
 			for _, test := range tests {
 				t.Run(test.name, func(t *testing.T) {
-
 					// create an eds with supposedly sampled shares, which might be corrupted
 					corruptEds := createTestEdsWithNMT(t, codec, shareSize, namespaceSize, test.sharesValue...)
 					assert.NotNil(t, eds)
+
+					for i, coords := range test.coords {
+						x := coords[0]
+						y := coords[1]
+						corruptEds.setCell(x, y, test.values[i])
+					}
+
 					err = corruptEds.Repair(dAHeaderRoots, dAHeaderCols)
 					assert.Equal(t, err != nil, test.wantErr)
 					if test.wantErr {
 						assert.ErrorAs(t, err, &test.errType)
 						var byzErr *ErrByzantineData
 						errors.As(err, &byzErr)
-						// assert.Equal(t, byzErr.Axis, test.corruptedAxis)
+						assert.Equal(t, byzErr.Axis, test.corruptedAxis)
 					}
 
 				})
