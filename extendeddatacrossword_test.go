@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/rand"
+	"testing"
+
 	"github.com/celestiaorg/nmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"math/rand"
-	"testing"
 )
 
 // PseudoFraudProof is an example fraud proof.
@@ -377,14 +378,28 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 			wantErr:       true, // repair should error out during root construction
 			errType:       &ErrByzantineData{},
 			corruptedAxis: Row,
-			coords: [][]uint{{0, 0}, {0, 1},
-				{1, 0}, {1, 1}, {1, 2}, {1, 3},
-				{2, 0}, {2, 1}, {2, 2}, {2, 3},
-				{3, 0}, {3, 1}, {3, 2}, {3, 3}},
-			values: [][]byte{two, one,
+			coords: [][]uint{
+				{0, 0},
+				{0, 1},
+				{1, 0},
+				{1, 1},
+				{1, 2},
+				{1, 3},
+				{2, 0},
+				{2, 1},
+				{2, 2},
+				{2, 3},
+				{3, 0},
+				{3, 1},
+				{3, 2},
+				{3, 3},
+			},
+			values: [][]byte{
+				two, one,
 				nil, nil, nil, nil,
 				nil, nil, nil, nil,
-				nil, nil, nil, nil},
+				nil, nil, nil, nil,
+			},
 			corruptedInd: 0,
 		},
 		{
@@ -396,14 +411,28 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 			wantErr:       true, // repair should error out during root construction
 			errType:       &ErrByzantineData{},
 			corruptedAxis: Col,
-			coords: [][]uint{{0, 0}, {0, 1}, {0, 2}, {0, 3},
-				{1, 0}, {1, 1}, {1, 2}, {1, 3},
-				{2, 1}, {2, 2}, {2, 3},
-				{3, 1}, {3, 2}, {3, 3}},
-			values: [][]byte{three, nil, nil, nil,
+			coords: [][]uint{
+				{0, 0},
+				{0, 1},
+				{0, 2},
+				{0, 3},
+				{1, 0},
+				{1, 1},
+				{1, 2},
+				{1, 3},
+				{2, 1},
+				{2, 2},
+				{2, 3},
+				{3, 1},
+				{3, 2},
+				{3, 3},
+			},
+			values: [][]byte{
+				three, nil, nil, nil,
 				one, nil, nil, nil,
 				nil, nil, nil,
-				nil, nil, nil},
+				nil, nil, nil,
+			},
 			corruptedInd: 0,
 		},
 	}
@@ -438,7 +467,6 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 						errors.As(err, &byzErr)
 						assert.Equal(t, byzErr.Axis, test.corruptedAxis)
 					}
-
 				})
 			}
 		})
@@ -462,7 +490,6 @@ func createTestEdsWithNMT(t *testing.T, codec Codec, shareSize, namespaceSize in
 	odsWidth := edsWidth / 2 // number of shares per row/column in the original data square
 
 	eds, err := ComputeExtendedDataSquare(shares, codec, newConstructor(uint64(odsWidth), nmt.NamespaceIDSize(namespaceSize)))
-
 	if err != nil {
 		panic(err)
 	}

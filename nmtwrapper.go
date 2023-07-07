@@ -3,6 +3,7 @@ package rsmt2d
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/celestiaorg/nmt"
 	"github.com/celestiaorg/nmt/namespace"
 	"github.com/minio/sha256-simd"
