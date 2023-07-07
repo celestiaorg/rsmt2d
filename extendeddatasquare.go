@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -264,7 +265,7 @@ func (eds *ExtendedDataSquare) Width() uint {
 // extended data square.
 func validateEdsWidth(edsWidth uint) error {
 	if edsWidth%2 != 0 {
-		return errors.New("square width must be even")
+		return fmt.Errorf("extended data square width %v must be even", edsWidth)
 	}
 
 	return nil
