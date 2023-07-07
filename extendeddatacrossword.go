@@ -434,7 +434,7 @@ func noMissingData(input [][]byte, rebuiltIndex int) bool {
 	return true
 }
 
-// computeSharesRoot computes the root of the shares of the specified axis (column or row) and index `i`.
+// computeSharesRoot calculates the root of the shares for the specified axis (`i`th column or row).
 func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, axis Axis, i uint) ([]byte, error) {
 	tree := eds.createTreeFn(axis, i)
 	for _, d := range shares {
