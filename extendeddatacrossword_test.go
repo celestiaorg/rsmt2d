@@ -414,6 +414,10 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 	}
 }
 
+// createTestEdsWithNMT creates an extended data square with the given shares and namespace size.
+// Shares are placed in row-major order.
+// The first namespaceSize bytes of each share are treated as its namespace.
+// Roots of the extended data square are computed using namespace merkle trees.
 func createTestEdsWithNMT(t *testing.T, codec Codec, shareSize, namespaceSize int, sharesValue ...int) *ExtendedDataSquare {
 	// the first namespaceSize bytes of each share are the namespace
 	assert.True(t, shareSize > namespaceSize)
@@ -426,7 +430,7 @@ func createTestEdsWithNMT(t *testing.T, codec Codec, shareSize, namespaceSize in
 	edsWidth := 4            // number of shares per row/column in the extended data square
 	odsWidth := edsWidth / 2 // number of shares per row/column in the original data square
 
-	eds, err := ComputeExtendedDataSquare(shares, codec, NewConstructor(uint64(odsWidth), nmt.NamespaceIDSize(namespaceSize)))
+	eds, err := ComputeExtendedDataSquare(shares, codec, newConstructor(uint64(odsWidth), nmt.NamespaceIDSize(namespaceSize)))
 
 	if err != nil {
 		panic(err)
