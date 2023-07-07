@@ -195,7 +195,7 @@ func TestRepairWithOneQuarterPopulated(t *testing.T) {
 	err = eds.Repair(rowRoots, colRoots)
 	assert.NoError(t, err)
 
-	assert.Equal(t, exampleEds.GetCell(3, 3), eds.GetCell(3, 3))
+	assert.Equal(t, exampleEds.Flattened(), eds.Flattened())
 }
 
 func createExampleEds(t *testing.T, chunkSize int) (eds *rsmt2d.ExtendedDataSquare) {
