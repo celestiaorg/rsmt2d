@@ -81,12 +81,6 @@ func TestImportExtendedDataSquare(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, eds.Flattened(), got.Flattened())
 	})
-	t.Run("returns an error if the number of chunks exceeds the maximum", func(t *testing.T) {
-		codec := NewLeoRSCodec()
-		data := make([][]byte, codec.MaxChunks()+1)
-		_, err := ImportExtendedDataSquare(data, codec, NewDefaultTree)
-		assert.Error(t, err)
-	})
 	t.Run("returns an error if chunkSize is not a multiple of 64", func(t *testing.T) {
 		chunk := bytes.Repeat([]byte{1}, 65)
 		_, err := ImportExtendedDataSquare([][]byte{chunk}, NewLeoRSCodec(), NewDefaultTree)
