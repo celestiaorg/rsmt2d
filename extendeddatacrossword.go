@@ -56,13 +56,12 @@ func (e *ErrByzantineData) Error() string {
 	return fmt.Sprintf("byzantine %s: %d", e.Axis, e.Index)
 }
 
-// Repair attempts to repair an incomplete extended data
-// square (EDS), comparing repaired rows and columns against expected Merkle
-// roots.
-//
-// # Input
-//
-// Missing shares must be nil.
+// Repair attempts to repair an incomplete extended data square (EDS). The
+// parameters rowRoots and colRoots are the expected Merkle roots for each row
+// and column. rowRoots and colRoots are used to verify that a repaired row or
+// column is correct. Prior to the repair process, if a row or column is already
+// complete but the Merkle root for the row or column doesn't match the expected
+// root, an error is returned. Missing shares in the EDS must be nil.
 //
 // # Output
 //
