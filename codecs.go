@@ -23,6 +23,9 @@ type Codec interface {
 	MaxChunks() int
 	// Name returns the name of the codec.
 	Name() string
+	// ValidateChunkSize returns an error if this codec does not support
+	// chunkSize. Returns nil if chunkSize is supported.
+	ValidateChunkSize(chunkSize int) error
 }
 
 // codecs is a global map used for keeping track of registered codecs for testing and JSON unmarshalling

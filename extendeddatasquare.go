@@ -104,6 +104,10 @@ func NewExtendedDataSquare(codec Codec, treeCreatorFn TreeConstructorFn, edsWidt
 	if err != nil {
 		return nil, err
 	}
+	err = codec.ValidateChunkSize(int(chunkSize))
+	if err != nil {
+		return nil, err
+	}
 
 	data := make([][]byte, edsWidth*edsWidth)
 	dataSquare, err := newDataSquare(data, treeCreatorFn, chunkSize)
