@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const ShardSize = 64
@@ -228,4 +229,120 @@ func genRandDS(width int) [][]byte {
 		ds = append(ds, share)
 	}
 	return ds
+}
+
+func TestFlattenedEDS(t *testing.T) {
+	example := createExampleEds(t, ShardSize)
+	want := [][]byte{
+		ones, twos, zeros, threes,
+		threes, fours, eights, fifteens,
+		twos, elevens, thirteens, fours,
+		zeros, thirteens, fives, eights,
+	}
+
+	got := example.FlattenedEDS()
+	assert.Equal(t, want, got)
+}
+
+func TestFlattenedODS(t *testing.T) {
+	example := createExampleEds(t, ShardSize)
+	want := [][]byte{
+		ones, twos,
+		threes, fours,
+	}
+
+	got := example.FlattenedsODS()
+	assert.Equal(t, want, got)
+}
+
+func TestEquals(t *testing.T) {
+	t.Run("returns true for two equal EDS", func(t *testing.T) {
+		a := createExampleEds(t, ShardSize)
+		b := createExampleEds(t, ShardSize)
+		assert.True(t, a.Equals(b))
+	})
+	t.Run("returns false for two unequal EDS", func(t *testing.T) {
+		a := createExampleEds(t, ShardSize)
+
+		type testCase struct {
+			name  string
+			other *ExtendedDataSquare
+		}
+
+		unequalOriginalDataWidth := createExampleEds(t, ShardSize)
+		unequalOriginalDataWidth.originalDataWidth = 1
+
+		unequalCodecs := createExampleEds(t, ShardSize)
+		unequalCodecs.codec = newTestCodec()
+
+		unequalChunkSize := createExampleEds(t, ShardSize*2)
+
+		unequalEds, err := ComputeExtendedDataSquare([][]byte{ones}, NewLeoRSCodec(), NewDefaultTree)
+		require.NoError(t, err)
+
+		testCases := []testCase{
+			{
+				name:  "unequal original data width",
+				other: unequalOriginalDataWidth,
+			},
+			{
+				name:  "unequal codecs",
+				other: unequalCodecs,
+			},
+			{
+				name:  "unequal chunkSize",
+				other: unequalChunkSize,
+			},
+			{
+				name:  "unequalEds",
+				other: unequalEds,
+			},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				assert.False(t, a.Equals(tc.other))
+				// Question: reflect.DeepEqual matches the behavior of Equals
+				// for all these test cases. Is it sufficient for clients to use
+				// reflect.DeepEqual and remove Equals from the API?
+				assert.False(t, reflect.DeepEqual(a, tc.other))
+			})
+		}
+	})
+}
+
+func createExampleEds(t *testing.T, chunkSize int) (eds *ExtendedDataSquare) {
+	ones := bytes.Repeat([]byte{1}, chunkSize)
+	twos := bytes.Repeat([]byte{2}, chunkSize)
+	threes := bytes.Repeat([]byte{3}, chunkSize)
+	fours := bytes.Repeat([]byte{4}, chunkSize)
+	ods := [][]byte{
+		ones, twos,
+		threes, fours,
+	}
+
+	eds, err := ComputeExtendedDataSquare(ods, NewLeoRSCodec(), NewDefaultTree)
+	require.NoError(t, err)
+	return eds
+}
+
+func newTestCodec() Codec {
+	return &testCodec{}
+}
+
+type testCodec struct{}
+
+func (c *testCodec) Encode(chunk [][]byte) ([][]byte, error) {
+	return chunk, nil
+}
+
+func (c *testCodec) Decode(chunk [][]byte) ([][]byte, error) {
+	return chunk, nil
+}
+
+func (c *testCodec) MaxChunks() int {
+	return 0
+}
+
+func (c *testCodec) Name() string {
+	return "testCodec"
 }
