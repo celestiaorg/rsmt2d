@@ -54,7 +54,8 @@ func ComputeExtendedDataSquare(
 		return nil, errors.New("number of chunks exceeds the maximum")
 	}
 
-	ds, err := newDataSquare(data, treeCreatorFn)
+	chunkSize := getChunkSize(data)
+	ds, err := newDataSquare(data, treeCreatorFn, uint(chunkSize))
 	if err != nil {
 		return nil, err
 	}
@@ -78,18 +79,44 @@ func ImportExtendedDataSquare(
 		return nil, errors.New("number of chunks exceeds the maximum")
 	}
 
-	ds, err := newDataSquare(data, treeCreatorFn)
+	chunkSize := getChunkSize(data)
+	ds, err := newDataSquare(data, treeCreatorFn, uint(chunkSize))
 	if err != nil {
 		return nil, err
 	}
 
 	eds := ExtendedDataSquare{dataSquare: ds, codec: codec}
-	if eds.width%2 != 0 {
-		return nil, errors.New("square width must be even")
+	err = validateEdsWidth(eds.width)
+	if err != nil {
+		return nil, err
 	}
 
 	eds.originalDataWidth = eds.width / 2
 
+	return &eds, nil
+}
+
+// NewExtendedDataSquare returns a new extended data square with a width of
+// edsWidth. All shares are initialized to nil so that the returned extended
+// data square can be populated via subsequent SetCell invocations.
+func NewExtendedDataSquare(codec Codec, treeCreatorFn TreeConstructorFn, edsWidth uint, chunkSize uint) (*ExtendedDataSquare, error) {
+	err := validateEdsWidth(edsWidth)
+	if err != nil {
+		return nil, err
+	}
+
+	data := make([][]byte, edsWidth*edsWidth)
+	dataSquare, err := newDataSquare(data, treeCreatorFn, chunkSize)
+	if err != nil {
+		return nil, err
+	}
+
+	originalDataWidth := edsWidth / 2
+	eds := ExtendedDataSquare{
+		dataSquare:        dataSquare,
+		codec:             codec,
+		originalDataWidth: originalDataWidth,
+	}
 	return &eds, nil
 }
 
@@ -231,4 +258,24 @@ func deepCopy(original [][]byte) [][]byte {
 // Width returns the width of the square.
 func (eds *ExtendedDataSquare) Width() uint {
 	return eds.width
+}
+
+// validateEdsWidth returns an error if edsWidth is not a valid width for an
+// extended data square.
+func validateEdsWidth(edsWidth uint) error {
+	if edsWidth%2 != 0 {
+		return errors.New("square width must be even")
+	}
+
+	return nil
+}
+
+// getChunkSize returns the size of the first non-nil chunk in data.
+func getChunkSize(data [][]byte) (chunkSize int) {
+	for _, d := range data {
+		if d != nil {
+			return len(d)
+		}
+	}
+	return 0
 }

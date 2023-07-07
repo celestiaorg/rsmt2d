@@ -261,6 +261,7 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 }
 
 func BenchmarkRepair(b *testing.B) {
+	chunkSize := uint(256)
 	// For different ODS sizes
 	for originalDataWidth := 4; originalDataWidth <= 512; originalDataWidth *= 2 {
 		for codecName, codec := range codecs {
@@ -270,7 +271,7 @@ func BenchmarkRepair(b *testing.B) {
 			}
 
 			// Generate a new range original data square then extend it
-			square := genRandDS(originalDataWidth)
+			square := genRandDS(originalDataWidth, int(chunkSize))
 			eds, err := ComputeExtendedDataSquare(square, codec, NewDefaultTree)
 			if err != nil {
 				b.Error(err)
