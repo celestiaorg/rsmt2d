@@ -114,6 +114,6 @@ func (c *testCodec) Name() string {
 	return "testCodec"
 }
 
-func (c *testCodec) ValidateChunkSize(chunkSize int) error {
+func (c *testCodec) ValidateChunkSize(_ int) error {
 	return nil
 }
