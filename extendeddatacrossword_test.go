@@ -346,20 +346,20 @@ func createTestEds(codec Codec, shareSize int) *ExtendedDataSquare {
 	return eds
 }
 
-func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
-	shareSize := 64
+func TestCorruptedEdsReturnsErrByzantineData_UnorderedShares(t *testing.T) {
+	shareSize := 512
 	namespaceSize := 1
 	one := bytes.Repeat([]byte{1}, shareSize)
 	two := bytes.Repeat([]byte{2}, shareSize)
 	three := bytes.Repeat([]byte{3}, shareSize)
 	sharesValue := []int{1, 2, 3, 4}
 	tests := []struct {
-		name          string
-		coords        [][]uint
-		values        [][]byte
-		wantErr       bool
-		corruptedAxis Axis
-		corruptedInd  uint
+		name           string
+		coords         [][]uint
+		values         [][]byte
+		wantErr        bool
+		corruptedAxis  Axis
+		corruptedIndex uint
 	}{
 		{
 			name:    "no corruption",
@@ -392,7 +392,7 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 				nil, nil, nil, nil,
 				nil, nil, nil, nil,
 			},
-			corruptedInd: 0,
+			corruptedIndex: 0,
 		},
 		{
 			// disturbs the order of shares in the first column, erases the rest of the eds
@@ -421,7 +421,7 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 				nil, nil, nil,
 				nil, nil, nil,
 			},
-			corruptedInd: 0,
+			corruptedIndex: 0,
 		},
 	}
 
@@ -439,7 +439,7 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 				t.Run(test.name, func(t *testing.T) {
 					// create an eds with the given shares
 					corruptEds := createTestEdsWithNMT(t, codec, shareSize, namespaceSize, sharesValue...)
-					assert.NotNil(t, eds)
+					assert.NotNil(t, corruptEds)
 					// corrupt it by setting the values at the given coordinates
 					for i, coords := range test.coords {
 						x := coords[0]
@@ -454,7 +454,7 @@ func TestCorruptedEdsReturnsErrByzantineData_UorderedShares(t *testing.T) {
 						assert.ErrorAs(t, err, &byzErr)
 						errors.As(err, &byzErr)
 						assert.Equal(t, byzErr.Axis, test.corruptedAxis)
-						assert.Equal(t, byzErr.Index, test.corruptedInd)
+						assert.Equal(t, byzErr.Index, test.corruptedIndex)
 					}
 				})
 			}
@@ -479,9 +479,7 @@ func createTestEdsWithNMT(t *testing.T, codec Codec, shareSize, namespaceSize in
 	odsWidth := edsWidth / 2 // number of shares per row/column in the original data square
 
 	eds, err := ComputeExtendedDataSquare(shares, codec, newConstructor(uint64(odsWidth), nmt.NamespaceIDSize(namespaceSize)))
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err)
 
 	return eds
 }
