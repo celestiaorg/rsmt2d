@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -35,10 +36,6 @@ func TestComputeExtendedDataSquare(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "1x1",
-			// NOTE: data must contain byte slices that are a multiple of 64
-			// bytes.
-			// See https://github.com/catid/leopard/blob/22ddc7804998d31c8f1a2617ee720e063b1fa6cd/README.md?plain=1#L27
-			// See https://github.com/klauspost/reedsolomon/blob/fd3e6910a7e457563469172968f456ad9b7696b6/README.md?plain=1#L403
 			data: [][]byte{ones},
 			want: [][][]byte{
 				{ones, ones},
@@ -67,6 +64,26 @@ func TestComputeExtendedDataSquare(t *testing.T) {
 			assert.Equal(t, tc.want, result.squareRow)
 		})
 	}
+
+	t.Run("returns an error if chunkSize is not a multiple of 64", func(t *testing.T) {
+		chunk := bytes.Repeat([]byte{1}, 65)
+		_, err := ComputeExtendedDataSquare([][]byte{chunk}, NewLeoRSCodec(), NewDefaultTree)
+		assert.Error(t, err)
+	})
+}
+
+func TestImportExtendedDataSquare(t *testing.T) {
+	t.Run("is able to import an EDS", func(t *testing.T) {
+		eds := createExampleEds(t, ShardSize)
+		got, err := ImportExtendedDataSquare(eds.Flattened(), NewLeoRSCodec(), NewDefaultTree)
+		assert.NoError(t, err)
+		assert.Equal(t, eds.Flattened(), got.Flattened())
+	})
+	t.Run("returns an error if chunkSize is not a multiple of 64", func(t *testing.T) {
+		chunk := bytes.Repeat([]byte{1}, 65)
+		_, err := ImportExtendedDataSquare([][]byte{chunk}, NewLeoRSCodec(), NewDefaultTree)
+		assert.Error(t, err)
+	})
 }
 
 func TestMarshalJSON(t *testing.T) {
@@ -99,6 +116,13 @@ func TestNewExtendedDataSquare(t *testing.T) {
 		edsWidth := uint(1)
 
 		_, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, shareSize)
+		assert.Error(t, err)
+	})
+	t.Run("returns an error if chunkSize is not a multiple of 64", func(t *testing.T) {
+		edsWidth := uint(1)
+		chunkSize := uint(65)
+
+		_, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, chunkSize)
 		assert.Error(t, err)
 	})
 	t.Run("returns a 4x4 EDS", func(t *testing.T) {
@@ -267,4 +291,19 @@ func genRandDS(width int, chunkSize int) [][]byte {
 		ds = append(ds, share)
 	}
 	return ds
+}
+
+func createExampleEds(t *testing.T, chunkSize int) (eds *ExtendedDataSquare) {
+	ones := bytes.Repeat([]byte{1}, chunkSize)
+	twos := bytes.Repeat([]byte{2}, chunkSize)
+	threes := bytes.Repeat([]byte{3}, chunkSize)
+	fours := bytes.Repeat([]byte{4}, chunkSize)
+	ods := [][]byte{
+		ones, twos,
+		threes, fours,
+	}
+
+	eds, err := ComputeExtendedDataSquare(ods, NewLeoRSCodec(), NewDefaultTree)
+	require.NoError(t, err)
+	return eds
 }
