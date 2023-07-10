@@ -346,9 +346,6 @@ func TestEquals(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				assert.False(t, a.Equals(tc.other))
-				// Question: reflect.DeepEqual matches the behavior of Equals
-				// for all these test cases. Is it sufficient for clients to use
-				// reflect.DeepEqual and remove Equals from the API?
 				assert.False(t, reflect.DeepEqual(a, tc.other))
 			})
 		}
