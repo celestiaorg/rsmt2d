@@ -74,7 +74,7 @@ func TestComputeExtendedDataSquare(t *testing.T) {
 
 func TestImportExtendedDataSquare(t *testing.T) {
 	t.Run("is able to import an EDS", func(t *testing.T) {
-		eds := createExampleEds(t, ShardSize)
+		eds := createExampleEds(t, shareSize)
 		got, err := ImportExtendedDataSquare(eds.Flattened(), NewLeoRSCodec(), NewDefaultTree)
 		assert.NoError(t, err)
 		assert.Equal(t, eds.Flattened(), got.Flattened())
