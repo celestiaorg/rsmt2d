@@ -11,19 +11,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const ShardSize = 64
-
 var (
-	zeros     = bytes.Repeat([]byte{0}, ShardSize)
-	ones      = bytes.Repeat([]byte{1}, ShardSize)
-	twos      = bytes.Repeat([]byte{2}, ShardSize)
-	threes    = bytes.Repeat([]byte{3}, ShardSize)
-	fours     = bytes.Repeat([]byte{4}, ShardSize)
-	fives     = bytes.Repeat([]byte{5}, ShardSize)
-	eights    = bytes.Repeat([]byte{8}, ShardSize)
-	elevens   = bytes.Repeat([]byte{11}, ShardSize)
-	thirteens = bytes.Repeat([]byte{13}, ShardSize)
-	fifteens  = bytes.Repeat([]byte{15}, ShardSize)
+	zeros     = bytes.Repeat([]byte{0}, shareSize)
+	ones      = bytes.Repeat([]byte{1}, shareSize)
+	twos      = bytes.Repeat([]byte{2}, shareSize)
+	threes    = bytes.Repeat([]byte{3}, shareSize)
+	fours     = bytes.Repeat([]byte{4}, shareSize)
+	fives     = bytes.Repeat([]byte{5}, shareSize)
+	eights    = bytes.Repeat([]byte{8}, shareSize)
+	elevens   = bytes.Repeat([]byte{11}, shareSize)
+	thirteens = bytes.Repeat([]byte{13}, shareSize)
+	fifteens  = bytes.Repeat([]byte{15}, shareSize)
 )
 
 func TestComputeExtendedDataSquare(t *testing.T) {
@@ -99,38 +97,34 @@ func TestMarshalJSON(t *testing.T) {
 func TestNewExtendedDataSquare(t *testing.T) {
 	t.Run("returns an error if edsWidth is not even", func(t *testing.T) {
 		edsWidth := uint(1)
-		chunkSize := uint(512)
 
-		_, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, chunkSize)
+		_, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, shareSize)
 		assert.Error(t, err)
 	})
 	t.Run("returns a 4x4 EDS", func(t *testing.T) {
 		edsWidth := uint(4)
-		chunkSize := uint(512)
 
-		got, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, chunkSize)
+		got, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, shareSize)
 		assert.NoError(t, err)
 		assert.Equal(t, edsWidth, got.width)
-		assert.Equal(t, chunkSize, got.chunkSize)
+		assert.Equal(t, uint(shareSize), got.chunkSize)
 	})
 	t.Run("returns a 4x4 EDS that can be populated via SetCell", func(t *testing.T) {
 		edsWidth := uint(4)
-		chunkSize := uint(512)
 
-		got, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, chunkSize)
+		got, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, shareSize)
 		assert.NoError(t, err)
 
-		chunk := bytes.Repeat([]byte{1}, int(chunkSize))
+		chunk := bytes.Repeat([]byte{1}, int(shareSize))
 		err = got.SetCell(0, 0, chunk)
 		assert.NoError(t, err)
 		assert.Equal(t, chunk, got.squareRow[0][0])
 	})
 	t.Run("returns an error when SetCell is invoked on an EDS with a chunk that is not the correct size", func(t *testing.T) {
 		edsWidth := uint(4)
-		chunkSize := uint(512)
-		incorrectChunkSize := uint(513)
+		incorrectChunkSize := shareSize + 1
 
-		got, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, chunkSize)
+		got, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, shareSize)
 		assert.NoError(t, err)
 
 		chunk := bytes.Repeat([]byte{1}, int(incorrectChunkSize))

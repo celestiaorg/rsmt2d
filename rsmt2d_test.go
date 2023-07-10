@@ -10,23 +10,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// shareSize is the size of each share (in bytes) used for testing.
+const shareSize = 512
+
 func TestEdsRepairRoundtripSimple(t *testing.T) {
-	bufferSize := 64
 	tests := []struct {
-		name string
-		// Size of each share, in bytes
-		shareSize int
-		codec     rsmt2d.Codec
+		name  string
+		codec rsmt2d.Codec
 	}{
-		{"leopard", bufferSize, rsmt2d.NewLeoRSCodec()},
+		{"leopard", rsmt2d.NewLeoRSCodec()},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ones := bytes.Repeat([]byte{1}, bufferSize)
-			twos := bytes.Repeat([]byte{2}, bufferSize)
-			threes := bytes.Repeat([]byte{3}, bufferSize)
-			fours := bytes.Repeat([]byte{4}, bufferSize)
+			ones := bytes.Repeat([]byte{1}, shareSize)
+			twos := bytes.Repeat([]byte{2}, shareSize)
+			threes := bytes.Repeat([]byte{3}, shareSize)
+			fours := bytes.Repeat([]byte{4}, shareSize)
 
 			// Compute parity shares
 			eds, err := rsmt2d.ComputeExtendedDataSquare(
@@ -76,22 +76,19 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 }
 
 func TestEdsRepairTwice(t *testing.T) {
-	bufferSize := 64
 	tests := []struct {
-		name string
-		// Size of each share, in bytes
-		shareSize int
-		codec     rsmt2d.Codec
+		name  string
+		codec rsmt2d.Codec
 	}{
-		{"leopard", bufferSize, rsmt2d.NewLeoRSCodec()},
+		{"leopard", rsmt2d.NewLeoRSCodec()},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ones := bytes.Repeat([]byte{1}, bufferSize)
-			twos := bytes.Repeat([]byte{2}, bufferSize)
-			threes := bytes.Repeat([]byte{3}, bufferSize)
-			fours := bytes.Repeat([]byte{4}, bufferSize)
+			ones := bytes.Repeat([]byte{1}, shareSize)
+			twos := bytes.Repeat([]byte{2}, shareSize)
+			threes := bytes.Repeat([]byte{3}, shareSize)
+			fours := bytes.Repeat([]byte{4}, shareSize)
 
 			// Compute parity shares
 			eds, err := rsmt2d.ComputeExtendedDataSquare(
@@ -115,7 +112,7 @@ func TestEdsRepairTwice(t *testing.T) {
 			flattened := eds.Flattened()
 
 			// Delete some shares, just enough so that repairing is possible, then remove one more.
-			missing := make([]byte, bufferSize)
+			missing := make([]byte, shareSize)
 			copy(missing, flattened[1])
 			flattened[0], flattened[1], flattened[2], flattened[3] = nil, nil, nil, nil
 			flattened[4], flattened[5], flattened[6], flattened[7] = nil, nil, nil, nil
@@ -138,7 +135,7 @@ func TestEdsRepairTwice(t *testing.T) {
 				t.Errorf("RepairExtendedDataSquare did not fail with `%v`, got `%v`", rsmt2d.ErrUnrepairableDataSquare, err)
 			}
 			// Re-insert missing share and try again.
-			flattened[1] = make([]byte, bufferSize)
+			flattened[1] = make([]byte, shareSize)
 			copy(flattened[1], missing)
 
 			// Re-import the data square.
