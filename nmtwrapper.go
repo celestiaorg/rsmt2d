@@ -1,6 +1,6 @@
 package rsmt2d
 
-// The contents of this file have been adapted from the source file available at https://github.com/celestiaorg/celestia-app/blob/main/pkg/wrapper/nmt_wrapper.go,
+// The contents of this file have been adapted from the source file available at https://github.com/celestiaorg/celestia-app/blob/bab6c0d0befe677ab8c2f4b83561c08affc7203e/pkg/wrapper/nmt_wrapper.go#L1,
 // solely for the purpose of testing rsmt2d expected behavior when integrated with a NamespaceMerkleTree.
 // Please note that this file has undergone several modifications and may not match the original file exactly.
 
