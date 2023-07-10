@@ -1,6 +1,7 @@
 package rsmt2d
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/klauspost/reedsolomon"
@@ -80,6 +81,17 @@ func (l *LeoRSCodec) MaxChunks() int {
 
 func (l *LeoRSCodec) Name() string {
 	return Leopard
+}
+
+// ValidateChunkSize returns an error if this codec does not support
+// chunkSize. Returns nil if chunkSize is supported.
+func (l *LeoRSCodec) ValidateChunkSize(chunkSize int) error {
+	// See https://github.com/catid/leopard/blob/22ddc7804998d31c8f1a2617ee720e063b1fa6cd/README.md?plain=1#L27
+	// See https://github.com/klauspost/reedsolomon/blob/fd3e6910a7e457563469172968f456ad9b7696b6/README.md?plain=1#L403
+	if chunkSize%64 != 0 {
+		return fmt.Errorf("chunkSize %v must be a multiple of 64 bytes", chunkSize)
+	}
+	return nil
 }
 
 func NewLeoRSCodec() *LeoRSCodec {
