@@ -293,7 +293,10 @@ func genRandDS(width int, chunkSize int) [][]byte {
 	return ds
 }
 
-func TestFlattenedEDS(t *testing.T) {
+// TestFlattened_EDS tests that eds.Flattened() returns all the shares in the
+// EDS. This function has the `_EDS` suffix to avoid a name collision with the
+// TestFlattened.
+func TestFlattened_EDS(t *testing.T) {
 	example := createExampleEds(t, shareSize)
 	want := [][]byte{
 		ones, twos, zeros, threes,
@@ -302,7 +305,7 @@ func TestFlattenedEDS(t *testing.T) {
 		zeros, thirteens, fives, eights,
 	}
 
-	got := example.FlattenedEDS()
+	got := example.Flattened()
 	assert.Equal(t, want, got)
 }
 
