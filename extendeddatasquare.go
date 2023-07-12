@@ -274,6 +274,24 @@ func (eds *ExtendedDataSquare) Width() uint {
 	return eds.width
 }
 
+// Roots returns a byte slice with this eds's RowRoots and ColRoots
+// concatenated.
+func (eds *ExtendedDataSquare) Roots() (roots [][]byte, err error) {
+	rowRoots, err := eds.RowRoots()
+	if err != nil {
+		return nil, err
+	}
+	colRoots, err := eds.ColRoots()
+	if err != nil {
+		return nil, err
+	}
+
+	roots = make([][]byte, 0, len(rowRoots)+len(colRoots))
+	roots = append(roots, rowRoots...)
+	roots = append(roots, colRoots...)
+	return roots, nil
+}
+
 // Flattened returns the extended data square as a flattened slice of bytes.
 func (eds *ExtendedDataSquare) Flattened() [][]byte {
 	return eds.dataSquare.Flattened()
