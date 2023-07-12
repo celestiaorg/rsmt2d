@@ -53,7 +53,8 @@ type ErrByzantineData struct {
 }
 
 func (e *ErrByzantineData) Error() string {
-	return fmt.Sprintf("byzantine %s: %d", e.Axis, e.Index)
+	return fmt.Sprintf(
+		"byzantine %s: %d", e.Axis, e.Index)
 }
 
 // Repair attempts to repair an incomplete extended data square (EDS). The
@@ -142,7 +143,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 		shares[c] = vectorData[c]
 	}
 
-	// Attempt rebuild
+	// Attempt rebuild the row
 	rebuiltShares, isDecoded, err := eds.rebuildShares(shares)
 	if err != nil {
 		return false, false, err
@@ -167,7 +168,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 		if col[r] != nil {
 			continue // not newly completed
 		}
-		if noMissingData(col, r) { // not completed
+		if noMissingData(col, r) { // completed
 			err := eds.verifyAgainstColRoots(colRoots, uint(c), col, r, rebuiltShares[c])
 			if err != nil {
 				var byzErr *ErrByzantineData
@@ -240,7 +241,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 		if row[c] != nil {
 			continue // not newly completed
 		}
-		if noMissingData(row, c) { // not completed
+		if noMissingData(row, c) { // completed
 			err := eds.verifyAgainstRowRoots(rowRoots, uint(r), row, c, rebuiltShares[r])
 			if err != nil {
 				var byzErr *ErrByzantineData
@@ -299,35 +300,46 @@ func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
 		root, err = eds.computeSharesRootWithRebuiltShare(oldShares, Row, r, rebuiltIndex, rebuiltShare)
 	}
 	if err != nil {
-		return err
+		// any error during the computation of the root is considered byzantine
+		// the shares are set to nil, as the caller will populate them
+		return &ErrByzantineData{Row, r, nil}
 	}
 
 	if !bytes.Equal(root, rowRoots[r]) {
+		// the shares are set to nil, as the caller will populate them
 		return &ErrByzantineData{Row, r, nil}
 	}
 
 	return nil
 }
 
+// verifyAgainstColRoots checks that the shares of column index `c` match their expected column root available in `colRoots`.
+// `colRoots` is a slice of the expected roots of the columns of the `eds`.
+// `shares` is a slice of the shares of the column index `c` of the `eds`.
+// `rebuiltIndex` is the index of the share that was rebuilt, if any.
+// `rebuiltShare` is the rebuilt share, if any.
+// Returns a ErrByzantineData error if the computed root does not match the expected root or if the root computation fails.
 func (eds *ExtendedDataSquare) verifyAgainstColRoots(
 	colRoots [][]byte,
 	c uint,
-	oldShares [][]byte,
+	shares [][]byte,
 	rebuiltIndex int,
 	rebuiltShare []byte,
 ) error {
 	var root []byte
 	var err error
 	if rebuiltIndex < 0 || rebuiltShare == nil {
-		root, err = eds.computeSharesRoot(oldShares, Col, c)
+		root, err = eds.computeSharesRoot(shares, Col, c)
 	} else {
-		root, err = eds.computeSharesRootWithRebuiltShare(oldShares, Col, c, rebuiltIndex, rebuiltShare)
+		root, err = eds.computeSharesRootWithRebuiltShare(shares, Col, c, rebuiltIndex, rebuiltShare)
 	}
 	if err != nil {
-		return err
+		// the shares are set to nil, as the caller will populate them
+		return &ErrByzantineData{Col, c, nil}
 	}
 
 	if !bytes.Equal(root, colRoots[c]) {
+		// the shares are set to nil, as the caller will populate them
 		return &ErrByzantineData{Col, c, nil}
 	}
 
@@ -353,10 +365,13 @@ func (eds *ExtendedDataSquare) preRepairSanityCheck(
 				// ensure that the roots are equal
 				rowRoot, err := eds.getRowRoot(i)
 				if err != nil {
-					return err
+					// any error regarding the root calculation signifies an issue in the shares e.g., out of order shares
+					// therefore, it should be treated as byzantine data
+					return &ErrByzantineData{Row, i, eds.row(i)}
 				}
 				if !bytes.Equal(rowRoots[i], rowRoot) {
-					return fmt.Errorf("bad root input: row %d expected %v got %v", i, rowRoots[i], rowRoot)
+					// if the roots are not equal, then the data is byzantine
+					return &ErrByzantineData{Row, i, eds.row(i)}
 				}
 				return nil
 			})
@@ -379,14 +394,18 @@ func (eds *ExtendedDataSquare) preRepairSanityCheck(
 				// ensure that the roots are equal
 				colRoot, err := eds.getColRoot(i)
 				if err != nil {
-					return err
+					// any error regarding the root calculation signifies an issue in the shares e.g., out of order shares
+					// therefore, it should be treated as byzantine data
+					return &ErrByzantineData{Col, i, eds.col(i)}
 				}
 				if !bytes.Equal(colRoots[i], colRoot) {
-					return fmt.Errorf("bad root input: col %d expected %v got %v", i, colRoots[i], colRoot)
+					// if the roots are not equal, then the data is byzantine
+					return &ErrByzantineData{Col, i, eds.col(i)}
 				}
 				return nil
 			})
 			errs.Go(func() error {
+				// check if we take the first half of the col and encode it, we get the second half
 				parityShares, err := eds.codec.Encode(eds.colSlice(0, i, eds.originalDataWidth))
 				if err != nil {
 					return err
@@ -414,6 +433,7 @@ func noMissingData(input [][]byte, rebuiltIndex int) bool {
 	return true
 }
 
+// computeSharesRoot calculates the root of the shares for the specified axis (`i`th column or row).
 func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, axis Axis, i uint) ([]byte, error) {
 	tree := eds.createTreeFn(axis, i)
 	for _, d := range shares {
@@ -425,6 +445,7 @@ func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, axis Axis, i u
 	return tree.Root()
 }
 
+// computeSharesRootWithRebuiltShare computes the root of the shares with the rebuilt share `rebuiltShare` at the specified index `rebuiltIndex`.
 func (eds *ExtendedDataSquare) computeSharesRootWithRebuiltShare(shares [][]byte, axis Axis, i uint, rebuiltIndex int, rebuiltShare []byte) ([]byte, error) {
 	tree := eds.createTreeFn(axis, i)
 	for _, d := range shares[:rebuiltIndex] {

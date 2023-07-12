@@ -26,6 +26,9 @@ type dataSquare struct {
 	createTreeFn TreeConstructorFn
 }
 
+// newDataSquare populates the data square from the supplied data and treeCreator.
+// No root calculation is performed.
+// data may have nil values.
 func newDataSquare(data [][]byte, treeCreator TreeConstructorFn, chunkSize uint) (*dataSquare, error) {
 	width := int(math.Ceil(math.Sqrt(float64(len(data)))))
 	if width*width != len(data) {
