@@ -274,7 +274,7 @@ func (eds *ExtendedDataSquare) Width() uint {
 	return eds.width
 }
 
-// FlattenedEDS returns the extended data square as a flattened slice of bytes.
+// Flattened returns the extended data square as a flattened slice of bytes.
 func (eds *ExtendedDataSquare) Flattened() [][]byte {
 	return eds.dataSquare.Flattened()
 }
