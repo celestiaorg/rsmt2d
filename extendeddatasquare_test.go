@@ -293,6 +293,85 @@ func genRandDS(width int, chunkSize int) [][]byte {
 	return ds
 }
 
+// TestFlattened_EDS tests that eds.Flattened() returns all the shares in the
+// EDS. This function has the `_EDS` suffix to avoid a name collision with the
+// TestFlattened.
+func TestFlattened_EDS(t *testing.T) {
+	example := createExampleEds(t, shareSize)
+	want := [][]byte{
+		ones, twos, zeros, threes,
+		threes, fours, eights, fifteens,
+		twos, elevens, thirteens, fours,
+		zeros, thirteens, fives, eights,
+	}
+
+	got := example.Flattened()
+	assert.Equal(t, want, got)
+}
+
+func TestFlattenedODS(t *testing.T) {
+	example := createExampleEds(t, shareSize)
+	want := [][]byte{
+		ones, twos,
+		threes, fours,
+	}
+
+	got := example.FlattenedODS()
+	assert.Equal(t, want, got)
+}
+
+func TestEquals(t *testing.T) {
+	t.Run("returns true for two equal EDS", func(t *testing.T) {
+		a := createExampleEds(t, shareSize)
+		b := createExampleEds(t, shareSize)
+		assert.True(t, a.Equals(b))
+	})
+	t.Run("returns false for two unequal EDS", func(t *testing.T) {
+		a := createExampleEds(t, shareSize)
+
+		type testCase struct {
+			name  string
+			other *ExtendedDataSquare
+		}
+
+		unequalOriginalDataWidth := createExampleEds(t, shareSize)
+		unequalOriginalDataWidth.originalDataWidth = 1
+
+		unequalCodecs := createExampleEds(t, shareSize)
+		unequalCodecs.codec = newTestCodec()
+
+		unequalChunkSize := createExampleEds(t, shareSize*2)
+
+		unequalEds, err := ComputeExtendedDataSquare([][]byte{ones}, NewLeoRSCodec(), NewDefaultTree)
+		require.NoError(t, err)
+
+		testCases := []testCase{
+			{
+				name:  "unequal original data width",
+				other: unequalOriginalDataWidth,
+			},
+			{
+				name:  "unequal codecs",
+				other: unequalCodecs,
+			},
+			{
+				name:  "unequal chunkSize",
+				other: unequalChunkSize,
+			},
+			{
+				name:  "unequalEds",
+				other: unequalEds,
+			},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				assert.False(t, a.Equals(tc.other))
+				assert.False(t, reflect.DeepEqual(a, tc.other))
+			})
+		}
+	})
+}
+
 func createExampleEds(t *testing.T, chunkSize int) (eds *ExtendedDataSquare) {
 	ones := bytes.Repeat([]byte{1}, chunkSize)
 	twos := bytes.Repeat([]byte{2}, chunkSize)

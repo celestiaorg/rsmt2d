@@ -90,3 +90,30 @@ func generateMissingData(count int, codec Codec) [][]byte {
 
 	return output
 }
+
+// testCodec is a codec that is used for testing purposes.
+type testCodec struct{}
+
+func newTestCodec() Codec {
+	return &testCodec{}
+}
+
+func (c *testCodec) Encode(chunk [][]byte) ([][]byte, error) {
+	return chunk, nil
+}
+
+func (c *testCodec) Decode(chunk [][]byte) ([][]byte, error) {
+	return chunk, nil
+}
+
+func (c *testCodec) MaxChunks() int {
+	return 0
+}
+
+func (c *testCodec) Name() string {
+	return "testCodec"
+}
+
+func (c *testCodec) ValidateChunkSize(_ int) error {
+	return nil
+}

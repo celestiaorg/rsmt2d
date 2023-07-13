@@ -274,6 +274,52 @@ func (eds *ExtendedDataSquare) Width() uint {
 	return eds.width
 }
 
+// Flattened returns the extended data square as a flattened slice of bytes.
+func (eds *ExtendedDataSquare) Flattened() [][]byte {
+	return eds.dataSquare.Flattened()
+}
+
+// FlattenedODS returns the original data square as a flattened slice of bytes.
+func (eds *ExtendedDataSquare) FlattenedODS() (flattened [][]byte) {
+	flattened = make([][]byte, eds.originalDataWidth*eds.originalDataWidth)
+	for i := uint(0); i < eds.originalDataWidth; i++ {
+		row := eds.Row(i)
+		for j := uint(0); j < eds.originalDataWidth; j++ {
+			flattened[(i*eds.originalDataWidth)+j] = row[j]
+		}
+	}
+	return flattened
+}
+
+// Equals returns true if other is equal to eds.
+func (eds *ExtendedDataSquare) Equals(other *ExtendedDataSquare) bool {
+	if eds.originalDataWidth != other.originalDataWidth {
+		return false
+	}
+	if eds.codec.Name() != other.codec.Name() {
+		return false
+	}
+	if eds.chunkSize != other.chunkSize {
+		return false
+	}
+	if eds.width != other.width {
+		return false
+	}
+
+	for rowIndex := uint(0); rowIndex < eds.Width(); rowIndex++ {
+		edsRow := eds.Row(rowIndex)
+		otherRow := other.Row(rowIndex)
+
+		for colIndex := 0; colIndex < len(edsRow); colIndex++ {
+			if !bytes.Equal(edsRow[colIndex], otherRow[colIndex]) {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
 // validateEdsWidth returns an error if edsWidth is not a valid width for an
 // extended data square.
 func validateEdsWidth(edsWidth uint) error {
