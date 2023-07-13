@@ -84,3 +84,7 @@ go test -benchmem -bench=.
 # Run linter
 golangci-lint run
 ```
+
+## Audits
+
+[Informal Systems](https://informal.systems/) audited rsmt2d [v0.9.0](https://github.com/celestiaorg/rsmt2d/releases/tag/v0.9.0) in Q2 of 2023. See [informal-systems.pdf](./audit/informal-systems.pdf).
