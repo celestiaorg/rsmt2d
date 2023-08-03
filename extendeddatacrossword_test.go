@@ -229,9 +229,11 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 				t.Run(test.name, func(t *testing.T) {
 					eds := createTestEds(codec, shareSize)
 
+					// compute the rowRoots prior to corruption
 					rowRoots, err := eds.getRowRoots()
 					assert.NoError(t, err)
 
+					// compute the colRoots prior to corruption
 					colRoots, err := eds.getColRoots()
 					assert.NoError(t, err)
 
