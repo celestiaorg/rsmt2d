@@ -12,19 +12,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const ShardSize = 64
-
 var (
-	zeros     = bytes.Repeat([]byte{0}, ShardSize)
-	ones      = bytes.Repeat([]byte{1}, ShardSize)
-	twos      = bytes.Repeat([]byte{2}, ShardSize)
-	threes    = bytes.Repeat([]byte{3}, ShardSize)
-	fours     = bytes.Repeat([]byte{4}, ShardSize)
-	fives     = bytes.Repeat([]byte{5}, ShardSize)
-	eights    = bytes.Repeat([]byte{8}, ShardSize)
-	elevens   = bytes.Repeat([]byte{11}, ShardSize)
-	thirteens = bytes.Repeat([]byte{13}, ShardSize)
-	fifteens  = bytes.Repeat([]byte{15}, ShardSize)
+	zeros     = bytes.Repeat([]byte{0}, shareSize)
+	ones      = bytes.Repeat([]byte{1}, shareSize)
+	twos      = bytes.Repeat([]byte{2}, shareSize)
+	threes    = bytes.Repeat([]byte{3}, shareSize)
+	fours     = bytes.Repeat([]byte{4}, shareSize)
+	fives     = bytes.Repeat([]byte{5}, shareSize)
+	eights    = bytes.Repeat([]byte{8}, shareSize)
+	elevens   = bytes.Repeat([]byte{11}, shareSize)
+	thirteens = bytes.Repeat([]byte{13}, shareSize)
+	fifteens  = bytes.Repeat([]byte{15}, shareSize)
 )
 
 func TestComputeExtendedDataSquare(t *testing.T) {
@@ -38,10 +36,6 @@ func TestComputeExtendedDataSquare(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "1x1",
-			// NOTE: data must contain byte slices that are a multiple of 64
-			// bytes.
-			// See https://github.com/catid/leopard/blob/22ddc7804998d31c8f1a2617ee720e063b1fa6cd/README.md?plain=1#L27
-			// See https://github.com/klauspost/reedsolomon/blob/fd3e6910a7e457563469172968f456ad9b7696b6/README.md?plain=1#L403
 			data: [][]byte{ones},
 			want: [][][]byte{
 				{ones, ones},
@@ -70,6 +64,26 @@ func TestComputeExtendedDataSquare(t *testing.T) {
 			assert.Equal(t, tc.want, result.squareRow)
 		})
 	}
+
+	t.Run("returns an error if chunkSize is not a multiple of 64", func(t *testing.T) {
+		chunk := bytes.Repeat([]byte{1}, 65)
+		_, err := ComputeExtendedDataSquare([][]byte{chunk}, NewLeoRSCodec(), NewDefaultTree)
+		assert.Error(t, err)
+	})
+}
+
+func TestImportExtendedDataSquare(t *testing.T) {
+	t.Run("is able to import an EDS", func(t *testing.T) {
+		eds := createExampleEds(t, shareSize)
+		got, err := ImportExtendedDataSquare(eds.Flattened(), NewLeoRSCodec(), NewDefaultTree)
+		assert.NoError(t, err)
+		assert.Equal(t, eds.Flattened(), got.Flattened())
+	})
+	t.Run("returns an error if chunkSize is not a multiple of 64", func(t *testing.T) {
+		chunk := bytes.Repeat([]byte{1}, 65)
+		_, err := ImportExtendedDataSquare([][]byte{chunk}, NewLeoRSCodec(), NewDefaultTree)
+		assert.Error(t, err)
+	})
 }
 
 func TestMarshalJSON(t *testing.T) {
@@ -95,6 +109,52 @@ func TestMarshalJSON(t *testing.T) {
 	if !reflect.DeepEqual(result.squareRow, eds.squareRow) {
 		t.Errorf("eds not equal after json marshal/unmarshal")
 	}
+}
+
+func TestNewExtendedDataSquare(t *testing.T) {
+	t.Run("returns an error if edsWidth is not even", func(t *testing.T) {
+		edsWidth := uint(1)
+
+		_, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, shareSize)
+		assert.Error(t, err)
+	})
+	t.Run("returns an error if chunkSize is not a multiple of 64", func(t *testing.T) {
+		edsWidth := uint(1)
+		chunkSize := uint(65)
+
+		_, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, chunkSize)
+		assert.Error(t, err)
+	})
+	t.Run("returns a 4x4 EDS", func(t *testing.T) {
+		edsWidth := uint(4)
+
+		got, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, shareSize)
+		assert.NoError(t, err)
+		assert.Equal(t, edsWidth, got.width)
+		assert.Equal(t, uint(shareSize), got.chunkSize)
+	})
+	t.Run("returns a 4x4 EDS that can be populated via SetCell", func(t *testing.T) {
+		edsWidth := uint(4)
+
+		got, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, shareSize)
+		assert.NoError(t, err)
+
+		chunk := bytes.Repeat([]byte{1}, int(shareSize))
+		err = got.SetCell(0, 0, chunk)
+		assert.NoError(t, err)
+		assert.Equal(t, chunk, got.squareRow[0][0])
+	})
+	t.Run("returns an error when SetCell is invoked on an EDS with a chunk that is not the correct size", func(t *testing.T) {
+		edsWidth := uint(4)
+		incorrectChunkSize := shareSize + 1
+
+		got, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, shareSize)
+		assert.NoError(t, err)
+
+		chunk := bytes.Repeat([]byte{1}, int(incorrectChunkSize))
+		err = got.SetCell(0, 0, chunk)
+		assert.Error(t, err)
+	})
 }
 
 func TestImmutableRoots(t *testing.T) {
@@ -218,6 +278,7 @@ var dump *ExtendedDataSquare
 // BenchmarkExtension benchmarks extending datasquares sizes 4-128 using all
 // supported codecs (encoding only)
 func BenchmarkExtensionEncoding(b *testing.B) {
+	chunkSize := 256
 	for i := 4; i < 513; i *= 2 {
 		for codecName, codec := range codecs {
 			if codec.MaxChunks() < i*i {
@@ -225,7 +286,7 @@ func BenchmarkExtensionEncoding(b *testing.B) {
 				continue
 			}
 
-			square := genRandDS(i)
+			square := genRandDS(i, chunkSize)
 			b.Run(
 				fmt.Sprintf("%s %dx%dx%d ODS", codecName, i, i, len(square[0])),
 				func(b *testing.B) {
@@ -245,6 +306,7 @@ func BenchmarkExtensionEncoding(b *testing.B) {
 // BenchmarkExtension benchmarks extending datasquares sizes 4-128 using all
 // supported codecs (both encoding and root computation)
 func BenchmarkExtensionWithRoots(b *testing.B) {
+	chunkSize := 256
 	for i := 4; i < 513; i *= 2 {
 		for codecName, codec := range codecs {
 			if codec.MaxChunks() < i*i {
@@ -252,7 +314,7 @@ func BenchmarkExtensionWithRoots(b *testing.B) {
 				continue
 			}
 
-			square := genRandDS(i)
+			square := genRandDS(i, chunkSize)
 			b.Run(
 				fmt.Sprintf("%s %dx%dx%d ODS", codecName, i, i, len(square[0])),
 				func(b *testing.B) {
@@ -273,11 +335,11 @@ func BenchmarkExtensionWithRoots(b *testing.B) {
 
 // genRandDS make a datasquare of random data, with width describing the number
 // of shares on a single side of the ds
-func genRandDS(width int) [][]byte {
+func genRandDS(width int, chunkSize int) [][]byte {
 	var ds [][]byte
 	count := width * width
 	for i := 0; i < count; i++ {
-		share := make([]byte, 256)
+		share := make([]byte, chunkSize)
 		_, err := rand.Read(share)
 		if err != nil {
 			panic(err)
@@ -285,4 +347,98 @@ func genRandDS(width int) [][]byte {
 		ds = append(ds, share)
 	}
 	return ds
+}
+
+// TestFlattened_EDS tests that eds.Flattened() returns all the shares in the
+// EDS. This function has the `_EDS` suffix to avoid a name collision with the
+// TestFlattened.
+func TestFlattened_EDS(t *testing.T) {
+	example := createExampleEds(t, shareSize)
+	want := [][]byte{
+		ones, twos, zeros, threes,
+		threes, fours, eights, fifteens,
+		twos, elevens, thirteens, fours,
+		zeros, thirteens, fives, eights,
+	}
+
+	got := example.Flattened()
+	assert.Equal(t, want, got)
+}
+
+func TestFlattenedODS(t *testing.T) {
+	example := createExampleEds(t, shareSize)
+	want := [][]byte{
+		ones, twos,
+		threes, fours,
+	}
+
+	got := example.FlattenedODS()
+	assert.Equal(t, want, got)
+}
+
+func TestEquals(t *testing.T) {
+	t.Run("returns true for two equal EDS", func(t *testing.T) {
+		a := createExampleEds(t, shareSize)
+		b := createExampleEds(t, shareSize)
+		assert.True(t, a.Equals(b))
+	})
+	t.Run("returns false for two unequal EDS", func(t *testing.T) {
+		a := createExampleEds(t, shareSize)
+
+		type testCase struct {
+			name  string
+			other *ExtendedDataSquare
+		}
+
+		unequalOriginalDataWidth := createExampleEds(t, shareSize)
+		unequalOriginalDataWidth.originalDataWidth = 1
+
+		unequalCodecs := createExampleEds(t, shareSize)
+		unequalCodecs.codec = newTestCodec()
+
+		unequalChunkSize := createExampleEds(t, shareSize*2)
+
+		unequalEds, err := ComputeExtendedDataSquare([][]byte{ones}, NewLeoRSCodec(), NewDefaultTree)
+		require.NoError(t, err)
+
+		testCases := []testCase{
+			{
+				name:  "unequal original data width",
+				other: unequalOriginalDataWidth,
+			},
+			{
+				name:  "unequal codecs",
+				other: unequalCodecs,
+			},
+			{
+				name:  "unequal chunkSize",
+				other: unequalChunkSize,
+			},
+			{
+				name:  "unequalEds",
+				other: unequalEds,
+			},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				assert.False(t, a.Equals(tc.other))
+				assert.False(t, reflect.DeepEqual(a, tc.other))
+			})
+		}
+	})
+}
+
+func createExampleEds(t *testing.T, chunkSize int) (eds *ExtendedDataSquare) {
+	ones := bytes.Repeat([]byte{1}, chunkSize)
+	twos := bytes.Repeat([]byte{2}, chunkSize)
+	threes := bytes.Repeat([]byte{3}, chunkSize)
+	fours := bytes.Repeat([]byte{4}, chunkSize)
+	ods := [][]byte{
+		ones, twos,
+		threes, fours,
+	}
+
+	eds, err := ComputeExtendedDataSquare(ods, NewLeoRSCodec(), NewDefaultTree)
+	require.NoError(t, err)
+	return eds
 }

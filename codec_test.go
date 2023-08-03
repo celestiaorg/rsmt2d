@@ -1,6 +1,7 @@
 package rsmt2d
 
 import (
+	cryptorand "crypto/rand"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -37,7 +38,7 @@ func generateRandData(count int) [][]byte {
 	out := make([][]byte, count)
 	for i := 0; i < count; i++ {
 		randData := make([]byte, count)
-		_, err := rand.Read(randData)
+		_, err := cryptorand.Read(randData)
 		if err != nil {
 			panic(err)
 		}
@@ -88,4 +89,31 @@ func generateMissingData(count int, codec Codec) [][]byte {
 	}
 
 	return output
+}
+
+// testCodec is a codec that is used for testing purposes.
+type testCodec struct{}
+
+func newTestCodec() Codec {
+	return &testCodec{}
+}
+
+func (c *testCodec) Encode(chunk [][]byte) ([][]byte, error) {
+	return chunk, nil
+}
+
+func (c *testCodec) Decode(chunk [][]byte) ([][]byte, error) {
+	return chunk, nil
+}
+
+func (c *testCodec) MaxChunks() int {
+	return 0
+}
+
+func (c *testCodec) Name() string {
+	return "testCodec"
+}
+
+func (c *testCodec) ValidateChunkSize(_ int) error {
+	return nil
 }

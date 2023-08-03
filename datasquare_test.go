@@ -12,17 +12,18 @@ import (
 
 func TestNewDataSquare(t *testing.T) {
 	tests := []struct {
-		name     string
-		cells    [][]byte
-		expected [][][]byte
+		name      string
+		cells     [][]byte
+		expected  [][][]byte
+		chunkSize uint
 	}{
-		{"1x1", [][]byte{{1, 2}}, [][][]byte{{{1, 2}}}},
-		{"2x2", [][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}}, [][][]byte{{{1, 2}, {3, 4}}, {{5, 6}, {7, 8}}}},
+		{"1x1", [][]byte{{1, 2}}, [][][]byte{{{1, 2}}}, 2},
+		{"2x2", [][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}}, [][][]byte{{{1, 2}, {3, 4}}, {{5, 6}, {7, 8}}}, 2},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			result, err := newDataSquare(test.cells, NewDefaultTree)
+			result, err := newDataSquare(test.cells, NewDefaultTree, test.chunkSize)
 			if err != nil {
 				panic(err)
 			}
@@ -35,15 +36,16 @@ func TestNewDataSquare(t *testing.T) {
 
 func TestInvalidDataSquareCreation(t *testing.T) {
 	tests := []struct {
-		name  string
-		cells [][]byte
+		name      string
+		cells     [][]byte
+		chunkSize uint
 	}{
-		{"InconsistentChunkNumber", [][]byte{{1, 2}, {3, 4}, {5, 6}}},
-		{"UnequalChunkSize", [][]byte{{1, 2}, {3, 4}, {5, 6}, {7}}},
+		{"InconsistentChunkNumber", [][]byte{{1, 2}, {3, 4}, {5, 6}}, 2},
+		{"UnequalChunkSize", [][]byte{{1, 2}, {3, 4}, {5, 6}, {7}}, 2},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := newDataSquare(test.cells, NewDefaultTree)
+			_, err := newDataSquare(test.cells, NewDefaultTree, test.chunkSize)
 			if err == nil {
 				t.Errorf("newDataSquare failed; chunks accepted with %v", test.name)
 			}
@@ -81,7 +83,7 @@ func TestSetCell(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ds, err := newDataSquare([][]byte{tc.originalCell, {2}, {3}, {4}}, NewDefaultTree)
+			ds, err := newDataSquare([][]byte{tc.originalCell, {2}, {3}, {4}}, NewDefaultTree, 1)
 			assert.NoError(t, err)
 
 			err = ds.SetCell(0, 0, tc.newCell)
@@ -124,7 +126,7 @@ func Test_setCell(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ds, err := newDataSquare([][]byte{tc.original, {2}, {3}, {4}}, NewDefaultTree)
+			ds, err := newDataSquare([][]byte{tc.original, {2}, {3}, {4}}, NewDefaultTree, 1)
 			assert.NoError(t, err)
 
 			ds.setCell(0, 0, tc.new)
@@ -134,7 +136,7 @@ func Test_setCell(t *testing.T) {
 }
 
 func TestGetCell(t *testing.T) {
-	ds, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
+	ds, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree, 1)
 	if err != nil {
 		panic(err)
 	}
@@ -148,7 +150,7 @@ func TestGetCell(t *testing.T) {
 }
 
 func TestFlattened(t *testing.T) {
-	ds, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
+	ds, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree, 1)
 	if err != nil {
 		panic(err)
 	}
@@ -162,7 +164,7 @@ func TestFlattened(t *testing.T) {
 }
 
 func TestExtendSquare(t *testing.T) {
-	ds, err := newDataSquare([][]byte{{1, 2}}, NewDefaultTree)
+	ds, err := newDataSquare([][]byte{{1, 2}}, NewDefaultTree, 2)
 	if err != nil {
 		panic(err)
 	}
@@ -176,7 +178,7 @@ func TestExtendSquare(t *testing.T) {
 }
 
 func TestInvalidSquareExtension(t *testing.T) {
-	ds, err := newDataSquare([][]byte{{1, 2}}, NewDefaultTree)
+	ds, err := newDataSquare([][]byte{{1, 2}}, NewDefaultTree, 2)
 	if err != nil {
 		panic(err)
 	}
@@ -189,7 +191,7 @@ func TestInvalidSquareExtension(t *testing.T) {
 // TestRoots verifies that the row roots and column roots are equal for a 1x1
 // square.
 func TestRoots(t *testing.T) {
-	result, err := newDataSquare([][]byte{{1, 2}}, NewDefaultTree)
+	result, err := newDataSquare([][]byte{{1, 2}}, NewDefaultTree, 2)
 	assert.NoError(t, err)
 
 	rowRoots, err := result.getRowRoots()
@@ -202,7 +204,7 @@ func TestRoots(t *testing.T) {
 }
 
 func TestLazyRootGeneration(t *testing.T) {
-	square, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
+	square, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree, 1)
 	if err != nil {
 		panic(err)
 	}
@@ -228,13 +230,13 @@ func TestLazyRootGeneration(t *testing.T) {
 
 func TestComputeRoots(t *testing.T) {
 	t.Run("default tree computeRoots() returns no error", func(t *testing.T) {
-		square, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
+		square, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree, 1)
 		assert.NoError(t, err)
 		err = square.computeRoots()
 		assert.NoError(t, err)
 	})
 	t.Run("error tree computeRoots() returns an error", func(t *testing.T) {
-		square, err := newDataSquare([][]byte{{1}}, newErrorTree)
+		square, err := newDataSquare([][]byte{{1}}, newErrorTree, 1)
 		assert.NoError(t, err)
 		err = square.computeRoots()
 		assert.Error(t, err)
@@ -242,7 +244,7 @@ func TestComputeRoots(t *testing.T) {
 }
 
 func TestRootAPI(t *testing.T) {
-	square, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
+	square, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree, 1)
 	if err != nil {
 		panic(err)
 	}
@@ -267,7 +269,7 @@ func TestRootAPI(t *testing.T) {
 }
 
 func TestDefaultTreeProofs(t *testing.T) {
-	result, err := newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}}, NewDefaultTree)
+	result, err := newDataSquare([][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}}, NewDefaultTree, 2)
 	if err != nil {
 		panic(err)
 	}
@@ -330,7 +332,7 @@ func Test_setRowSlice(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		ds, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
+		ds, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree, 1)
 		assert.NoError(t, err)
 		err = ds.setRowSlice(tc.x, tc.y, tc.newRow)
 
@@ -386,7 +388,7 @@ func Test_setColSlice(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		ds, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree)
+		ds, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree, 1)
 		assert.NoError(t, err)
 		err = ds.setColSlice(tc.x, tc.y, tc.newCol)
 
@@ -401,7 +403,8 @@ func Test_setColSlice(t *testing.T) {
 
 func BenchmarkEDSRoots(b *testing.B) {
 	for i := 32; i < 513; i *= 2 {
-		square, err := newDataSquare(genRandDS(i*2), NewDefaultTree)
+		chunkSize := uint(256)
+		square, err := newDataSquare(genRandDS(i*2, int(chunkSize)), NewDefaultTree, chunkSize)
 		if err != nil {
 			b.Errorf("Failure to create square of size %d: %s", i, err)
 		}

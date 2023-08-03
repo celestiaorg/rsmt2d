@@ -26,20 +26,18 @@ type dataSquare struct {
 	createTreeFn TreeConstructorFn
 }
 
-func newDataSquare(data [][]byte, treeCreator TreeConstructorFn) (*dataSquare, error) {
+// newDataSquare populates the data square from the supplied data and treeCreator.
+// No root calculation is performed.
+// data may have nil values.
+func newDataSquare(data [][]byte, treeCreator TreeConstructorFn, chunkSize uint) (*dataSquare, error) {
 	width := int(math.Ceil(math.Sqrt(float64(len(data)))))
 	if width*width != len(data) {
 		return nil, errors.New("number of chunks must be a square number")
 	}
 
-	var chunkSize int
 	for _, d := range data {
-		if d != nil {
-			if chunkSize == 0 {
-				chunkSize = len(d)
-			} else if chunkSize != len(d) {
-				return nil, ErrUnevenChunks
-			}
+		if d != nil && len(d) != int(chunkSize) {
+			return nil, ErrUnevenChunks
 		}
 	}
 
@@ -48,7 +46,7 @@ func newDataSquare(data [][]byte, treeCreator TreeConstructorFn) (*dataSquare, e
 		squareRow[i] = data[i*width : i*width+width]
 
 		for j := 0; j < width; j++ {
-			if squareRow[i][j] != nil && len(squareRow[i][j]) != chunkSize {
+			if squareRow[i][j] != nil && len(squareRow[i][j]) != int(chunkSize) {
 				return nil, ErrUnevenChunks
 			}
 		}

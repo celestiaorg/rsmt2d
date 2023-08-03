@@ -18,15 +18,15 @@ import (
 )
 
 func main() {
-    // Size of each share, in bytes
-    bufferSize := 64
+    // shareSize is the size of each share (in bytes).
+    shareSize := 512
     // Init new codec
     codec := rsmt2d.NewLeoRSCodec()
 
-    ones := bytes.Repeat([]byte{1}, bufferSize)
-    twos := bytes.Repeat([]byte{2}, bufferSize)
-    threes := bytes.Repeat([]byte{3}, bufferSize)
-    fours := bytes.Repeat([]byte{4}, bufferSize)
+    ones := bytes.Repeat([]byte{1}, shareSize)
+    twos := bytes.Repeat([]byte{2}, shareSize)
+    threes := bytes.Repeat([]byte{3}, shareSize)
+    fours := bytes.Repeat([]byte{4}, shareSize)
 
     // Compute parity shares
     eds, err := rsmt2d.ComputeExtendedDataSquare(
@@ -41,11 +41,7 @@ func main() {
         // ComputeExtendedDataSquare failed
     }
 
-    // Save all shares in flattened form.
-    flattened := make([][]byte, 0, eds.Width()*eds.Width())
-    for i := uint(0); i < eds.Width(); i++ {
-        flattened = append(flattened, eds.Row(i)...)
-    }
+    flattened := eds.Flattened()
 
     // Delete some shares, just enough so that repairing is possible.
     flattened[0], flattened[2], flattened[3] = nil, nil, nil
@@ -73,7 +69,7 @@ func main() {
 
 ## Contributing
 
-1. [Install Go](https://go.dev/doc/install) 1.19+
+1. [Install Go](https://go.dev/doc/install) 1.20+
 1. [Install golangci-lint](https://golangci-lint.run/usage/install/)
 
 ### Helpful Commands
@@ -88,3 +84,7 @@ go test -benchmem -bench=.
 # Run linter
 golangci-lint run
 ```
+
+## Audits
+
+[Informal Systems](https://informal.systems/) audited rsmt2d [v0.9.0](https://github.com/celestiaorg/rsmt2d/releases/tag/v0.9.0) in Q2 of 2023. See [informal-systems.pdf](./audit/informal-systems.pdf).

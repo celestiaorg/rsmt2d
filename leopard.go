@@ -1,6 +1,7 @@
 package rsmt2d
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/klauspost/reedsolomon"
@@ -66,12 +67,31 @@ func (l *LeoRSCodec) loadOrInitEncoder(dataLen int) (reedsolomon.Encoder, error)
 	return enc.(reedsolomon.Encoder), nil
 }
 
+// MaxChunks returns the max number of chunks this codec supports in a 2D
+// original data square.
 func (l *LeoRSCodec) MaxChunks() int {
-	return 32768 * 32768
+	// klauspost/reedsolomon supports an EDS width of 65536. See:
+	// https://github.com/klauspost/reedsolomon/blob/523164698be98f1603cf1235f5a1de17728b2091/leopard.go#L42C31-L42C36
+	maxEDSWidth := 65536
+	// An EDS width of 65536 is an ODS width of 32768.
+	maxODSWidth := maxEDSWidth / 2
+	// The max number of chunks in a 2D original data square is 32768 * 32768.
+	return maxODSWidth * maxODSWidth
 }
 
 func (l *LeoRSCodec) Name() string {
 	return Leopard
+}
+
+// ValidateChunkSize returns an error if this codec does not support
+// chunkSize. Returns nil if chunkSize is supported.
+func (l *LeoRSCodec) ValidateChunkSize(chunkSize int) error {
+	// See https://github.com/catid/leopard/blob/22ddc7804998d31c8f1a2617ee720e063b1fa6cd/README.md?plain=1#L27
+	// See https://github.com/klauspost/reedsolomon/blob/fd3e6910a7e457563469172968f456ad9b7696b6/README.md?plain=1#L403
+	if chunkSize%64 != 0 {
+		return fmt.Errorf("chunkSize %v must be a multiple of 64 bytes", chunkSize)
+	}
+	return nil
 }
 
 func NewLeoRSCodec() *LeoRSCodec {
