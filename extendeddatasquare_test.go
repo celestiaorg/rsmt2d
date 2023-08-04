@@ -215,6 +215,62 @@ func TestEDSRowColImmutable(t *testing.T) {
 	}
 }
 
+func TestRowRoots(t *testing.T) {
+	t.Run("returns row roots for a 4x4 EDS", func(t *testing.T) {
+		eds, err := ComputeExtendedDataSquare([][]byte{
+			ones, twos,
+			threes, fours,
+		}, NewLeoRSCodec(), NewDefaultTree)
+		require.NoError(t, err)
+
+		rowRoots, err := eds.RowRoots()
+		assert.NoError(t, err)
+		assert.Len(t, rowRoots, 4)
+	})
+
+	t.Run("returns an error for an incomplete EDS", func(t *testing.T) {
+		eds, err := ComputeExtendedDataSquare([][]byte{
+			ones, twos,
+			threes, fours,
+		}, NewLeoRSCodec(), NewDefaultTree)
+		require.NoError(t, err)
+
+		// set a cell to nil to make the EDS incomplete
+		eds.setCell(0, 0, nil)
+
+		_, err = eds.RowRoots()
+		assert.Error(t, err)
+	})
+}
+
+func TestColRoots(t *testing.T) {
+	t.Run("returns col roots for a 4x4 EDS", func(t *testing.T) {
+		eds, err := ComputeExtendedDataSquare([][]byte{
+			ones, twos,
+			threes, fours,
+		}, NewLeoRSCodec(), NewDefaultTree)
+		require.NoError(t, err)
+
+		colRoots, err := eds.ColRoots()
+		assert.NoError(t, err)
+		assert.Len(t, colRoots, 4)
+	})
+
+	t.Run("returns an error for an incomplete EDS", func(t *testing.T) {
+		eds, err := ComputeExtendedDataSquare([][]byte{
+			ones, twos,
+			threes, fours,
+		}, NewLeoRSCodec(), NewDefaultTree)
+		require.NoError(t, err)
+
+		// set a cell to nil to make the EDS incomplete
+		eds.setCell(0, 0, nil)
+
+		_, err = eds.ColRoots()
+		assert.Error(t, err)
+	})
+}
+
 // dump acts as a data dump for the benchmarks to stop the compiler from making
 // unrealistic optimizations
 var dump *ExtendedDataSquare

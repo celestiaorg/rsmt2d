@@ -244,15 +244,20 @@ func (ds *dataSquare) getRowRoots() ([][]byte, error) {
 	return ds.rowRoots, nil
 }
 
-// getRowRoot calculates and returns the root of the selected row. Note: unlike the
-// getRowRoots method, getRowRoot does not write to the built-in cache.
+// getRowRoot calculates and returns the root of the selected row. Note: unlike
+// the getRowRoots method, getRowRoot does not write to the built-in cache.
+// Returns an error if the row is incomplete (i.e. some shares are nil).
 func (ds *dataSquare) getRowRoot(x uint) ([]byte, error) {
 	if ds.rowRoots != nil {
 		return ds.rowRoots[x], nil
 	}
 
 	tree := ds.createTreeFn(Row, x)
-	for _, d := range ds.row(x) {
+	row := ds.row(x)
+	if !isComplete(row) {
+		return nil, errors.New("can not compute root of incomplete row")
+	}
+	for _, d := range row {
 		err := tree.Push(d)
 		if err != nil {
 			return nil, err
@@ -274,15 +279,20 @@ func (ds *dataSquare) getColRoots() ([][]byte, error) {
 	return ds.colRoots, nil
 }
 
-// getColRoot calculates and returns the root of the selected row. Note: unlike the
-// getColRoots method, getColRoot does not write to the built-in cache.
+// getColRoot calculates and returns the root of the selected row. Note: unlike
+// the getColRoots method, getColRoot does not write to the built-in cache.
+// Returns an error if the column is incomplete (i.e. some shares are nil).
 func (ds *dataSquare) getColRoot(y uint) ([]byte, error) {
 	if ds.colRoots != nil {
 		return ds.colRoots[y], nil
 	}
 
 	tree := ds.createTreeFn(Col, y)
-	for _, d := range ds.col(y) {
+	col := ds.col(y)
+	if !isComplete(col) {
+		return nil, errors.New("can not compute root of incomplete column")
+	}
+	for _, d := range col {
 		err := tree.Push(d)
 		if err != nil {
 			return nil, err
@@ -325,4 +335,14 @@ func (ds *dataSquare) Flattened() [][]byte {
 	}
 
 	return flattened
+}
+
+// isComplete returns true if all the shares are non-nil.
+func isComplete(shares [][]byte) bool {
+	for _, share := range shares {
+		if share == nil {
+			return false
+		}
+	}
+	return true
 }
