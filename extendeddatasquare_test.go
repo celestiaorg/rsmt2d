@@ -278,7 +278,6 @@ var dump *ExtendedDataSquare
 // BenchmarkExtension benchmarks extending datasquares sizes 4-128 using all
 // supported codecs (encoding only)
 func BenchmarkExtensionEncoding(b *testing.B) {
-	chunkSize := 256
 	for i := 4; i < 513; i *= 2 {
 		for codecName, codec := range codecs {
 			if codec.MaxChunks() < i*i {
@@ -286,7 +285,7 @@ func BenchmarkExtensionEncoding(b *testing.B) {
 				continue
 			}
 
-			square := genRandDS(i, chunkSize)
+			square := genRandDS(i, shareSize)
 			b.Run(
 				fmt.Sprintf("%s %dx%dx%d ODS", codecName, i, i, len(square[0])),
 				func(b *testing.B) {
@@ -306,7 +305,6 @@ func BenchmarkExtensionEncoding(b *testing.B) {
 // BenchmarkExtension benchmarks extending datasquares sizes 4-128 using all
 // supported codecs (both encoding and root computation)
 func BenchmarkExtensionWithRoots(b *testing.B) {
-	chunkSize := 256
 	for i := 4; i < 513; i *= 2 {
 		for codecName, codec := range codecs {
 			if codec.MaxChunks() < i*i {
@@ -314,7 +312,7 @@ func BenchmarkExtensionWithRoots(b *testing.B) {
 				continue
 			}
 
-			square := genRandDS(i, chunkSize)
+			square := genRandDS(i, shareSize)
 			b.Run(
 				fmt.Sprintf("%s %dx%dx%d ODS", codecName, i, i, len(square[0])),
 				func(b *testing.B) {

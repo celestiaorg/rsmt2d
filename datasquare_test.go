@@ -403,8 +403,7 @@ func Test_setColSlice(t *testing.T) {
 
 func BenchmarkEDSRoots(b *testing.B) {
 	for i := 32; i < 513; i *= 2 {
-		chunkSize := uint(256)
-		square, err := newDataSquare(genRandDS(i*2, int(chunkSize)), NewDefaultTree, chunkSize)
+		square, err := newDataSquare(genRandDS(i*2, int(shareSize)), NewDefaultTree, shareSize)
 		if err != nil {
 			b.Errorf("Failure to create square of size %d: %s", i, err)
 		}
