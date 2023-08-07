@@ -14,13 +14,13 @@ var (
 
 func BenchmarkEncoding(b *testing.B) {
 	// generate some fake data
-	data := generateRandData(128)
+	data := generateRandData(128, shareSize)
 	for codecName, codec := range codecs {
 		// For some implementations we want to ensure the encoder for this data length
 		// is already cached and initialized. For this run with same sized arbitrary data.
-		_, _ = codec.Encode(generateRandData(128))
+		_, _ = codec.Encode(generateRandData(128, shareSize))
 		b.Run(
-			fmt.Sprintf("%s 128 shares", codecName),
+			fmt.Sprintf("%s 128 shares %d", codecName, shareSize),
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
 					encodedData, err := codec.Encode(data)
@@ -34,10 +34,10 @@ func BenchmarkEncoding(b *testing.B) {
 	}
 }
 
-func generateRandData(count int) [][]byte {
+func generateRandData(count int, chunkSize int) [][]byte {
 	out := make([][]byte, count)
 	for i := 0; i < count; i++ {
-		randData := make([]byte, count)
+		randData := make([]byte, chunkSize)
 		_, err := cryptorand.Read(randData)
 		if err != nil {
 			panic(err)
@@ -52,11 +52,11 @@ func BenchmarkDecoding(b *testing.B) {
 	for codecName, codec := range codecs {
 		// For some implementations we want to ensure the encoder for this data length
 		// is already cached and initialized. For this run with same sized arbitrary data.
-		_, _ = codec.Decode(generateMissingData(128, codec))
+		_, _ = codec.Decode(generateMissingData(128, shareSize, codec))
 
-		data := generateMissingData(128, codec)
+		data := generateMissingData(128, shareSize, codec)
 		b.Run(
-			fmt.Sprintf("%s 128 shares", codecName),
+			fmt.Sprintf("%s 128 shares %d", codecName, shareSize),
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
 					decodedData, err := codec.Decode(data)
@@ -70,8 +70,8 @@ func BenchmarkDecoding(b *testing.B) {
 	}
 }
 
-func generateMissingData(count int, codec Codec) [][]byte {
-	randData := generateRandData(count)
+func generateMissingData(count int, chunkSize int, codec Codec) [][]byte {
+	randData := generateRandData(count, chunkSize)
 	encoded, err := codec.Encode(randData)
 	if err != nil {
 		panic(err)
