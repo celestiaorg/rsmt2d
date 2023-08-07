@@ -20,7 +20,7 @@ func BenchmarkEncoding(b *testing.B) {
 		// is already cached and initialized. For this run with same sized arbitrary data.
 		_, _ = codec.Encode(generateRandData(128, shareSize))
 		b.Run(
-			fmt.Sprintf("%s 128 shares %d chunks", codecName, shareSize),
+			fmt.Sprintf("%s 128 shares %d", codecName, shareSize),
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
 					encodedData, err := codec.Encode(data)
@@ -56,7 +56,7 @@ func BenchmarkDecoding(b *testing.B) {
 
 		data := generateMissingData(128, shareSize, codec)
 		b.Run(
-			fmt.Sprintf("%s 128 shares %d chunks", codecName, shareSize),
+			fmt.Sprintf("%s 128 shares %d", codecName, shareSize),
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
 					decodedData, err := codec.Decode(data)
