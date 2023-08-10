@@ -1,11 +1,10 @@
 package rsmt2d
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"reflect"
 	"testing"
-
-	"crypto/sha256"
 
 	"github.com/celestiaorg/merkletree"
 	"github.com/stretchr/testify/assert"
