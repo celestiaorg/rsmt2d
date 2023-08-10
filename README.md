@@ -69,7 +69,7 @@ func main() {
 
 ## Contributing
 
-1. [Install Go](https://go.dev/doc/install) 1.20+
+1. [Install Go](https://go.dev/doc/install) 1.21+
 1. [Install golangci-lint](https://golangci-lint.run/usage/install/)
 
 ### Helpful Commands
