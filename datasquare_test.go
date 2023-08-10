@@ -5,8 +5,9 @@ import (
 	"reflect"
 	"testing"
 
+	"crypto/sha256"
+
 	"github.com/celestiaorg/merkletree"
-	"github.com/minio/sha256-simd"
 	"github.com/stretchr/testify/assert"
 )
 
