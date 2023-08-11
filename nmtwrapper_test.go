@@ -6,11 +6,11 @@ package rsmt2d
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"fmt"
 
 	"github.com/celestiaorg/nmt"
 	"github.com/celestiaorg/nmt/namespace"
-	"github.com/minio/sha256-simd"
 )
 
 // Fulfills the Tree interface and TreeConstructorFn function
