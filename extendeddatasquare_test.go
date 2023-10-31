@@ -426,6 +426,49 @@ func TestEquals(t *testing.T) {
 	})
 }
 
+func TestRoots(t *testing.T) {
+	t.Run("returns roots for a 4x4 EDS", func(t *testing.T) {
+		eds, err := ComputeExtendedDataSquare([][]byte{
+			ones, twos,
+			threes, fours,
+		}, NewLeoRSCodec(), NewDefaultTree)
+		require.NoError(t, err)
+
+		roots, err := eds.Roots()
+		require.NoError(t, err)
+		assert.Len(t, roots, 8)
+
+		rowRoots, err := eds.RowRoots()
+		require.NoError(t, err)
+
+		colRoots, err := eds.ColRoots()
+		require.NoError(t, err)
+
+		assert.Equal(t, roots[0], rowRoots[0])
+		assert.Equal(t, roots[1], rowRoots[1])
+		assert.Equal(t, roots[2], rowRoots[2])
+		assert.Equal(t, roots[3], rowRoots[3])
+		assert.Equal(t, roots[4], colRoots[0])
+		assert.Equal(t, roots[5], colRoots[1])
+		assert.Equal(t, roots[6], colRoots[2])
+		assert.Equal(t, roots[7], colRoots[3])
+	})
+
+	t.Run("returns an error for an incomplete EDS", func(t *testing.T) {
+		eds, err := ComputeExtendedDataSquare([][]byte{
+			ones, twos,
+			threes, fours,
+		}, NewLeoRSCodec(), NewDefaultTree)
+		require.NoError(t, err)
+
+		// set a cell to nil to make the EDS incomplete
+		eds.setCell(0, 0, nil)
+
+		_, err = eds.Roots()
+		assert.Error(t, err)
+	})
+}
+
 func createExampleEds(t *testing.T, chunkSize int) (eds *ExtendedDataSquare) {
 	ones := bytes.Repeat([]byte{1}, chunkSize)
 	twos := bytes.Repeat([]byte{2}, chunkSize)

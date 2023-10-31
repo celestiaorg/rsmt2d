@@ -322,6 +322,24 @@ func (eds *ExtendedDataSquare) Equals(other *ExtendedDataSquare) bool {
 	return true
 }
 
+// Roots returns a byte slice with this eds's RowRoots and ColRoots
+// concatenated.
+func (eds *ExtendedDataSquare) Roots() (roots [][]byte, err error) {
+	rowRoots, err := eds.RowRoots()
+	if err != nil {
+		return nil, err
+	}
+	colRoots, err := eds.ColRoots()
+	if err != nil {
+		return nil, err
+	}
+
+	roots = make([][]byte, 0, len(rowRoots)+len(colRoots))
+	roots = append(roots, rowRoots...)
+	roots = append(roots, colRoots...)
+	return roots, nil
+}
+
 // validateEdsWidth returns an error if edsWidth is not a valid width for an
 // extended data square.
 func validateEdsWidth(edsWidth uint) error {
