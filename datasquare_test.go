@@ -188,9 +188,9 @@ func TestInvalidSquareExtension(t *testing.T) {
 	}
 }
 
-// TestRoots verifies that the row roots and column roots are equal for a 1x1
+// Test_getRoots verifies that the row roots and column roots are equal for a 1x1
 // square.
-func TestRoots(t *testing.T) {
+func Test_getRoots(t *testing.T) {
 	result, err := newDataSquare([][]byte{{1, 2}}, NewDefaultTree, 2)
 	assert.NoError(t, err)
 

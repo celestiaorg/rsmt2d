@@ -426,7 +426,7 @@ func TestEquals(t *testing.T) {
 	})
 }
 
-func TestRootsHelper(t *testing.T) {
+func TestRoots(t *testing.T) {
 	t.Run("returns roots for a 4x4 EDS", func(t *testing.T) {
 		eds, err := ComputeExtendedDataSquare([][]byte{
 			ones, twos,
@@ -435,7 +435,7 @@ func TestRootsHelper(t *testing.T) {
 		require.NoError(t, err)
 
 		roots, err := eds.Roots()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Len(t, roots, 8)
 
 		rowRoots, err := eds.RowRoots()
