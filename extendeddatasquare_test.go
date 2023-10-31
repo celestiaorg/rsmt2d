@@ -426,6 +426,34 @@ func TestEquals(t *testing.T) {
 	})
 }
 
+func TestRootsHelper(t *testing.T) {
+	t.Run("returns roots for a 4x4 EDS", func(t *testing.T) {
+		eds, err := ComputeExtendedDataSquare([][]byte{
+			ones, twos,
+			threes, fours,
+		}, NewLeoRSCodec(), NewDefaultTree)
+		require.NoError(t, err)
+
+		roots, err := eds.Roots()
+		assert.NoError(t, err)
+		assert.Len(t, roots, 8)
+	})
+
+	t.Run("returns an error for an incomplete EDS", func(t *testing.T) {
+		eds, err := ComputeExtendedDataSquare([][]byte{
+			ones, twos,
+			threes, fours,
+		}, NewLeoRSCodec(), NewDefaultTree)
+		require.NoError(t, err)
+
+		// set a cell to nil to make the EDS incomplete
+		eds.setCell(0, 0, nil)
+
+		_, err = eds.Roots()
+		assert.Error(t, err)
+	})
+}
+
 func createExampleEds(t *testing.T, chunkSize int) (eds *ExtendedDataSquare) {
 	ones := bytes.Repeat([]byte{1}, chunkSize)
 	twos := bytes.Repeat([]byte{2}, chunkSize)
