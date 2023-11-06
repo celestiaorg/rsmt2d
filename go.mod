@@ -10,7 +10,7 @@ require (
 
 require (
 	github.com/klauspost/reedsolomon v1.11.8
-	golang.org/x/sync v0.4.0
+	golang.org/x/sync v0.5.0
 )
 
 require github.com/gogo/protobuf v1.3.2 // indirect
