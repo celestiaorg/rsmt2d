@@ -24,16 +24,17 @@ type PseudoFraudProof struct {
 }
 
 func TestRepairExtendedDataSquare(t *testing.T) {
+	codec := NewLeoRSCodec()
+
 	tests := []struct {
-		name  string
-		codec Codec
+		name string
 	}{
-		{"leopard", NewLeoRSCodec()},
+		{"leopard"},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			name, codec := test.name, test.codec
+			name := test.name
 			original := createTestEds(codec, shareSize)
 
 			rowRoots, err := original.RowRoots()
@@ -91,17 +92,18 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 }
 
 func TestValidFraudProof(t *testing.T) {
+	codec := NewLeoRSCodec()
+
 	corruptChunk := bytes.Repeat([]byte{66}, shareSize)
 	tests := []struct {
-		name  string
-		codec Codec
+		name string
 	}{
-		{"leopard", NewLeoRSCodec()},
+		{"leopard"},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			name, codec := test.name, test.codec
+			name := test.name
 			original := createTestEds(codec, shareSize)
 
 			var byzData *ErrByzantineData
@@ -149,17 +151,18 @@ func TestValidFraudProof(t *testing.T) {
 }
 
 func TestCannotRepairSquareWithBadRoots(t *testing.T) {
+	codec := NewLeoRSCodec()
+
 	corruptChunk := bytes.Repeat([]byte{66}, shareSize)
 	tests := []struct {
-		name  string
-		codec Codec
+		name string
 	}{
-		{"leopard", NewLeoRSCodec()},
+		{"leopard"},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			original := createTestEds(test.codec, shareSize)
+			original := createTestEds(codec, shareSize)
 
 			rowRoots, err := original.RowRoots()
 			require.NoError(t, err)
@@ -223,104 +226,103 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 		},
 	}
 
-	for codecName, codec := range codecs {
-		t.Run(codecName, func(t *testing.T) {
-			for _, test := range tests {
-				t.Run(test.name, func(t *testing.T) {
-					eds := createTestEds(codec, shareSize)
+	codec := NewLeoRSCodec()
 
-					// compute the rowRoots prior to corruption
-					rowRoots, err := eds.getRowRoots()
-					assert.NoError(t, err)
+	t.Run(codec.Name(), func(t *testing.T) {
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				eds := createTestEds(codec, shareSize)
 
-					// compute the colRoots prior to corruption
-					colRoots, err := eds.getColRoots()
-					assert.NoError(t, err)
+				// compute the rowRoots prior to corruption
+				rowRoots, err := eds.getRowRoots()
+				assert.NoError(t, err)
 
-					for i, coords := range test.coords {
-						x := coords[0]
-						y := coords[1]
-						eds.setCell(x, y, test.values[i])
-					}
+				// compute the colRoots prior to corruption
+				colRoots, err := eds.getColRoots()
+				assert.NoError(t, err)
 
-					err = eds.Repair(rowRoots, colRoots)
-					assert.Error(t, err)
+				for i, coords := range test.coords {
+					x := coords[0]
+					y := coords[1]
+					eds.setCell(x, y, test.values[i])
+				}
 
-					// due to parallelisation, the ErrByzantineData axis may be either row or col
-					var byzData *ErrByzantineData
-					assert.ErrorAs(t, err, &byzData, "did not return a ErrByzantineData for a bad col or row")
-					assert.NotEmpty(t, byzData.Shares)
-					assert.Contains(t, byzData.Shares, corruptChunk)
-				})
-			}
-		})
-	}
+				err = eds.Repair(rowRoots, colRoots)
+				assert.Error(t, err)
+
+				// due to parallelisation, the ErrByzantineData axis may be either row or col
+				var byzData *ErrByzantineData
+				assert.ErrorAs(t, err, &byzData, "did not return a ErrByzantineData for a bad col or row")
+				assert.NotEmpty(t, byzData.Shares)
+				assert.Contains(t, byzData.Shares, corruptChunk)
+			})
+		}
+	})
 }
 
 func BenchmarkRepair(b *testing.B) {
 	// For different ODS sizes
 	for originalDataWidth := 4; originalDataWidth <= 512; originalDataWidth *= 2 {
-		for codecName, codec := range codecs {
-			if codec.MaxChunks() < originalDataWidth*originalDataWidth {
-				// Only test codecs that support this many chunks
-				continue
-			}
+		codec := NewLeoRSCodec()
+		if codec.MaxChunks() < originalDataWidth*originalDataWidth {
+			// Only test codecs that support this many chunks
+			continue
+		}
 
-			// Generate a new range original data square then extend it
-			square := genRandDS(originalDataWidth, shareSize)
-			eds, err := ComputeExtendedDataSquare(square, codec, NewDefaultTree)
-			if err != nil {
-				b.Error(err)
-			}
+		// Generate a new range original data square then extend it
+		square := genRandDS(originalDataWidth, shareSize)
+		eds, err := ComputeExtendedDataSquare(square, codec, NewDefaultTree)
+		if err != nil {
+			b.Error(err)
+		}
 
-			extendedDataWidth := originalDataWidth * 2
-			rowRoots, err := eds.RowRoots()
-			assert.NoError(b, err)
+		extendedDataWidth := originalDataWidth * 2
+		rowRoots, err := eds.RowRoots()
+		assert.NoError(b, err)
 
-			colRoots, err := eds.ColRoots()
-			assert.NoError(b, err)
+		colRoots, err := eds.ColRoots()
+		assert.NoError(b, err)
 
-			b.Run(
-				fmt.Sprintf(
-					"%s %dx%dx%d ODS",
-					codecName,
-					originalDataWidth,
-					originalDataWidth,
-					len(square[0]),
-				),
-				func(b *testing.B) {
-					for n := 0; n < b.N; n++ {
-						b.StopTimer()
+		b.Run(
+			fmt.Sprintf(
+				"%s %dx%dx%d ODS",
+				codec.Name(),
+				originalDataWidth,
+				originalDataWidth,
+				len(square[0]),
+			),
+			func(b *testing.B) {
+				for n := 0; n < b.N; n++ {
+					b.StopTimer()
 
-						flattened := eds.Flattened()
-						// Randomly remove 1/2 of the shares of each row
-						for r := 0; r < extendedDataWidth; r++ {
-							for c := 0; c < originalDataWidth; {
-								ind := rand.Intn(extendedDataWidth)
-								if flattened[r*extendedDataWidth+ind] == nil {
-									continue
-								}
-								flattened[r*extendedDataWidth+ind] = nil
-								c++
+					flattened := eds.Flattened()
+					// Randomly remove 1/2 of the shares of each row
+					for r := 0; r < extendedDataWidth; r++ {
+						for c := 0; c < originalDataWidth; {
+							ind := rand.Intn(extendedDataWidth)
+							if flattened[r*extendedDataWidth+ind] == nil {
+								continue
 							}
-						}
-
-						// Re-import the data square.
-						eds, _ = ImportExtendedDataSquare(flattened, codec, NewDefaultTree)
-
-						b.StartTimer()
-
-						err := eds.Repair(
-							rowRoots,
-							colRoots,
-						)
-						if err != nil {
-							b.Error(err)
+							flattened[r*extendedDataWidth+ind] = nil
+							c++
 						}
 					}
-				},
-			)
-		}
+
+					// Re-import the data square.
+					eds, _ = ImportExtendedDataSquare(flattened, codec, NewDefaultTree)
+
+					b.StartTimer()
+
+					err := eds.Repair(
+						rowRoots,
+						colRoots,
+					)
+					if err != nil {
+						b.Error(err)
+					}
+				}
+			},
+		)
 	}
 }
 
@@ -420,41 +422,41 @@ func TestCorruptedEdsReturnsErrByzantineData_UnorderedShares(t *testing.T) {
 		},
 	}
 
-	for codecName, codec := range codecs {
-		t.Run(codecName, func(t *testing.T) {
-			// create a DA header
-			eds := createTestEdsWithNMT(t, codec, shareSize, namespaceSize, 1, 2, 3, 4)
-			assert.NotNil(t, eds)
-			dAHeaderRoots, err := eds.getRowRoots()
-			assert.NoError(t, err)
+	codec := NewLeoRSCodec()
 
-			dAHeaderCols, err := eds.getColRoots()
-			assert.NoError(t, err)
-			for _, test := range tests {
-				t.Run(test.name, func(t *testing.T) {
-					// create an eds with the given shares
-					corruptEds := createTestEdsWithNMT(t, codec, shareSize, namespaceSize, sharesValue...)
-					assert.NotNil(t, corruptEds)
-					// corrupt it by setting the values at the given coordinates
-					for i, coords := range test.coords {
-						x := coords[0]
-						y := coords[1]
-						corruptEds.setCell(x, y, test.values[i])
-					}
+	t.Run(codec.Name(), func(t *testing.T) {
+		// create a DA header
+		eds := createTestEdsWithNMT(t, codec, shareSize, namespaceSize, 1, 2, 3, 4)
+		assert.NotNil(t, eds)
+		dAHeaderRoots, err := eds.getRowRoots()
+		assert.NoError(t, err)
 
-					err = corruptEds.Repair(dAHeaderRoots, dAHeaderCols)
-					assert.Equal(t, err != nil, test.wantErr)
-					if test.wantErr {
-						var byzErr *ErrByzantineData
-						assert.ErrorAs(t, err, &byzErr)
-						errors.As(err, &byzErr)
-						assert.Equal(t, byzErr.Axis, test.corruptedAxis)
-						assert.Equal(t, byzErr.Index, test.corruptedIndex)
-					}
-				})
-			}
-		})
-	}
+		dAHeaderCols, err := eds.getColRoots()
+		assert.NoError(t, err)
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				// create an eds with the given shares
+				corruptEds := createTestEdsWithNMT(t, codec, shareSize, namespaceSize, sharesValue...)
+				assert.NotNil(t, corruptEds)
+				// corrupt it by setting the values at the given coordinates
+				for i, coords := range test.coords {
+					x := coords[0]
+					y := coords[1]
+					corruptEds.setCell(x, y, test.values[i])
+				}
+
+				err = corruptEds.Repair(dAHeaderRoots, dAHeaderCols)
+				assert.Equal(t, err != nil, test.wantErr)
+				if test.wantErr {
+					var byzErr *ErrByzantineData
+					assert.ErrorAs(t, err, &byzErr)
+					errors.As(err, &byzErr)
+					assert.Equal(t, byzErr.Axis, test.corruptedAxis)
+					assert.Equal(t, byzErr.Index, test.corruptedIndex)
+				}
+			})
+		}
+	})
 }
 
 // createTestEdsWithNMT creates an extended data square with the given shares and namespace size.
