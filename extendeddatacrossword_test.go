@@ -196,36 +196,34 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 
 	codec := NewLeoRSCodec()
 
-	t.Run(codec.Name(), func(t *testing.T) {
-		for _, test := range tests {
-			t.Run(test.name, func(t *testing.T) {
-				eds := createTestEds(codec, shareSize)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			eds := createTestEds(codec, shareSize)
 
-				// compute the rowRoots prior to corruption
-				rowRoots, err := eds.getRowRoots()
-				assert.NoError(t, err)
+			// compute the rowRoots prior to corruption
+			rowRoots, err := eds.getRowRoots()
+			assert.NoError(t, err)
 
-				// compute the colRoots prior to corruption
-				colRoots, err := eds.getColRoots()
-				assert.NoError(t, err)
+			// compute the colRoots prior to corruption
+			colRoots, err := eds.getColRoots()
+			assert.NoError(t, err)
 
-				for i, coords := range test.coords {
-					x := coords[0]
-					y := coords[1]
-					eds.setCell(x, y, test.values[i])
-				}
+			for i, coords := range test.coords {
+				x := coords[0]
+				y := coords[1]
+				eds.setCell(x, y, test.values[i])
+			}
 
-				err = eds.Repair(rowRoots, colRoots)
-				assert.Error(t, err)
+			err = eds.Repair(rowRoots, colRoots)
+			assert.Error(t, err)
 
-				// due to parallelisation, the ErrByzantineData axis may be either row or col
-				var byzData *ErrByzantineData
-				assert.ErrorAs(t, err, &byzData, "did not return a ErrByzantineData for a bad col or row")
-				assert.NotEmpty(t, byzData.Shares)
-				assert.Contains(t, byzData.Shares, corruptChunk)
-			})
-		}
-	})
+			// due to parallelisation, the ErrByzantineData axis may be either row or col
+			var byzData *ErrByzantineData
+			assert.ErrorAs(t, err, &byzData, "did not return a ErrByzantineData for a bad col or row")
+			assert.NotEmpty(t, byzData.Shares)
+			assert.Contains(t, byzData.Shares, corruptChunk)
+		})
+	}
 }
 
 func BenchmarkRepair(b *testing.B) {
@@ -392,39 +390,37 @@ func TestCorruptedEdsReturnsErrByzantineData_UnorderedShares(t *testing.T) {
 
 	codec := NewLeoRSCodec()
 
-	t.Run(codec.Name(), func(t *testing.T) {
-		// create a DA header
-		eds := createTestEdsWithNMT(t, codec, shareSize, namespaceSize, 1, 2, 3, 4)
-		assert.NotNil(t, eds)
-		dAHeaderRoots, err := eds.getRowRoots()
-		assert.NoError(t, err)
+	// create a DA header
+	eds := createTestEdsWithNMT(t, codec, shareSize, namespaceSize, 1, 2, 3, 4)
+	assert.NotNil(t, eds)
+	dAHeaderRoots, err := eds.getRowRoots()
+	assert.NoError(t, err)
 
-		dAHeaderCols, err := eds.getColRoots()
-		assert.NoError(t, err)
-		for _, test := range tests {
-			t.Run(test.name, func(t *testing.T) {
-				// create an eds with the given shares
-				corruptEds := createTestEdsWithNMT(t, codec, shareSize, namespaceSize, sharesValue...)
-				assert.NotNil(t, corruptEds)
-				// corrupt it by setting the values at the given coordinates
-				for i, coords := range test.coords {
-					x := coords[0]
-					y := coords[1]
-					corruptEds.setCell(x, y, test.values[i])
-				}
+	dAHeaderCols, err := eds.getColRoots()
+	assert.NoError(t, err)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// create an eds with the given shares
+			corruptEds := createTestEdsWithNMT(t, codec, shareSize, namespaceSize, sharesValue...)
+			assert.NotNil(t, corruptEds)
+			// corrupt it by setting the values at the given coordinates
+			for i, coords := range test.coords {
+				x := coords[0]
+				y := coords[1]
+				corruptEds.setCell(x, y, test.values[i])
+			}
 
-				err = corruptEds.Repair(dAHeaderRoots, dAHeaderCols)
-				assert.Equal(t, err != nil, test.wantErr)
-				if test.wantErr {
-					var byzErr *ErrByzantineData
-					assert.ErrorAs(t, err, &byzErr)
-					errors.As(err, &byzErr)
-					assert.Equal(t, byzErr.Axis, test.corruptedAxis)
-					assert.Equal(t, byzErr.Index, test.corruptedIndex)
-				}
-			})
-		}
-	})
+			err = corruptEds.Repair(dAHeaderRoots, dAHeaderCols)
+			assert.Equal(t, err != nil, test.wantErr)
+			if test.wantErr {
+				var byzErr *ErrByzantineData
+				assert.ErrorAs(t, err, &byzErr)
+				errors.As(err, &byzErr)
+				assert.Equal(t, byzErr.Axis, test.corruptedAxis)
+				assert.Equal(t, byzErr.Index, test.corruptedIndex)
+			}
+		})
+	}
 }
 
 // createTestEdsWithNMT creates an extended data square with the given shares and namespace size.
