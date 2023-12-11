@@ -25,128 +25,106 @@ type PseudoFraudProof struct {
 
 func TestRepairExtendedDataSquare(t *testing.T) {
 	codec := NewLeoRSCodec()
+	original := createTestEds(codec, shareSize)
 
-	tests := []struct {
-		name string
-	}{
-		{"leopard"},
-	}
+	rowRoots, err := original.RowRoots()
+	require.NoError(t, err)
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			name := test.name
-			original := createTestEds(codec, shareSize)
+	colRoots, err := original.ColRoots()
+	require.NoError(t, err)
 
-			rowRoots, err := original.RowRoots()
-			require.NoError(t, err)
+	// Verify that an EDS can be repaired after the maximum amount of erasures
+	t.Run("MaximumErasures", func(t *testing.T) {
+		flattened := original.Flattened()
+		flattened[0], flattened[2], flattened[3] = nil, nil, nil
+		flattened[4], flattened[5], flattened[6], flattened[7] = nil, nil, nil, nil
+		flattened[8], flattened[9], flattened[10] = nil, nil, nil
+		flattened[12], flattened[13] = nil, nil
 
-			colRoots, err := original.ColRoots()
-			require.NoError(t, err)
+		// Re-import the data square.
+		eds, err := ImportExtendedDataSquare(flattened, codec, NewDefaultTree)
+		if err != nil {
+			t.Errorf("ImportExtendedDataSquare failed: %v", err)
+		}
 
-			// Verify that an EDS can be repaired after the maximum amount of erasures
-			t.Run("MaximumErasures", func(t *testing.T) {
-				flattened := original.Flattened()
-				flattened[0], flattened[2], flattened[3] = nil, nil, nil
-				flattened[4], flattened[5], flattened[6], flattened[7] = nil, nil, nil, nil
-				flattened[8], flattened[9], flattened[10] = nil, nil, nil
-				flattened[12], flattened[13] = nil, nil
+		err = eds.Repair(rowRoots, colRoots)
+		if err != nil {
+			t.Errorf("unexpected err while repairing data square: %v, codec: :%s", err, codec.Name())
+		} else {
+			assert.Equal(t, original.GetCell(0, 0), bytes.Repeat([]byte{1}, shareSize))
+			assert.Equal(t, original.GetCell(0, 1), bytes.Repeat([]byte{2}, shareSize))
+			assert.Equal(t, original.GetCell(1, 0), bytes.Repeat([]byte{3}, shareSize))
+			assert.Equal(t, original.GetCell(1, 1), bytes.Repeat([]byte{4}, shareSize))
+		}
+	})
 
-				// Re-import the data square.
-				eds, err := ImportExtendedDataSquare(flattened, codec, NewDefaultTree)
-				if err != nil {
-					t.Errorf("ImportExtendedDataSquare failed: %v", err)
-				}
+	// Verify that an EDS returns an error when there are too many erasures
+	t.Run("Unrepairable", func(t *testing.T) {
+		flattened := original.Flattened()
+		flattened[0], flattened[2], flattened[3] = nil, nil, nil
+		flattened[4], flattened[5], flattened[6], flattened[7] = nil, nil, nil, nil
+		flattened[8], flattened[9], flattened[10] = nil, nil, nil
+		flattened[12], flattened[13], flattened[14] = nil, nil, nil
 
-				err = eds.Repair(rowRoots, colRoots)
-				if err != nil {
-					t.Errorf("unexpected err while repairing data square: %v, codec: :%s", err, name)
-				} else {
-					assert.Equal(t, original.GetCell(0, 0), bytes.Repeat([]byte{1}, shareSize))
-					assert.Equal(t, original.GetCell(0, 1), bytes.Repeat([]byte{2}, shareSize))
-					assert.Equal(t, original.GetCell(1, 0), bytes.Repeat([]byte{3}, shareSize))
-					assert.Equal(t, original.GetCell(1, 1), bytes.Repeat([]byte{4}, shareSize))
-				}
-			})
+		// Re-import the data square.
+		eds, err := ImportExtendedDataSquare(flattened, codec, NewDefaultTree)
+		if err != nil {
+			t.Errorf("ImportExtendedDataSquare failed: %v", err)
+		}
 
-			// Verify that an EDS returns an error when there are too many erasures
-			t.Run("Unrepairable", func(t *testing.T) {
-				flattened := original.Flattened()
-				flattened[0], flattened[2], flattened[3] = nil, nil, nil
-				flattened[4], flattened[5], flattened[6], flattened[7] = nil, nil, nil, nil
-				flattened[8], flattened[9], flattened[10] = nil, nil, nil
-				flattened[12], flattened[13], flattened[14] = nil, nil, nil
-
-				// Re-import the data square.
-				eds, err := ImportExtendedDataSquare(flattened, codec, NewDefaultTree)
-				if err != nil {
-					t.Errorf("ImportExtendedDataSquare failed: %v", err)
-				}
-
-				err = eds.Repair(rowRoots, colRoots)
-				if err != ErrUnrepairableDataSquare {
-					t.Errorf("did not return an error on trying to repair an unrepairable square")
-				}
-			})
-		})
-	}
+		err = eds.Repair(rowRoots, colRoots)
+		if err != ErrUnrepairableDataSquare {
+			t.Errorf("did not return an error on trying to repair an unrepairable square")
+		}
+	})
 }
 
 func TestValidFraudProof(t *testing.T) {
 	codec := NewLeoRSCodec()
 
 	corruptChunk := bytes.Repeat([]byte{66}, shareSize)
-	tests := []struct {
-		name string
-	}{
-		{"leopard"},
+
+	original := createTestEds(codec, shareSize)
+
+	var byzData *ErrByzantineData
+	corrupted, err := original.deepCopy(codec)
+	if err != nil {
+		t.Fatalf("unexpected err while copying original data: %v, codec: :%s", err, codec.Name())
 	}
+	corrupted.setCell(0, 0, corruptChunk)
+	assert.NoError(t, err)
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			name := test.name
-			original := createTestEds(codec, shareSize)
+	rowRoots, err := corrupted.getRowRoots()
+	assert.NoError(t, err)
 
-			var byzData *ErrByzantineData
-			corrupted, err := original.deepCopy(codec)
-			if err != nil {
-				t.Fatalf("unexpected err while copying original data: %v, codec: :%s", err, name)
-			}
-			corrupted.setCell(0, 0, corruptChunk)
-			assert.NoError(t, err)
+	colRoots, err := corrupted.getColRoots()
+	assert.NoError(t, err)
 
-			rowRoots, err := corrupted.getRowRoots()
-			assert.NoError(t, err)
+	err = corrupted.Repair(rowRoots, colRoots)
+	errors.As(err, &byzData)
 
-			colRoots, err := corrupted.getColRoots()
-			assert.NoError(t, err)
-
-			err = corrupted.Repair(rowRoots, colRoots)
-			errors.As(err, &byzData)
-
-			// Construct the fraud proof
-			fraudProof := PseudoFraudProof{0, byzData.Index, byzData.Shares}
-			// Verify the fraud proof
-			// TODO in a real fraud proof, also verify Merkle proof for each non-nil share.
-			rebuiltShares, err := codec.Decode(fraudProof.Shares)
-			if err != nil {
-				t.Errorf("could not decode fraud proof shares; got: %v", err)
-			}
-			root, err := corrupted.computeSharesRoot(rebuiltShares, byzData.Axis, fraudProof.Index)
-			assert.NoError(t, err)
-			rowRoot, err := corrupted.getRowRoot(fraudProof.Index)
-			assert.NoError(t, err)
-			if bytes.Equal(root, rowRoot) {
-				// If the roots match, then the fraud proof should be for invalid erasure coding.
-				parityShares, err := codec.Encode(rebuiltShares[0:corrupted.originalDataWidth])
-				if err != nil {
-					t.Errorf("could not encode fraud proof shares; %v", fraudProof)
-				}
-				startIndex := len(rebuiltShares) - int(corrupted.originalDataWidth)
-				if bytes.Equal(flattenChunks(parityShares), flattenChunks(rebuiltShares[startIndex:])) {
-					t.Errorf("invalid fraud proof %v", fraudProof)
-				}
-			}
-		})
+	// Construct the fraud proof
+	fraudProof := PseudoFraudProof{0, byzData.Index, byzData.Shares}
+	// Verify the fraud proof
+	// TODO in a real fraud proof, also verify Merkle proof for each non-nil share.
+	rebuiltShares, err := codec.Decode(fraudProof.Shares)
+	if err != nil {
+		t.Errorf("could not decode fraud proof shares; got: %v", err)
+	}
+	root, err := corrupted.computeSharesRoot(rebuiltShares, byzData.Axis, fraudProof.Index)
+	assert.NoError(t, err)
+	rowRoot, err := corrupted.getRowRoot(fraudProof.Index)
+	assert.NoError(t, err)
+	if bytes.Equal(root, rowRoot) {
+		// If the roots match, then the fraud proof should be for invalid erasure coding.
+		parityShares, err := codec.Encode(rebuiltShares[0:corrupted.originalDataWidth])
+		if err != nil {
+			t.Errorf("could not encode fraud proof shares; %v", fraudProof)
+		}
+		startIndex := len(rebuiltShares) - int(corrupted.originalDataWidth)
+		if bytes.Equal(flattenChunks(parityShares), flattenChunks(rebuiltShares[startIndex:])) {
+			t.Errorf("invalid fraud proof %v", fraudProof)
+		}
 	}
 }
 
@@ -154,29 +132,19 @@ func TestCannotRepairSquareWithBadRoots(t *testing.T) {
 	codec := NewLeoRSCodec()
 
 	corruptChunk := bytes.Repeat([]byte{66}, shareSize)
-	tests := []struct {
-		name string
-	}{
-		{"leopard"},
-	}
+	original := createTestEds(codec, shareSize)
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			original := createTestEds(codec, shareSize)
+	rowRoots, err := original.RowRoots()
+	require.NoError(t, err)
 
-			rowRoots, err := original.RowRoots()
-			require.NoError(t, err)
+	colRoots, err := original.ColRoots()
+	require.NoError(t, err)
 
-			colRoots, err := original.ColRoots()
-			require.NoError(t, err)
-
-			original.setCell(0, 0, corruptChunk)
-			require.NoError(t, err)
-			err = original.Repair(rowRoots, colRoots)
-			if err == nil {
-				t.Errorf("did not return an error on trying to repair a square with bad roots")
-			}
-		})
+	original.setCell(0, 0, corruptChunk)
+	require.NoError(t, err)
+	err = original.Repair(rowRoots, colRoots)
+	if err == nil {
+		t.Errorf("did not return an error on trying to repair a square with bad roots")
 	}
 }
 
