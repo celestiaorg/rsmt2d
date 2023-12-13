@@ -26,7 +26,7 @@ type Tree interface {
 var trees = make(map[string]TreeConstructorFn)
 
 func registerTree(treeName string, treeConstructor TreeConstructorFn) {
-	if _, ok := trees[treeName]; ok {
+	if trees[treeName] != nil {
 		panic(fmt.Sprintf("%s already registered", treeName))
 	}
 	trees[treeName] = treeConstructor

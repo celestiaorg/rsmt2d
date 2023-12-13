@@ -59,7 +59,7 @@ func TestComputeExtendedDataSquare(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := ComputeExtendedDataSquare(tc.data, codec, NewDefaultTree)
+			result, err := ComputeExtendedDataSquare(tc.data, codec, Default)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.want, result.squareRow)
 		})
@@ -67,7 +67,7 @@ func TestComputeExtendedDataSquare(t *testing.T) {
 
 	t.Run("returns an error if chunkSize is not a multiple of 64", func(t *testing.T) {
 		chunk := bytes.Repeat([]byte{1}, 65)
-		_, err := ComputeExtendedDataSquare([][]byte{chunk}, NewLeoRSCodec(), NewDefaultTree)
+		_, err := ComputeExtendedDataSquare([][]byte{chunk}, NewLeoRSCodec(), Default)
 		assert.Error(t, err)
 	})
 }
@@ -75,13 +75,13 @@ func TestComputeExtendedDataSquare(t *testing.T) {
 func TestImportExtendedDataSquare(t *testing.T) {
 	t.Run("is able to import an EDS", func(t *testing.T) {
 		eds := createExampleEds(t, shareSize)
-		got, err := ImportExtendedDataSquare(eds.Flattened(), NewLeoRSCodec(), NewDefaultTree)
+		got, err := ImportExtendedDataSquare(eds.Flattened(), NewLeoRSCodec(), Default)
 		assert.NoError(t, err)
 		assert.Equal(t, eds.Flattened(), got.Flattened())
 	})
 	t.Run("returns an error if chunkSize is not a multiple of 64", func(t *testing.T) {
 		chunk := bytes.Repeat([]byte{1}, 65)
-		_, err := ImportExtendedDataSquare([][]byte{chunk}, NewLeoRSCodec(), NewDefaultTree)
+		_, err := ImportExtendedDataSquare([][]byte{chunk}, NewLeoRSCodec(), Default)
 		assert.Error(t, err)
 	})
 }
@@ -91,7 +91,7 @@ func TestMarshalJSON(t *testing.T) {
 	result, err := ComputeExtendedDataSquare([][]byte{
 		ones, twos,
 		threes, fours,
-	}, codec, NewDefaultTree)
+	}, codec, Default)
 	if err != nil {
 		panic(err)
 	}
@@ -162,7 +162,7 @@ func TestImmutableRoots(t *testing.T) {
 	result, err := ComputeExtendedDataSquare([][]byte{
 		ones, twos,
 		threes, fours,
-	}, codec, NewDefaultTree)
+	}, codec, Default)
 	if err != nil {
 		panic(err)
 	}
@@ -197,7 +197,7 @@ func TestEDSRowColImmutable(t *testing.T) {
 	result, err := ComputeExtendedDataSquare([][]byte{
 		ones, twos,
 		threes, fours,
-	}, codec, NewDefaultTree)
+	}, codec, Default)
 	if err != nil {
 		panic(err)
 	}
@@ -220,7 +220,7 @@ func TestRowRoots(t *testing.T) {
 		eds, err := ComputeExtendedDataSquare([][]byte{
 			ones, twos,
 			threes, fours,
-		}, NewLeoRSCodec(), NewDefaultTree)
+		}, NewLeoRSCodec(), Default)
 		require.NoError(t, err)
 
 		rowRoots, err := eds.RowRoots()
@@ -232,7 +232,7 @@ func TestRowRoots(t *testing.T) {
 		eds, err := ComputeExtendedDataSquare([][]byte{
 			ones, twos,
 			threes, fours,
-		}, NewLeoRSCodec(), NewDefaultTree)
+		}, NewLeoRSCodec(), Default)
 		require.NoError(t, err)
 
 		// set a cell to nil to make the EDS incomplete
@@ -248,7 +248,7 @@ func TestColRoots(t *testing.T) {
 		eds, err := ComputeExtendedDataSquare([][]byte{
 			ones, twos,
 			threes, fours,
-		}, NewLeoRSCodec(), NewDefaultTree)
+		}, NewLeoRSCodec(), Default)
 		require.NoError(t, err)
 
 		colRoots, err := eds.ColRoots()
@@ -260,7 +260,7 @@ func TestColRoots(t *testing.T) {
 		eds, err := ComputeExtendedDataSquare([][]byte{
 			ones, twos,
 			threes, fours,
-		}, NewLeoRSCodec(), NewDefaultTree)
+		}, NewLeoRSCodec(), Default)
 		require.NoError(t, err)
 
 		// set a cell to nil to make the EDS incomplete
@@ -290,7 +290,7 @@ func BenchmarkExtensionEncoding(b *testing.B) {
 				fmt.Sprintf("%s %dx%dx%d ODS", codecName, i, i, len(square[0])),
 				func(b *testing.B) {
 					for n := 0; n < b.N; n++ {
-						eds, err := ComputeExtendedDataSquare(square, codec, NewDefaultTree)
+						eds, err := ComputeExtendedDataSquare(square, codec, Default)
 						if err != nil {
 							b.Error(err)
 						}
@@ -317,7 +317,7 @@ func BenchmarkExtensionWithRoots(b *testing.B) {
 				fmt.Sprintf("%s %dx%dx%d ODS", codecName, i, i, len(square[0])),
 				func(b *testing.B) {
 					for n := 0; n < b.N; n++ {
-						eds, err := ComputeExtendedDataSquare(square, codec, NewDefaultTree)
+						eds, err := ComputeExtendedDataSquare(square, codec, Default)
 						if err != nil {
 							b.Error(err)
 						}
@@ -396,7 +396,7 @@ func TestEquals(t *testing.T) {
 
 		unequalChunkSize := createExampleEds(t, shareSize*2)
 
-		unequalEds, err := ComputeExtendedDataSquare([][]byte{ones}, NewLeoRSCodec(), NewDefaultTree)
+		unequalEds, err := ComputeExtendedDataSquare([][]byte{ones}, NewLeoRSCodec(), Default)
 		require.NoError(t, err)
 
 		testCases := []testCase{
@@ -431,7 +431,7 @@ func TestRoots(t *testing.T) {
 		eds, err := ComputeExtendedDataSquare([][]byte{
 			ones, twos,
 			threes, fours,
-		}, NewLeoRSCodec(), NewDefaultTree)
+		}, NewLeoRSCodec(), Default)
 		require.NoError(t, err)
 
 		roots, err := eds.Roots()
@@ -458,7 +458,7 @@ func TestRoots(t *testing.T) {
 		eds, err := ComputeExtendedDataSquare([][]byte{
 			ones, twos,
 			threes, fours,
-		}, NewLeoRSCodec(), NewDefaultTree)
+		}, NewLeoRSCodec(), Default)
 		require.NoError(t, err)
 
 		// set a cell to nil to make the EDS incomplete
@@ -479,7 +479,7 @@ func createExampleEds(t *testing.T, chunkSize int) (eds *ExtendedDataSquare) {
 		threes, fours,
 	}
 
-	eds, err := ComputeExtendedDataSquare(ods, NewLeoRSCodec(), NewDefaultTree)
+	eds, err := ComputeExtendedDataSquare(ods, NewLeoRSCodec(), Default)
 	require.NoError(t, err)
 	return eds
 }
