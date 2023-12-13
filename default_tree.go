@@ -2,12 +2,20 @@ package rsmt2d
 
 import (
 	"crypto/sha256"
+	"fmt"
 
 	"github.com/celestiaorg/merkletree"
 )
 
+var (
+	DefaultTreeName = "default-tree"
+)
+
 func init() {
-	registerTree(Default, NewDefaultTree)
+	err := RegisterTree(DefaultTreeName, NewDefaultTree)
+	if err != nil {
+		panic(fmt.Sprintf("%s already registered", DefaultTreeName))
+	}
 }
 
 var _ Tree = &DefaultTree{}

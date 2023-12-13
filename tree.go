@@ -2,10 +2,6 @@ package rsmt2d
 
 import "fmt"
 
-const (
-	Default = "Default-tree"
-)
-
 // TreeConstructorFn creates a fresh Tree instance to be used as the Merkle tree
 // inside of rsmt2d.
 type TreeConstructorFn = func(axis Axis, index uint) Tree
@@ -22,12 +18,15 @@ type Tree interface {
 	Root() ([]byte, error)
 }
 
-// trees is a global map used for keeping track of registered tree constructors for testing and JSON unmarshalling
+// trees is a global map used for keeping track of registered tree constructors for JSON serialization
+// The keys of this map should be kebab cased. E.g. "default-tree"
 var trees = make(map[string]TreeConstructorFn)
 
-func registerTree(treeName string, treeConstructor TreeConstructorFn) {
+func RegisterTree(treeName string, treeConstructor TreeConstructorFn) error {
 	if trees[treeName] != nil {
-		panic(fmt.Sprintf("%s already registered", treeName))
+		return fmt.Errorf("%s already registered", treeName)
 	}
 	trees[treeName] = treeConstructor
+
+	return nil
 }

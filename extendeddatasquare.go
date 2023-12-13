@@ -77,7 +77,7 @@ func ComputeExtendedDataSquare(
 		return nil, err
 	}
 
-	eds := ExtendedDataSquare{dataSquare: ds, codec: codec, treeName: Default}
+	eds := ExtendedDataSquare{dataSquare: ds, codec: codec, treeName: DefaultTreeName}
 	err = eds.erasureExtendSquare(codec)
 	if err != nil {
 		return nil, err
