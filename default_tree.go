@@ -7,9 +7,7 @@ import (
 	"github.com/celestiaorg/merkletree"
 )
 
-var (
-	DefaultTreeName = "default-tree"
-)
+var DefaultTreeName = "default-tree"
 
 func init() {
 	err := RegisterTree(DefaultTreeName, NewDefaultTree)
