@@ -32,12 +32,19 @@ func (eds *ExtendedDataSquare) UnmarshalJSON(b []byte) error {
 	var aux struct {
 		DataSquare [][]byte `json:"data_square"`
 		Codec      string   `json:"codec"`
+		Tree       string   `json:"tree"`
 	}
 
 	if err := json.Unmarshal(b, &aux); err != nil {
 		return err
 	}
-	importedEds, err := ImportExtendedDataSquare(aux.DataSquare, codecs[aux.Codec], NewDefaultTree)
+
+	treeConstructor, ok := trees[aux.Tree]
+	if !ok {
+		return fmt.Errorf("%s is not registered yet", aux.Tree)
+	}
+
+	importedEds, err := ImportExtendedDataSquare(aux.DataSquare, codecs[aux.Codec], treeConstructor)
 	if err != nil {
 		return err
 	}
