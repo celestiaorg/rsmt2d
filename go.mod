@@ -9,7 +9,7 @@ require (
 )
 
 require (
-	github.com/klauspost/reedsolomon v1.11.8
+	github.com/klauspost/reedsolomon v1.12.0
 	golang.org/x/sync v0.5.0
 )
 
