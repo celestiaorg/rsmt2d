@@ -1,6 +1,9 @@
 package rsmt2d
 
-import "fmt"
+import (
+	"fmt"
+	"reflect"
+)
 
 // TreeConstructorFn creates a fresh Tree instance to be used as the Merkle tree
 // inside of rsmt2d.
@@ -29,4 +32,23 @@ func RegisterTree(treeName string, treeConstructor TreeConstructorFn) error {
 	trees[treeName] = treeConstructor
 
 	return nil
+}
+
+func GetTreeConstructorFn(treeName string) (TreeConstructorFn, error) {
+	if trees[treeName] == nil {
+		return nil, fmt.Errorf("%s not registered yet", treeName)
+	}
+
+	return trees[treeName], nil
+}
+
+func GetTreeNameFromConstructorFn(treeConstructor TreeConstructorFn) string {
+	key := ""
+	for k, v := range trees {
+		if reflect.DeepEqual(reflect.ValueOf(v), reflect.ValueOf(treeConstructor)) {
+			key = k
+		}
+	}
+
+	return key
 }
