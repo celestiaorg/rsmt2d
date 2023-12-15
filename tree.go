@@ -53,6 +53,7 @@ func TreeFn(treeName string) (TreeConstructorFn, error) {
 }
 
 // Get the tree name by the tree constructor function from the global map registry
+// TODO: this code is temporary until all breaking changes is handle here: https://github.com/celestiaorg/rsmt2d/pull/278
 func getTreeNameFromConstructorFn(treeConstructor TreeConstructorFn) string {
 	key := ""
 	treeFns.Range(func(k, v interface{}) bool {
