@@ -43,7 +43,6 @@ func TreeFn(treeName string) (TreeConstructorFn, error) {
 	v, ok := treeFns.Load(treeName)
 	if !ok {
 		return nil, fmt.Errorf("%s not registered yet", treeName)
-
 	}
 	treeFn, ok = v.(TreeConstructorFn)
 	if !ok {
