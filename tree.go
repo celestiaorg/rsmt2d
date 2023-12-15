@@ -52,6 +52,12 @@ func TreeFn(treeName string) (TreeConstructorFn, error) {
 	return treeFn, nil
 }
 
+// Remove treeConstructorFN by treeName.
+// Only use for test cleanup. Proceed with caution.
+func removeTreeFn(treeName string) {
+	treeFns.Delete(treeName)
+}
+
 // Get the tree name by the tree constructor function from the global map registry
 // TODO: this code is temporary until all breaking changes is handle here: https://github.com/celestiaorg/rsmt2d/pull/278
 func getTreeNameFromConstructorFn(treeConstructor TreeConstructorFn) string {
@@ -59,11 +65,13 @@ func getTreeNameFromConstructorFn(treeConstructor TreeConstructorFn) string {
 	treeFns.Range(func(k, v interface{}) bool {
 		keyString, ok := k.(string)
 		if !ok {
-			return false
+			// continue checking other key, value
+			return true
 		}
 		treeFn, ok := v.(TreeConstructorFn)
 		if !ok {
-			return false
+			// continue checking other key, value
+			return true
 		}
 
 		if reflect.DeepEqual(reflect.ValueOf(treeFn), reflect.ValueOf(treeConstructor)) {

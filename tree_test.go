@@ -22,7 +22,7 @@ func TestRegisterTree(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			// By registered the function on the successfull testcase first
+			// By registered the function on the successful testcase first
 			// the tree name will be registered already so we can check
 			// the unsuccessfully testcase
 			err := RegisterTree(treeName, treeConstructorFn)
@@ -36,10 +36,12 @@ func TestRegisterTree(t *testing.T) {
 			require.True(t, reflect.DeepEqual(reflect.ValueOf(treeFn), reflect.ValueOf(treeConstructorFn)))
 		})
 	}
+
+	cleanUp(treeName)
 }
 
 func TestTreeFn(t *testing.T) {
-	treeName := "testing_register_tree"
+	treeName := "testing_treeFn_tree"
 	treeConstructorFn := sudoConstructorFn
 	invalidCaseTreeName := "testing_invalid_register_tree"
 	invalidTreeConstructorFn := "invalid constructor fn"
@@ -90,12 +92,14 @@ func TestTreeFn(t *testing.T) {
 				require.True(t, reflect.DeepEqual(reflect.ValueOf(treeFn), reflect.ValueOf(treeConstructorFn)))
 			}
 		})
+
+		cleanUp(test.treeName)
 	}
 }
 
 // TODO: When we handle all the breaking changes
 func TestGetTreeNameFromConstructorFn(t *testing.T) {
-	treeName := "testing_register_tree"
+	treeName := "testing_get_tree_name_tree"
 	// This is to avoid
 	treeConstructorFn := sudoConstructorFn
 	invalidTreeName := struct{}{}
@@ -104,7 +108,7 @@ func TestGetTreeNameFromConstructorFn(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		treeName     interface{}
+		treeName     string
 		treeFn       TreeConstructorFn
 		malleate     func()
 		expectGetKey bool
@@ -128,7 +132,7 @@ func TestGetTreeNameFromConstructorFn(t *testing.T) {
 		},
 		{
 			"get invalid interface value",
-			nil,
+			"",
 			nil,
 			func() {
 				// Seems like this case has low probability of happening
@@ -140,7 +144,7 @@ func TestGetTreeNameFromConstructorFn(t *testing.T) {
 		},
 		{
 			"get invalid interface key",
-			nil,
+			"",
 			nil,
 			func() {
 				// Seems like this case has low probability of happening
@@ -163,11 +167,17 @@ func TestGetTreeNameFromConstructorFn(t *testing.T) {
 				require.Equal(t, test.treeName, key)
 			}
 		})
+
+		cleanUp(test.treeName)
 	}
 }
 
 // Avoid duplicate with default_tree treeConstructorFn
 // registered during init
-func sudoConstructorFn(axis Axis, index uint) Tree {
+func sudoConstructorFn(_ Axis, _ uint) Tree {
 	return &DefaultTree{}
+}
+
+func cleanUp(treeName string) {
+	removeTreeFn(treeName)
 }
