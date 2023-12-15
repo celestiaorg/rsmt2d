@@ -52,7 +52,7 @@ func TreeFn(treeName string) (TreeConstructorFn, error) {
 	return treeFn, nil
 }
 
-// Remove treeConstructorFN by treeName.
+// removeTreeFn removes a treeConstructorFn by treeName.
 // Only use for test cleanup. Proceed with caution.
 func removeTreeFn(treeName string) {
 	treeFns.Delete(treeName)
