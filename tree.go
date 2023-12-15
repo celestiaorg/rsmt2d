@@ -37,7 +37,7 @@ func RegisterTree(treeName string, treeConstructor TreeConstructorFn) error {
 	return nil
 }
 
-// Get tree constructor function by tree name from the global map
+// Get tree constructor function by tree name from the global map registry
 func TreeFn(treeName string) (TreeConstructorFn, error) {
 	var treeFn TreeConstructorFn
 	v, ok := treeFns.Load(treeName)
@@ -53,6 +53,7 @@ func TreeFn(treeName string) (TreeConstructorFn, error) {
 	return treeFn, nil
 }
 
+// Get the tree name by the tree constructor function from the global map registry
 func getTreeNameFromConstructorFn(treeConstructor TreeConstructorFn) string {
 	key := ""
 	treeFns.Range(func(k, v interface{}) bool {
