@@ -102,6 +102,9 @@ func TestTreeFn(t *testing.T) {
 func TestGetTreeNameFromConstructorFn(t *testing.T) {
 	treeName := "testing_get_tree_name_tree"
 	treeConstructorFn := sudoConstructorFn
+	invalidTreeName := struct{}{}
+	invalidCaseTreeName := "invalid_case_tree"
+	invalidTreeConstructorFn := "invalid constructor fn"
 
 	tests := []struct {
 		name         string
@@ -125,6 +128,30 @@ func TestGetTreeNameFromConstructorFn(t *testing.T) {
 			"unregisted_tree_name",
 			nil,
 			func() {},
+			false,
+		},
+		{
+			"get invalid interface value",
+			"",
+			nil,
+			func() {
+				// Seems like this case has low probability of happening
+				// since all register has been done through RegisterTree func
+				// which have strict type check as argument.
+				treeFns.Store(invalidCaseTreeName, invalidTreeConstructorFn)
+			},
+			false,
+		},
+		{
+			"get invalid interface key",
+			"",
+			nil,
+			func() {
+				// Seems like this case has low probability of happening
+				// since all register has been done through RegisterTree func
+				// which have strict type check as argument.
+				treeFns.Store(invalidTreeName, treeConstructorFn)
+			},
 			false,
 		},
 	}
