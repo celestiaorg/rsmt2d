@@ -60,7 +60,7 @@ func (eds *ExtendedDataSquare) UnmarshalJSON(b []byte) error {
 func ComputeExtendedDataSquare(
 	data [][]byte,
 	codec Codec,
-	treeCreatorFn TreeConstructorFn,
+	treeName string,
 ) (*ExtendedDataSquare, error) {
 	if len(data) > codec.MaxChunks() {
 		return nil, errors.New("number of chunks exceeds the maximum")
@@ -72,14 +72,14 @@ func ComputeExtendedDataSquare(
 		return nil, err
 	}
 
-	ds, err := newDataSquare(data, treeCreatorFn, uint(chunkSize))
+	treeCreatorFn, err := TreeFn(treeName)
 	if err != nil {
 		return nil, err
 	}
 
-	treeName := getTreeNameFromConstructorFn(treeCreatorFn)
-	if treeName == "" {
-		return nil, errors.New("tree name not found")
+	ds, err := newDataSquare(data, treeCreatorFn, uint(chunkSize))
+	if err != nil {
+		return nil, err
 	}
 
 	eds := ExtendedDataSquare{dataSquare: ds, codec: codec, treeName: treeName}

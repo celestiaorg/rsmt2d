@@ -2,7 +2,6 @@ package rsmt2d
 
 import (
 	"fmt"
-	"reflect"
 	"sync"
 )
 
@@ -50,28 +49,4 @@ func TreeFn(treeName string) (TreeConstructorFn, error) {
 	}
 
 	return treeFn, nil
-}
-
-// Get the tree name by the tree constructor function from the global map registry
-func getTreeNameFromConstructorFn(treeConstructor TreeConstructorFn) string {
-	key := ""
-	treeFns.Range(func(k, v interface{}) bool {
-		keyString, ok := k.(string)
-		if !ok {
-			return false
-		}
-		treeFn, ok := v.(TreeConstructorFn)
-		if !ok {
-			return false
-		}
-
-		if reflect.DeepEqual(reflect.ValueOf(treeFn), reflect.ValueOf(treeConstructor)) {
-			key = keyString
-			return false
-		}
-
-		return true
-	})
-
-	return key
 }
