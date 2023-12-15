@@ -42,7 +42,7 @@ func (eds *ExtendedDataSquare) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	treeConstructor, err := GetTreeConstructorFn(aux.Tree)
+	treeConstructor, err := TreeFn(aux.Tree)
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func ComputeExtendedDataSquare(
 		return nil, err
 	}
 
-	treeName := GetTreeNameFromConstructorFn(treeCreatorFn)
+	treeName := getTreeNameFromConstructorFn(treeCreatorFn)
 	if treeName == "" {
 		return nil, errors.New("tree name not found")
 	}

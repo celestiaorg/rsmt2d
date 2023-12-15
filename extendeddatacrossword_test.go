@@ -443,7 +443,7 @@ func createTestEdsWithNMT(t *testing.T, codec Codec, shareSize, namespaceSize in
 		shares[i] = bytes.Repeat([]byte{byte(shareValue)}, shareSize)
 	}
 
-	treeConstructorFn, err := GetTreeConstructorFn("testing-tree")
+	treeConstructorFn, err := TreeFn("testing-tree")
 	require.NoError(t, err)
 
 	eds, err := ComputeExtendedDataSquare(shares, codec, treeConstructorFn)

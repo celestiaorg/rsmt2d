@@ -25,6 +25,7 @@ type Tree interface {
 // The keys of this map should be kebab cased. E.g. "default-tree"
 var trees = make(map[string]TreeConstructorFn)
 
+// Must be called in the init function
 func RegisterTree(treeName string, treeConstructor TreeConstructorFn) error {
 	if trees[treeName] != nil {
 		return fmt.Errorf("%s already registered", treeName)
@@ -34,7 +35,8 @@ func RegisterTree(treeName string, treeConstructor TreeConstructorFn) error {
 	return nil
 }
 
-func GetTreeConstructorFn(treeName string) (TreeConstructorFn, error) {
+// Get tree constructor function by tree name from the global map
+func TreeFn(treeName string) (TreeConstructorFn, error) {
 	if trees[treeName] == nil {
 		return nil, fmt.Errorf("%s not registered yet", treeName)
 	}
@@ -42,7 +44,7 @@ func GetTreeConstructorFn(treeName string) (TreeConstructorFn, error) {
 	return trees[treeName], nil
 }
 
-func GetTreeNameFromConstructorFn(treeConstructor TreeConstructorFn) string {
+func getTreeNameFromConstructorFn(treeConstructor TreeConstructorFn) string {
 	key := ""
 	for k, v := range trees {
 		if reflect.DeepEqual(reflect.ValueOf(v), reflect.ValueOf(treeConstructor)) {
