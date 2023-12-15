@@ -26,7 +26,7 @@ type Tree interface {
 // The keys of this map should be kebab cased. E.g. "default-tree"
 var treeFns = sync.Map{}
 
-// Must be called in the init function
+// RegisterTree must be called in the init function
 func RegisterTree(treeName string, treeConstructor TreeConstructorFn) error {
 	if _, ok := treeFns.Load(treeName); ok {
 		return fmt.Errorf("%s already registered", treeName)
@@ -37,7 +37,7 @@ func RegisterTree(treeName string, treeConstructor TreeConstructorFn) error {
 	return nil
 }
 
-// Get tree constructor function by tree name from the global map registry
+// TreeFn get tree constructor function by tree name from the global map registry
 func TreeFn(treeName string) (TreeConstructorFn, error) {
 	var treeFn TreeConstructorFn
 	v, ok := treeFns.Load(treeName)
