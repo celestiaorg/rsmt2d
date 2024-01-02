@@ -151,7 +151,7 @@ func TestNewExtendedDataSquare(t *testing.T) {
 		got, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, shareSize)
 		assert.NoError(t, err)
 
-		chunk := bytes.Repeat([]byte{1}, int(incorrectChunkSize))
+		chunk := bytes.Repeat([]byte{1}, incorrectChunkSize)
 		err = got.SetCell(0, 0, chunk)
 		assert.Error(t, err)
 	})
