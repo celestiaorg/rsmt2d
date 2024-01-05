@@ -8,6 +8,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestRegisterTree tests the RegisterTree function for adding
+// a tree constructor function for a given tree name into treeFns
+// global map, consists of 2 test cases:
+// - The tree has not been registered yet in the treeFns global map
+// in which result in the constructor fn for the new tree type being
+// added to the global map.
+// - The tree has already been registered in the treeFns global map
+// in which result in an error returned.
 func TestRegisterTree(t *testing.T) {
 	treeName := "testing_register_tree"
 	treeConstructorFn := sudoConstructorFn
@@ -24,7 +32,7 @@ func TestRegisterTree(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			// By registering the function on the successful testcase first
 			// the tree name will be registered already so we can check
-			// the unsuccessful testcase
+			// the unsuccessful testcase.
 			err := RegisterTree(treeName, treeConstructorFn)
 			if test.expectErr != nil {
 				fmt.Println(err)
@@ -40,6 +48,15 @@ func TestRegisterTree(t *testing.T) {
 	cleanUp(treeName)
 }
 
+// TestTreeFn test the TestTreeFn function which fetch
+// tree constructor function from the treeFns golbal map,
+// consists of for 3 test cases:
+// - The tree constructor function get successfully fetched
+// from the global map.
+// - Unable to fetch the tree constructor function for an
+// unregisted tree name.
+// - Value return from the map is an invalid value that cannot
+// be type asserted into TreeConstructorFn type.
 func TestTreeFn(t *testing.T) {
 	treeName := "testing_treeFn_tree"
 	treeConstructorFn := sudoConstructorFn
@@ -97,8 +114,17 @@ func TestTreeFn(t *testing.T) {
 	}
 }
 
-// TODO: When we handle all the breaking changes track in this PR: https://github.com/celestiaorg/rsmt2d/pull/278,
-// should remove this test
+// TestGetTreeNameFromConstructorFn tests the GetTreeNameFromConstructorFn
+// function which fetch tree name by it corresponding tree constructor function,
+// consists of for 4 test cases:
+// - The tree name get successfully fetched.
+// - Unable to fetch the an unregisted tree name.
+// - Value passed in as argument is an invalid value that cannot be type asserted
+// into TreeConstructorFn type.
+// - Key (tree name) from the global map iteration is an invalid value that cannot
+// be type asserted into string type.
+//
+// TODO: When we handle all the breaking changes track in this PR: https://github.com/celestiaorg/rsmt2d/pull/278, should remove this test
 func TestGetTreeNameFromConstructorFn(t *testing.T) {
 	treeName := "testing_get_tree_name_tree"
 	treeConstructorFn := sudoConstructorFn
@@ -173,11 +199,12 @@ func TestGetTreeNameFromConstructorFn(t *testing.T) {
 }
 
 // Avoid duplicate with default_tree treeConstructorFn
-// registered during init
+// registered during init.
 func sudoConstructorFn(_ Axis, _ uint) Tree {
 	return &DefaultTree{}
 }
 
+// Clear tested tree constructor function in the global map.
 func cleanUp(treeName string) {
 	removeTreeFn(treeName)
 }
