@@ -55,8 +55,8 @@ func TestRegisterTree(t *testing.T) {
 // from the global map.
 // - Unable to fetch the tree constructor function for an
 // unregisted tree name.
-// - Value return from the map is an invalid value that cannot
-// be type asserted into TreeConstructorFn type.
+// - Value return from the global map is an invalid value that
+// cannot be type asserted into TreeConstructorFn type.
 func TestTreeFn(t *testing.T) {
 	treeName := "testing_treeFn_tree"
 	treeConstructorFn := sudoConstructorFn
@@ -119,8 +119,8 @@ func TestTreeFn(t *testing.T) {
 // consists of for 4 test cases:
 // - The tree name get successfully fetched.
 // - Unable to fetch the an unregisted tree name.
-// - Value passed in as argument is an invalid value that cannot be type asserted
-// into TreeConstructorFn type.
+// - Value (tree constructor function) from the global map iteration is an invalid
+// value that cannot be type asserted into TreeConstructorFn type.
 // - Key (tree name) from the global map iteration is an invalid value that cannot
 // be type asserted into string type.
 //
