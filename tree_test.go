@@ -22,9 +22,9 @@ func TestRegisterTree(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			// By registered the function on the successful testcase first
+			// By registering the function on the successful testcase first
 			// the tree name will be registered already so we can check
-			// the unsuccessfully testcase
+			// the unsuccessful testcase
 			err := RegisterTree(treeName, treeConstructorFn)
 			if test.expectErr != nil {
 				fmt.Println(err)
