@@ -10,12 +10,7 @@ import (
 
 // TestRegisterTree tests the RegisterTree function for adding
 // a tree constructor function for a given tree name into treeFns
-// global map, consists of 2 test cases:
-// - The tree has not been registered yet in the treeFns global map
-// in which result in the constructor fn for the new tree type being
-// added to the global map.
-// - The tree has already been registered in the treeFns global map
-// in which result in an error returned.
+// global map.
 func TestRegisterTree(t *testing.T) {
 	treeName := "testing_register_tree"
 	treeConstructorFn := sudoConstructorFn
@@ -24,18 +19,19 @@ func TestRegisterTree(t *testing.T) {
 		name      string
 		expectErr error
 	}{
+		//The tree has not been registered yet in the treeFns global map
+		// in which result in the constructor fn for the new tree type being
+		// added to the global map.
 		{"register successfully", nil},
+		// The tree has already been registered in the treeFns global map
+		// in which result in an error returned.
 		{"register unsuccessfully", fmt.Errorf("%s already registered", treeName)},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			// By registering the function on the successful testcase first
-			// the tree name will be registered already so we can check
-			// the unsuccessful testcase.
 			err := RegisterTree(treeName, treeConstructorFn)
 			if test.expectErr != nil {
-				fmt.Println(err)
 				require.Equal(t, test.expectErr, err)
 			}
 
@@ -48,15 +44,8 @@ func TestRegisterTree(t *testing.T) {
 	cleanUp(treeName)
 }
 
-// TestTreeFn test the TestTreeFn function which fetch
-// tree constructor function from the treeFns golbal map,
-// consists of for 3 test cases:
-// - The tree constructor function get successfully fetched
-// from the global map.
-// - Unable to fetch the tree constructor function for an
-// unregisted tree name.
-// - Value return from the global map is an invalid value that
-// cannot be type asserted into TreeConstructorFn type.
+// TestTreeFn test the TreeFn function which fetches the
+// tree constructor function from the treeFns golbal map.
 func TestTreeFn(t *testing.T) {
 	treeName := "testing_treeFn_tree"
 	treeConstructorFn := sudoConstructorFn
@@ -69,6 +58,8 @@ func TestTreeFn(t *testing.T) {
 		malleate  func()
 		expectErr error
 	}{
+		// The tree constructor function is successfully fetched
+		// from the global map.
 		{
 			"get successfully",
 			treeName,
@@ -78,12 +69,16 @@ func TestTreeFn(t *testing.T) {
 			},
 			nil,
 		},
+		// Unable to fetches the tree constructor function for an
+		// unregisted tree name.
 		{
 			"get unregisted tree name",
 			"unregistered_tree",
 			func() {},
 			fmt.Errorf("%s not registered yet", "unregistered_tree"),
 		},
+		// Value return from the global map is an invalid value that
+		// cannot be type asserted into TreeConstructorFn type.
 		{
 			"get invalid interface value",
 			invalidCaseTreeName,
@@ -115,14 +110,7 @@ func TestTreeFn(t *testing.T) {
 }
 
 // TestGetTreeNameFromConstructorFn tests the GetTreeNameFromConstructorFn
-// function which fetch tree name by it corresponding tree constructor function,
-// consists of for 4 test cases:
-// - The tree name get successfully fetched.
-// - Unable to fetch the an unregisted tree name.
-// - Value (tree constructor function) from the global map iteration is an invalid
-// value that cannot be type asserted into TreeConstructorFn type.
-// - Key (tree name) from the global map iteration is an invalid value that cannot
-// be type asserted into string type.
+// function which fetch tree name by it corresponding tree constructor function.
 //
 // TODO: When we handle all the breaking changes track in this PR: https://github.com/celestiaorg/rsmt2d/pull/278, should remove this test
 func TestGetTreeNameFromConstructorFn(t *testing.T) {
@@ -139,6 +127,7 @@ func TestGetTreeNameFromConstructorFn(t *testing.T) {
 		malleate     func()
 		expectGetKey bool
 	}{
+		// The tree name is successfully fetched.
 		{
 			"get successfully",
 			treeName,
@@ -149,6 +138,7 @@ func TestGetTreeNameFromConstructorFn(t *testing.T) {
 			},
 			true,
 		},
+		// Unable to fetch an unregistered tree name.
 		{
 			"get unregisted tree name",
 			"unregisted_tree_name",
@@ -156,6 +146,8 @@ func TestGetTreeNameFromConstructorFn(t *testing.T) {
 			func() {},
 			false,
 		},
+		// Value (tree constructor function) from the global map iteration is an invalid
+		// value that cannot be type asserted into TreeConstructorFn type.
 		{
 			"get invalid interface value",
 			"",
@@ -168,6 +160,8 @@ func TestGetTreeNameFromConstructorFn(t *testing.T) {
 			},
 			false,
 		},
+		// Key (tree name) from the global map iteration is an invalid value that cannot
+		// be type asserted into string type.
 		{
 			"get invalid interface key",
 			"",
