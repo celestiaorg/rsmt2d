@@ -38,13 +38,19 @@ func (eds *ExtendedDataSquare) UnmarshalJSON(b []byte) error {
 		Tree       string   `json:"tree"`
 	}
 
-	if err := json.Unmarshal(b, &aux); err != nil {
+	err := json.Unmarshal(b, &aux)
+	if err != nil {
 		return err
 	}
 
-	treeConstructor, err := TreeFn(aux.Tree)
-	if err != nil {
-		return err
+	var treeConstructor TreeConstructorFn
+	if aux.Tree == "" {
+		treeConstructor = NewDefaultTree
+	} else {
+		treeConstructor, err = TreeFn(aux.Tree)
+		if err != nil {
+			return err
+		}
 	}
 
 	importedEds, err := ImportExtendedDataSquare(aux.DataSquare, codecs[aux.Codec], treeConstructor)
