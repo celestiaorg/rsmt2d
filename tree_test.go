@@ -20,12 +20,9 @@ func TestRegisterTree(t *testing.T) {
 		name      string
 		expectErr error
 	}{
-		// The tree has not been registered yet in the treeFns global map
-		// in which result in the constructor fn for the new tree type being
-		// added to the global map.
+		// The tree has not been registered yet in the treeFns global map.
 		{"register successfully", nil},
-		// The tree has already been registered in the treeFns global map
-		// in which result in an error returned.
+		// The tree has already been registered in the treeFns global map.
 		{"register unsuccessfully", fmt.Errorf("%s already registered", treeName)},
 	}
 
@@ -70,7 +67,7 @@ func TestTreeFn(t *testing.T) {
 			},
 			nil,
 		},
-		// Unable to fetches the tree constructor function for an
+		// Unable to fetch the tree constructor function for an
 		// unregisted tree name.
 		{
 			"get unregisted tree name",
@@ -78,7 +75,7 @@ func TestTreeFn(t *testing.T) {
 			func() {},
 			fmt.Errorf("%s not registered yet", "unregistered_tree"),
 		},
-		// Value return from the global map is an invalid value that
+		// Value returned from the global map is an invalid value that
 		// cannot be type asserted into TreeConstructorFn type.
 		{
 			"get invalid interface value",
@@ -111,7 +108,7 @@ func TestTreeFn(t *testing.T) {
 }
 
 // TestGetTreeNameFromConstructorFn tests the GetTreeNameFromConstructorFn
-// function which fetch tree name by it corresponding tree constructor function.
+// function which fetches tree name by it corresponding tree constructor function.
 //
 // TODO: When we handle all the breaking changes track in this PR: https://github.com/celestiaorg/rsmt2d/pull/278, should remove this test
 func TestGetTreeNameFromConstructorFn(t *testing.T) {

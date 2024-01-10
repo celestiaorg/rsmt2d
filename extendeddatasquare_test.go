@@ -162,12 +162,12 @@ func TestUnmarshalJSON(t *testing.T) {
 			var eds ExtendedDataSquare
 			err = json.Unmarshal(edsBytes, &eds)
 			if err != nil {
-				t.Errorf("failed to marshal EDS: %v", err)
+				t.Errorf("failed to unmarshal EDS: %v", err)
 			}
 			if !reflect.DeepEqual(result.squareRow, eds.squareRow) {
 				t.Errorf("eds not equal after json marshal/unmarshal")
 			}
-			require.Equal(t, eds.treeName, test.expectedTreeName)
+			require.Equal(t, test.expectedTreeName, eds.treeName)
 
 			test.cleanUp()
 		})
