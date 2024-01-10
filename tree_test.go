@@ -20,7 +20,7 @@ func TestRegisterTree(t *testing.T) {
 		name      string
 		expectErr error
 	}{
-		//The tree has not been registered yet in the treeFns global map
+		// The tree has not been registered yet in the treeFns global map
 		// in which result in the constructor fn for the new tree type being
 		// added to the global map.
 		{"register successfully", nil},
