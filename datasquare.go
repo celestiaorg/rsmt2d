@@ -64,7 +64,7 @@ func newDataSquare(data [][]byte, treeCreator TreeConstructorFn, chunkSize uint)
 		squareRow:    squareRow,
 		squareCol:    squareCol,
 		width:        uint(width),
-		chunkSize:    uint(chunkSize),
+		chunkSize:    chunkSize,
 		createTreeFn: treeCreator,
 	}, nil
 }

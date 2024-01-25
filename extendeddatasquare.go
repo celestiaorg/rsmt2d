@@ -67,7 +67,7 @@ func ComputeExtendedDataSquare(
 	}
 
 	chunkSize := getChunkSize(data)
-	err := codec.ValidateChunkSize(int(chunkSize))
+	err := codec.ValidateChunkSize(chunkSize)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +102,7 @@ func ImportExtendedDataSquare(
 	}
 
 	chunkSize := getChunkSize(data)
-	err := codec.ValidateChunkSize(int(chunkSize))
+	err := codec.ValidateChunkSize(chunkSize)
 	if err != nil {
 		return nil, err
 	}
