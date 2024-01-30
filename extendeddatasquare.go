@@ -43,6 +43,10 @@ func (eds *ExtendedDataSquare) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
+	if aux.Tree == "" {
+		aux.Tree = DefaultTreeName
+	}
+
 	importedEds, err := ImportExtendedDataSquare(aux.DataSquare, codecs[aux.Codec], aux.Tree)
 	if err != nil {
 		return err
