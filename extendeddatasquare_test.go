@@ -103,55 +103,44 @@ func TestMarshalJSON(t *testing.T) {
 }
 
 func TestUnmarshalJSON(t *testing.T) {
-	treeName := "test-unmarshal-json-tree"
-	err := RegisterTree(treeName, sudoConstructorFn)
-	require.NoError(t, err)
+	t.Run("can unmarshal a custom tree", func(t *testing.T) {
+		// register tree
+		treeName := "test-unmarshal-json-tree"
+		err := RegisterTree(treeName, sudoConstructorFn)
+		require.NoError(t, err)
+		defer cleanUp(treeName)
 
-	original, err := ComputeExtendedDataSquare([][]byte{ones, twos, threes, fours}, NewLeoRSCodec(), treeName)
-	require.NoError(t, err)
+		original, err := ComputeExtendedDataSquare([][]byte{ones, twos, threes, fours}, NewLeoRSCodec(), treeName)
+		require.NoError(t, err)
 
-	testCases := []struct {
-		name             string
-		malleate         func()
-		expectedTreeName string
-		cleanUp          func()
-	}{
-		{
-			"Tree field exists",
-			func() {},
-			treeName,
-			func() {
-				cleanUp(treeName)
-			},
-		},
-		{
-			"Tree field missing",
-			func() {
-				// clear the tree name value in the eds before marshal
-				original.treeName = ""
-			},
-			DefaultTreeName,
-			func() {},
-		},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			tc.malleate()
+		edsBytes, err := json.Marshal(original)
+		require.NoError(t, err)
 
-			edsBytes, err := json.Marshal(original)
-			require.NoError(t, err)
+		var got ExtendedDataSquare
+		err = got.UnmarshalJSON(edsBytes)
+		require.NoError(t, err)
 
-			var got ExtendedDataSquare
-			err = got.UnmarshalJSON(edsBytes)
-			require.NoError(t, err)
+		assert.Equal(t, original.dataSquare.Flattened(), got.dataSquare.Flattened())
+		assert.Equal(t, original.codec.Name(), got.codec.Name())
+		assert.Equal(t, original.treeName, got.treeName)
+	})
+	t.Run("unmarshals an EDS without a tree name using the default tree", func(t *testing.T) {
+		original, err := ComputeExtendedDataSquare([][]byte{ones, twos, threes, fours}, NewLeoRSCodec(), DefaultTreeName)
+		require.NoError(t, err)
 
-			assert.Equal(t, original.dataSquare.Flattened(), got.dataSquare.Flattened())
-			assert.Equal(t, original.codec.Name(), got.codec.Name())
-			assert.Equal(t, tc.expectedTreeName, got.treeName)
+		original.treeName = ""
 
-			tc.cleanUp()
-		})
-	}
+		edsBytes, err := json.Marshal(original)
+		require.NoError(t, err)
+
+		var got ExtendedDataSquare
+		err = got.UnmarshalJSON(edsBytes)
+		require.NoError(t, err)
+
+		assert.Equal(t, original.dataSquare.Flattened(), got.dataSquare.Flattened())
+		assert.Equal(t, original.codec.Name(), got.codec.Name())
+		assert.Equal(t, DefaultTreeName, got.treeName)
+	})
 }
 
 func TestNewExtendedDataSquare(t *testing.T) {
