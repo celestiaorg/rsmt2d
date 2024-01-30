@@ -111,6 +111,69 @@ func TestMarshalJSON(t *testing.T) {
 	}
 }
 
+// TestUnmarshalJSON test the UnmarshalJSON function.
+func TestUnmarshalJSON(t *testing.T) {
+	treeName := "testing_unmarshalJSON_tree"
+	treeConstructorFn := sudoConstructorFn
+	err := RegisterTree(treeName, treeConstructorFn)
+	require.NoError(t, err)
+
+	codec := NewLeoRSCodec()
+	result, err := ComputeExtendedDataSquare([][]byte{
+		ones, twos,
+		threes, fours,
+	}, codec, treeConstructorFn)
+	if err != nil {
+		panic(err)
+	}
+
+	tests := []struct {
+		name             string
+		malleate         func()
+		expectedTreeName string
+		cleanUp          func()
+	}{
+		{
+			"Tree field exists",
+			func() {},
+			treeName,
+			func() {
+				cleanUp(treeName)
+			},
+		},
+		{
+			"Tree field missing",
+			func() {
+				// clear the tree name value in the eds before marshal
+				result.treeName = ""
+			},
+			DefaultTreeName,
+			func() {},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.malleate()
+			edsBytes, err := json.Marshal(result)
+			if err != nil {
+				t.Errorf("failed to marshal EDS: %v", err)
+			}
+
+			var eds ExtendedDataSquare
+			err = json.Unmarshal(edsBytes, &eds)
+			if err != nil {
+				t.Errorf("failed to unmarshal EDS: %v", err)
+			}
+			if !reflect.DeepEqual(result.squareRow, eds.squareRow) {
+				t.Errorf("eds not equal after json marshal/unmarshal")
+			}
+			require.Equal(t, test.expectedTreeName, eds.treeName)
+
+			test.cleanUp()
+		})
+	}
+}
+
 func TestNewExtendedDataSquare(t *testing.T) {
 	t.Run("returns an error if edsWidth is not even", func(t *testing.T) {
 		edsWidth := uint(1)

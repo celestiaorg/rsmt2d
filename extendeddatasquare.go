@@ -38,7 +38,8 @@ func (eds *ExtendedDataSquare) UnmarshalJSON(b []byte) error {
 		Tree       string   `json:"tree"`
 	}
 
-	if err := json.Unmarshal(b, &aux); err != nil {
+	err := json.Unmarshal(b, &aux)
+	if err != nil {
 		return err
 	}
 
@@ -112,7 +113,12 @@ func ImportExtendedDataSquare(
 		return nil, err
 	}
 
-	eds := ExtendedDataSquare{dataSquare: ds, codec: codec}
+	treeName := getTreeNameFromConstructorFn(treeCreatorFn)
+	if treeName == "" {
+		return nil, errors.New("tree name not found")
+	}
+
+	eds := ExtendedDataSquare{dataSquare: ds, codec: codec, treeName: treeName}
 	err = validateEdsWidth(eds.width)
 	if err != nil {
 		return nil, err
