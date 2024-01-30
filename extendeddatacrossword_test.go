@@ -42,7 +42,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		flattened[12], flattened[13] = nil, nil
 
 		// Re-import the data square.
-		eds, err := ImportExtendedDataSquare(flattened, codec, NewDefaultTree)
+		eds, err := ImportExtendedDataSquare(flattened, codec, DefaultTreeName)
 		if err != nil {
 			t.Errorf("ImportExtendedDataSquare failed: %v", err)
 		}
@@ -67,7 +67,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		flattened[12], flattened[13], flattened[14] = nil, nil, nil
 
 		// Re-import the data square.
-		eds, err := ImportExtendedDataSquare(flattened, codec, NewDefaultTree)
+		eds, err := ImportExtendedDataSquare(flattened, codec, DefaultTreeName)
 		if err != nil {
 			t.Errorf("ImportExtendedDataSquare failed: %v", err)
 		}
@@ -275,7 +275,7 @@ func BenchmarkRepair(b *testing.B) {
 					}
 
 					// Re-import the data square.
-					eds, _ = ImportExtendedDataSquare(flattened, codec, NewDefaultTree)
+					eds, _ = ImportExtendedDataSquare(flattened, codec, DefaultTreeName)
 
 					b.StartTimer()
 

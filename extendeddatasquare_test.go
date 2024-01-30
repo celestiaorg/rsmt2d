@@ -75,13 +75,13 @@ func TestComputeExtendedDataSquare(t *testing.T) {
 func TestImportExtendedDataSquare(t *testing.T) {
 	t.Run("is able to import an EDS", func(t *testing.T) {
 		eds := createExampleEds(t, shareSize)
-		got, err := ImportExtendedDataSquare(eds.Flattened(), NewLeoRSCodec(), NewDefaultTree)
+		got, err := ImportExtendedDataSquare(eds.Flattened(), NewLeoRSCodec(), DefaultTreeName)
 		assert.NoError(t, err)
 		assert.Equal(t, eds.Flattened(), got.Flattened())
 	})
 	t.Run("returns an error if chunkSize is not a multiple of 64", func(t *testing.T) {
 		chunk := bytes.Repeat([]byte{1}, 65)
-		_, err := ImportExtendedDataSquare([][]byte{chunk}, NewLeoRSCodec(), NewDefaultTree)
+		_, err := ImportExtendedDataSquare([][]byte{chunk}, NewLeoRSCodec(), DefaultTreeName)
 		assert.Error(t, err)
 	})
 }
@@ -122,7 +122,7 @@ func TestUnmarshalJSON(t *testing.T) {
 	result, err := ComputeExtendedDataSquare([][]byte{
 		ones, twos,
 		threes, fours,
-	}, codec, treeConstructorFn)
+	}, codec, treeName)
 	if err != nil {
 		panic(err)
 	}
