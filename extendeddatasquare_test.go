@@ -87,28 +87,19 @@ func TestImportExtendedDataSquare(t *testing.T) {
 }
 
 func TestMarshalJSON(t *testing.T) {
-	codec := NewLeoRSCodec()
-	result, err := ComputeExtendedDataSquare([][]byte{
-		ones, twos,
-		threes, fours,
-	}, codec, DefaultTreeName)
-	if err != nil {
-		panic(err)
-	}
+	original, err := ComputeExtendedDataSquare([][]byte{ones, twos, threes, fours}, NewLeoRSCodec(), DefaultTreeName)
+	require.NoError(t, err)
 
-	edsBytes, err := json.Marshal(result)
-	if err != nil {
-		t.Errorf("failed to marshal EDS: %v", err)
-	}
+	edsBytes, err := original.MarshalJSON()
+	require.NoError(t, err)
 
-	var eds ExtendedDataSquare
-	err = json.Unmarshal(edsBytes, &eds)
-	if err != nil {
-		t.Errorf("failed to marshal EDS: %v", err)
-	}
-	if !reflect.DeepEqual(result.squareRow, eds.squareRow) {
-		t.Errorf("eds not equal after json marshal/unmarshal")
-	}
+	var got ExtendedDataSquare
+	err = json.Unmarshal(edsBytes, &got)
+	require.NoError(t, err)
+
+	assert.Equal(t, original.dataSquare.Flattened(), got.dataSquare.Flattened())
+	assert.Equal(t, original.codec.Name(), got.codec.Name())
+	assert.Equal(t, original.treeName, got.treeName)
 }
 
 func TestUnmarshalJSON(t *testing.T) {
@@ -116,10 +107,10 @@ func TestUnmarshalJSON(t *testing.T) {
 	err := RegisterTree(treeName, sudoConstructorFn)
 	require.NoError(t, err)
 
-	originalEDS, err := ComputeExtendedDataSquare([][]byte{ones, twos, threes, fours}, NewLeoRSCodec(), treeName)
+	original, err := ComputeExtendedDataSquare([][]byte{ones, twos, threes, fours}, NewLeoRSCodec(), treeName)
 	require.NoError(t, err)
 
-	tests := []struct {
+	testCases := []struct {
 		name             string
 		malleate         func()
 		expectedTreeName string
@@ -137,29 +128,28 @@ func TestUnmarshalJSON(t *testing.T) {
 			"Tree field missing",
 			func() {
 				// clear the tree name value in the eds before marshal
-				originalEDS.treeName = ""
+				original.treeName = ""
 			},
 			DefaultTreeName,
 			func() {},
 		},
 	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			test.malleate()
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.malleate()
 
-			edsBytes, err := json.Marshal(originalEDS)
+			edsBytes, err := json.Marshal(original)
 			require.NoError(t, err)
 
-			var eds ExtendedDataSquare
-			err = eds.UnmarshalJSON(edsBytes)
+			var got ExtendedDataSquare
+			err = got.UnmarshalJSON(edsBytes)
 			require.NoError(t, err)
 
-			if !reflect.DeepEqual(originalEDS.squareRow, eds.squareRow) {
-				t.Errorf("eds not equal after json marshal/unmarshal")
-			}
-			require.Equal(t, test.expectedTreeName, eds.treeName)
+			assert.Equal(t, original.dataSquare.Flattened(), got.dataSquare.Flattened())
+			assert.Equal(t, original.codec.Name(), got.codec.Name())
+			assert.Equal(t, tc.expectedTreeName, got.treeName)
 
-			test.cleanUp()
+			tc.cleanUp()
 		})
 	}
 }
