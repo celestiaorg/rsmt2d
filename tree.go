@@ -1,9 +1,9 @@
 package rsmt2d
 
 import (
-	"crypto/sha256"
-
-	"github.com/celestiaorg/merkletree"
+	"fmt"
+	"reflect"
+	"sync"
 )
 
 // TreeConstructorFn creates a fresh Tree instance to be used as the Merkle tree
@@ -22,33 +22,65 @@ type Tree interface {
 	Root() ([]byte, error)
 }
 
-var _ Tree = &DefaultTree{}
+// treeFns is a global map used for keeping track of registered tree constructors for JSON serialization
+// The keys of this map should be kebab cased. E.g. "default-tree"
+var treeFns = sync.Map{}
 
-type DefaultTree struct {
-	*merkletree.Tree
-	leaves [][]byte
-	root   []byte
-}
-
-func NewDefaultTree(_ Axis, _ uint) Tree {
-	return &DefaultTree{
-		Tree:   merkletree.New(sha256.New()),
-		leaves: make([][]byte, 0, 128),
+// RegisterTree must be called in the init function
+func RegisterTree(treeName string, treeConstructor TreeConstructorFn) error {
+	if _, ok := treeFns.Load(treeName); ok {
+		return fmt.Errorf("%s already registered", treeName)
 	}
-}
 
-func (d *DefaultTree) Push(data []byte) error {
-	// ignore the idx, as this implementation doesn't need that info
-	d.leaves = append(d.leaves, data)
+	treeFns.Store(treeName, treeConstructor)
+
 	return nil
 }
 
-func (d *DefaultTree) Root() ([]byte, error) {
-	if d.root == nil {
-		for _, l := range d.leaves {
-			d.Tree.Push(l)
-		}
-		d.root = d.Tree.Root()
+// TreeFn get tree constructor function by tree name from the global map registry
+func TreeFn(treeName string) (TreeConstructorFn, error) {
+	var treeFn TreeConstructorFn
+	v, ok := treeFns.Load(treeName)
+	if !ok {
+		return nil, fmt.Errorf("%s not registered yet", treeName)
 	}
-	return d.root, nil
+	treeFn, ok = v.(TreeConstructorFn)
+	if !ok {
+		return nil, fmt.Errorf("key %s has invalid interface", treeName)
+	}
+
+	return treeFn, nil
+}
+
+// removeTreeFn removes a treeConstructorFn by treeName.
+// Only use for test cleanup. Proceed with caution.
+func removeTreeFn(treeName string) {
+	treeFns.Delete(treeName)
+}
+
+// Get the tree name by the tree constructor function from the global map registry
+// TODO: this code is temporary until all breaking changes is handle here: https://github.com/celestiaorg/rsmt2d/pull/278
+func getTreeNameFromConstructorFn(treeConstructor TreeConstructorFn) string {
+	key := ""
+	treeFns.Range(func(k, v interface{}) bool {
+		keyString, ok := k.(string)
+		if !ok {
+			// continue checking other key, value
+			return true
+		}
+		treeFn, ok := v.(TreeConstructorFn)
+		if !ok {
+			// continue checking other key, value
+			return true
+		}
+
+		if reflect.DeepEqual(reflect.ValueOf(treeFn), reflect.ValueOf(treeConstructor)) {
+			key = keyString
+			return false
+		}
+
+		return true
+	})
+
+	return key
 }
