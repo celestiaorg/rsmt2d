@@ -124,6 +124,8 @@ func TestUnmarshalJSON(t *testing.T) {
 
 	defaultEDS := exampleEds(t, DefaultTreeName)
 
+	// The tree name is intentionally set to empty to test whether the
+	// Unmarshal process appropriately falls back to the default tree
 	defaultEDSWithoutTreeName := exampleEds(t, DefaultTreeName)
 	defaultEDSWithoutTreeName.treeName = ""
 
