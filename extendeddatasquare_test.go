@@ -3,6 +3,7 @@ package rsmt2d
 import (
 	"bytes"
 	"crypto/rand"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -24,6 +25,9 @@ var (
 	thirteens = bytes.Repeat([]byte{13}, shareSize)
 	fifteens  = bytes.Repeat([]byte{15}, shareSize)
 )
+
+//go:embed testdata/edsCustomTree.json
+var edsCustomTree []byte
 
 func TestComputeExtendedDataSquare(t *testing.T) {
 	codec := NewLeoRSCodec()
@@ -123,6 +127,13 @@ func TestUnmarshalJSON(t *testing.T) {
 		assert.Equal(t, original.dataSquare.Flattened(), got.dataSquare.Flattened())
 		assert.Equal(t, original.codec.Name(), got.codec.Name())
 		assert.Equal(t, original.treeName, got.treeName)
+	})
+	t.Run("throws an error when unmarshaling an unregistered custom tree", func(t *testing.T) {
+		var got ExtendedDataSquare
+		err := got.UnmarshalJSON(edsCustomTree)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "custom-tree not registered yet")
 	})
 	t.Run("unmarshals an EDS without a tree name using the default tree", func(t *testing.T) {
 		original, err := ComputeExtendedDataSquare([][]byte{ones, twos, threes, fours}, NewLeoRSCodec(), DefaultTreeName)
