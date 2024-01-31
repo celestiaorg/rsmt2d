@@ -107,53 +107,67 @@ func TestMarshalJSON(t *testing.T) {
 }
 
 func TestUnmarshalJSON(t *testing.T) {
-	t.Run("can unmarshal a custom tree", func(t *testing.T) {
-		// register tree
-		treeName := "test-unmarshal-json-tree"
-		err := RegisterTree(treeName, sudoConstructorFn)
-		require.NoError(t, err)
-		defer cleanUp(treeName)
-
-		original, err := ComputeExtendedDataSquare([][]byte{ones, twos, threes, fours}, NewLeoRSCodec(), treeName)
-		require.NoError(t, err)
-
-		edsBytes, err := json.Marshal(original)
-		require.NoError(t, err)
-
-		var got ExtendedDataSquare
-		err = got.UnmarshalJSON(edsBytes)
-		require.NoError(t, err)
-
-		assert.Equal(t, original.dataSquare.Flattened(), got.dataSquare.Flattened())
-		assert.Equal(t, original.codec.Name(), got.codec.Name())
-		assert.Equal(t, original.treeName, got.treeName)
-	})
 	t.Run("throws an error when unmarshaling an unregistered custom tree", func(t *testing.T) {
-		var got ExtendedDataSquare
-		err := got.UnmarshalJSON(edsCustomTree)
+		var eds ExtendedDataSquare
+		err := eds.UnmarshalJSON(edsCustomTree)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "custom-tree not registered yet")
 	})
-	t.Run("unmarshals an EDS without a tree name using the default tree", func(t *testing.T) {
-		original, err := ComputeExtendedDataSquare([][]byte{ones, twos, threes, fours}, NewLeoRSCodec(), DefaultTreeName)
-		require.NoError(t, err)
 
-		// The tree name is intentionally set to empty to test whether the
-		// Unmarshal process appropriately falls back to the default tree
-		original.treeName = ""
+	type testCase struct {
+		name     string
+		original *ExtendedDataSquare
+		want     *ExtendedDataSquare
+		wantErr  bool
+	}
 
-		edsBytes, err := json.Marshal(original)
-		require.NoError(t, err)
+	defaultEDS := exampleEds(t, DefaultTreeName)
 
-		var got ExtendedDataSquare
-		err = got.UnmarshalJSON(edsBytes)
-		require.NoError(t, err)
+	defaultEDSWithoutTreeName := exampleEds(t, DefaultTreeName)
+	defaultEDSWithoutTreeName.treeName = ""
 
-		assert.Equal(t, original.dataSquare.Flattened(), got.dataSquare.Flattened())
-		assert.Equal(t, original.codec.Name(), got.codec.Name())
-		assert.Equal(t, DefaultTreeName, got.treeName)
-	})
+	customTreeName := "custom-tree"
+	err := RegisterTree(customTreeName, sudoConstructorFn)
+	require.NoError(t, err)
+	defer cleanUp(customTreeName)
+	customEDS := exampleEds(t, customTreeName)
+
+	testCases := []testCase{
+		{
+			name:     "can unmarshal the default EDS",
+			original: defaultEDS,
+			want:     defaultEDS,
+			wantErr:  false,
+		},
+		{
+			name:     "can unmarshal the default EDS even if tree name is removed",
+			original: defaultEDSWithoutTreeName,
+			want:     defaultEDS,
+			wantErr:  false,
+		},
+		{
+			name:     "can unmarshal an EDS with a custom tree",
+			original: customEDS,
+			want:     customEDS,
+			wantErr:  false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			edsBytes, err := json.Marshal(tc.original)
+			assert.NoError(t, err)
+
+			var got ExtendedDataSquare
+			err = got.UnmarshalJSON(edsBytes)
+			assert.NoError(t, err)
+
+			assert.Equal(t, tc.want.dataSquare.Flattened(), got.dataSquare.Flattened())
+			assert.Equal(t, tc.want.codec.Name(), got.codec.Name())
+			assert.Equal(t, tc.want.treeName, got.treeName)
+		})
+	}
 }
 
 func TestNewExtendedDataSquare(t *testing.T) {
@@ -525,6 +539,12 @@ func createExampleEds(t *testing.T, chunkSize int) (eds *ExtendedDataSquare) {
 	}
 
 	eds, err := ComputeExtendedDataSquare(ods, NewLeoRSCodec(), DefaultTreeName)
+	require.NoError(t, err)
+	return eds
+}
+
+func exampleEds(t *testing.T, treeName string) *ExtendedDataSquare {
+	eds, err := ComputeExtendedDataSquare([][]byte{ones, twos, threes, fours}, NewLeoRSCodec(), treeName)
 	require.NoError(t, err)
 	return eds
 }
