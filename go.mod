@@ -9,7 +9,7 @@ require (
 )
 
 require (
-	github.com/klauspost/reedsolomon v1.12.0
+	github.com/klauspost/reedsolomon v1.12.1
 	golang.org/x/sync v0.6.0
 )
 
@@ -17,7 +17,7 @@ require github.com/gogo/protobuf v1.3.2 // indirect
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/klauspost/cpuid/v2 v2.1.1 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.6 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	gitlab.com/NebulousLabs/errors v0.0.0-20200929122200-06c536cf6975 // indirect
