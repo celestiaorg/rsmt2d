@@ -128,6 +128,8 @@ func TestUnmarshalJSON(t *testing.T) {
 		original, err := ComputeExtendedDataSquare([][]byte{ones, twos, threes, fours}, NewLeoRSCodec(), DefaultTreeName)
 		require.NoError(t, err)
 
+		// The tree name is intentionally set to empty to test whether the
+		// Unmarshal process appropriately falls back to the default tree
 		original.treeName = ""
 
 		edsBytes, err := json.Marshal(original)
