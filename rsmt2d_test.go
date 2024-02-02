@@ -35,7 +35,7 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 					threes, fours,
 				},
 				tt.codec,
-				rsmt2d.NewDefaultTree,
+				rsmt2d.DefaultTreeName,
 			)
 			if err != nil {
 				t.Errorf("ComputeExtendedDataSquare failed: %v", err)
@@ -56,7 +56,7 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 			flattened[12], flattened[13] = nil, nil
 
 			// Re-import the data square.
-			eds, err = rsmt2d.ImportExtendedDataSquare(flattened, tt.codec, rsmt2d.NewDefaultTree)
+			eds, err = rsmt2d.ImportExtendedDataSquare(flattened, tt.codec, rsmt2d.DefaultTreeName)
 			if err != nil {
 				t.Errorf("ImportExtendedDataSquare failed: %v", err)
 			}
@@ -97,7 +97,7 @@ func TestEdsRepairTwice(t *testing.T) {
 					threes, fours,
 				},
 				tt.codec,
-				rsmt2d.NewDefaultTree,
+				rsmt2d.DefaultTreeName,
 			)
 			if err != nil {
 				t.Errorf("ComputeExtendedDataSquare failed: %v", err)
@@ -120,7 +120,7 @@ func TestEdsRepairTwice(t *testing.T) {
 			flattened[12], flattened[13] = nil, nil
 
 			// Re-import the data square.
-			eds, err = rsmt2d.ImportExtendedDataSquare(flattened, tt.codec, rsmt2d.NewDefaultTree)
+			eds, err = rsmt2d.ImportExtendedDataSquare(flattened, tt.codec, rsmt2d.DefaultTreeName)
 			if err != nil {
 				t.Errorf("ImportExtendedDataSquare failed: %v", err)
 			}
@@ -139,7 +139,7 @@ func TestEdsRepairTwice(t *testing.T) {
 			copy(flattened[1], missing)
 
 			// Re-import the data square.
-			eds, err = rsmt2d.ImportExtendedDataSquare(flattened, tt.codec, rsmt2d.NewDefaultTree)
+			eds, err = rsmt2d.ImportExtendedDataSquare(flattened, tt.codec, rsmt2d.DefaultTreeName)
 			if err != nil {
 				t.Errorf("ImportExtendedDataSquare failed: %v", err)
 			}
@@ -205,7 +205,7 @@ func createExampleEds(t *testing.T, chunkSize int) (eds *rsmt2d.ExtendedDataSqua
 		threes, fours,
 	}
 
-	eds, err := rsmt2d.ComputeExtendedDataSquare(ods, rsmt2d.NewLeoRSCodec(), rsmt2d.NewDefaultTree)
+	eds, err := rsmt2d.ComputeExtendedDataSquare(ods, rsmt2d.NewLeoRSCodec(), rsmt2d.DefaultTreeName)
 	require.NoError(t, err)
 	return eds
 }

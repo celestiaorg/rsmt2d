@@ -42,7 +42,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		flattened[12], flattened[13] = nil, nil
 
 		// Re-import the data square.
-		eds, err := ImportExtendedDataSquare(flattened, codec, NewDefaultTree)
+		eds, err := ImportExtendedDataSquare(flattened, codec, DefaultTreeName)
 		if err != nil {
 			t.Errorf("ImportExtendedDataSquare failed: %v", err)
 		}
@@ -67,7 +67,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		flattened[12], flattened[13], flattened[14] = nil, nil, nil
 
 		// Re-import the data square.
-		eds, err := ImportExtendedDataSquare(flattened, codec, NewDefaultTree)
+		eds, err := ImportExtendedDataSquare(flattened, codec, DefaultTreeName)
 		if err != nil {
 			t.Errorf("ImportExtendedDataSquare failed: %v", err)
 		}
@@ -237,7 +237,7 @@ func BenchmarkRepair(b *testing.B) {
 
 		// Generate a new range original data square then extend it
 		square := genRandDS(originalDataWidth, shareSize)
-		eds, err := ComputeExtendedDataSquare(square, codec, NewDefaultTree)
+		eds, err := ComputeExtendedDataSquare(square, codec, DefaultTreeName)
 		if err != nil {
 			b.Error(err)
 		}
@@ -275,7 +275,7 @@ func BenchmarkRepair(b *testing.B) {
 					}
 
 					// Re-import the data square.
-					eds, _ = ImportExtendedDataSquare(flattened, codec, NewDefaultTree)
+					eds, _ = ImportExtendedDataSquare(flattened, codec, DefaultTreeName)
 
 					b.StartTimer()
 
@@ -301,7 +301,7 @@ func createTestEds(codec Codec, shareSize int) *ExtendedDataSquare {
 	eds, err := ComputeExtendedDataSquare([][]byte{
 		ones, twos,
 		threes, fours,
-	}, codec, NewDefaultTree)
+	}, codec, DefaultTreeName)
 	if err != nil {
 		panic(err)
 	}
@@ -443,10 +443,7 @@ func createTestEdsWithNMT(t *testing.T, codec Codec, shareSize, namespaceSize in
 		shares[i] = bytes.Repeat([]byte{byte(shareValue)}, shareSize)
 	}
 
-	treeConstructorFn, err := TreeFn("testing-tree")
-	require.NoError(t, err)
-
-	eds, err := ComputeExtendedDataSquare(shares, codec, treeConstructorFn)
+	eds, err := ComputeExtendedDataSquare(shares, codec, "testing-tree")
 	require.NoError(t, err)
 
 	return eds

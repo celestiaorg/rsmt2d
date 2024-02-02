@@ -3,6 +3,7 @@ package rsmt2d
 import (
 	"bytes"
 	"crypto/rand"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -24,6 +25,9 @@ var (
 	thirteens = bytes.Repeat([]byte{13}, shareSize)
 	fifteens  = bytes.Repeat([]byte{15}, shareSize)
 )
+
+//go:embed testdata/edsCustomTree.json
+var edsCustomTree []byte
 
 func TestComputeExtendedDataSquare(t *testing.T) {
 	codec := NewLeoRSCodec()
@@ -59,7 +63,7 @@ func TestComputeExtendedDataSquare(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := ComputeExtendedDataSquare(tc.data, codec, NewDefaultTree)
+			result, err := ComputeExtendedDataSquare(tc.data, codec, DefaultTreeName)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.want, result.squareRow)
 		})
@@ -67,7 +71,7 @@ func TestComputeExtendedDataSquare(t *testing.T) {
 
 	t.Run("returns an error if chunkSize is not a multiple of 64", func(t *testing.T) {
 		chunk := bytes.Repeat([]byte{1}, 65)
-		_, err := ComputeExtendedDataSquare([][]byte{chunk}, NewLeoRSCodec(), NewDefaultTree)
+		_, err := ComputeExtendedDataSquare([][]byte{chunk}, NewLeoRSCodec(), DefaultTreeName)
 		assert.Error(t, err)
 	})
 }
@@ -75,101 +79,95 @@ func TestComputeExtendedDataSquare(t *testing.T) {
 func TestImportExtendedDataSquare(t *testing.T) {
 	t.Run("is able to import an EDS", func(t *testing.T) {
 		eds := createExampleEds(t, shareSize)
-		got, err := ImportExtendedDataSquare(eds.Flattened(), NewLeoRSCodec(), NewDefaultTree)
+		got, err := ImportExtendedDataSquare(eds.Flattened(), NewLeoRSCodec(), DefaultTreeName)
 		assert.NoError(t, err)
 		assert.Equal(t, eds.Flattened(), got.Flattened())
 	})
 	t.Run("returns an error if chunkSize is not a multiple of 64", func(t *testing.T) {
 		chunk := bytes.Repeat([]byte{1}, 65)
-		_, err := ImportExtendedDataSquare([][]byte{chunk}, NewLeoRSCodec(), NewDefaultTree)
+		_, err := ImportExtendedDataSquare([][]byte{chunk}, NewLeoRSCodec(), DefaultTreeName)
 		assert.Error(t, err)
 	})
 }
 
 func TestMarshalJSON(t *testing.T) {
-	codec := NewLeoRSCodec()
-	result, err := ComputeExtendedDataSquare([][]byte{
-		ones, twos,
-		threes, fours,
-	}, codec, NewDefaultTree)
-	if err != nil {
-		panic(err)
-	}
-
-	edsBytes, err := json.Marshal(result)
-	if err != nil {
-		t.Errorf("failed to marshal EDS: %v", err)
-	}
-
-	var eds ExtendedDataSquare
-	err = json.Unmarshal(edsBytes, &eds)
-	if err != nil {
-		t.Errorf("failed to marshal EDS: %v", err)
-	}
-	if !reflect.DeepEqual(result.squareRow, eds.squareRow) {
-		t.Errorf("eds not equal after json marshal/unmarshal")
-	}
-}
-
-// TestUnmarshalJSON test the UnmarshalJSON function.
-func TestUnmarshalJSON(t *testing.T) {
-	treeName := "testing_unmarshalJSON_tree"
-	treeConstructorFn := sudoConstructorFn
-	err := RegisterTree(treeName, treeConstructorFn)
+	original, err := ComputeExtendedDataSquare([][]byte{ones, twos, threes, fours}, NewLeoRSCodec(), DefaultTreeName)
 	require.NoError(t, err)
 
-	codec := NewLeoRSCodec()
-	result, err := ComputeExtendedDataSquare([][]byte{
-		ones, twos,
-		threes, fours,
-	}, codec, treeConstructorFn)
-	if err != nil {
-		panic(err)
+	edsBytes, err := original.MarshalJSON()
+	require.NoError(t, err)
+
+	var got ExtendedDataSquare
+	err = json.Unmarshal(edsBytes, &got)
+	require.NoError(t, err)
+
+	assert.Equal(t, original.dataSquare.Flattened(), got.dataSquare.Flattened())
+	assert.Equal(t, original.codec.Name(), got.codec.Name())
+	assert.Equal(t, original.treeName, got.treeName)
+}
+
+func TestUnmarshalJSON(t *testing.T) {
+	t.Run("throws an error when unmarshaling an unregistered custom tree", func(t *testing.T) {
+		var eds ExtendedDataSquare
+		err := eds.UnmarshalJSON(edsCustomTree)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "custom-tree not registered yet")
+	})
+
+	type testCase struct {
+		name     string
+		original *ExtendedDataSquare
+		want     *ExtendedDataSquare
+		wantErr  bool
 	}
 
-	tests := []struct {
-		name             string
-		malleate         func()
-		expectedTreeName string
-		cleanUp          func()
-	}{
+	defaultEDS := exampleEds(t, DefaultTreeName)
+
+	// The tree name is intentionally set to empty to test whether the
+	// Unmarshal process appropriately falls back to the default tree
+	defaultEDSWithoutTreeName := exampleEds(t, DefaultTreeName)
+	defaultEDSWithoutTreeName.treeName = ""
+
+	customTreeName := "custom-tree"
+	err := RegisterTree(customTreeName, sudoConstructorFn)
+	require.NoError(t, err)
+	defer cleanUp(customTreeName)
+	customEDS := exampleEds(t, customTreeName)
+
+	testCases := []testCase{
 		{
-			"Tree field exists",
-			func() {},
-			treeName,
-			func() {
-				cleanUp(treeName)
-			},
+			name:     "can unmarshal the default EDS",
+			original: defaultEDS,
+			want:     defaultEDS,
+			wantErr:  false,
 		},
 		{
-			"Tree field missing",
-			func() {
-				// clear the tree name value in the eds before marshal
-				result.treeName = ""
-			},
-			DefaultTreeName,
-			func() {},
+			name:     "can unmarshal the default EDS even if tree name is removed",
+			original: defaultEDSWithoutTreeName,
+			want:     defaultEDS,
+			wantErr:  false,
+		},
+		{
+			name:     "can unmarshal an EDS with a custom tree",
+			original: customEDS,
+			want:     customEDS,
+			wantErr:  false,
 		},
 	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			test.malleate()
-			edsBytes, err := json.Marshal(result)
-			if err != nil {
-				t.Errorf("failed to marshal EDS: %v", err)
-			}
 
-			var eds ExtendedDataSquare
-			err = json.Unmarshal(edsBytes, &eds)
-			if err != nil {
-				t.Errorf("failed to unmarshal EDS: %v", err)
-			}
-			if !reflect.DeepEqual(result.squareRow, eds.squareRow) {
-				t.Errorf("eds not equal after json marshal/unmarshal")
-			}
-			require.Equal(t, test.expectedTreeName, eds.treeName)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			edsBytes, err := json.Marshal(tc.original)
+			assert.NoError(t, err)
 
-			test.cleanUp()
+			var got ExtendedDataSquare
+			err = got.UnmarshalJSON(edsBytes)
+			assert.NoError(t, err)
+
+			assert.Equal(t, tc.want.dataSquare.Flattened(), got.dataSquare.Flattened())
+			assert.Equal(t, tc.want.codec.Name(), got.codec.Name())
+			assert.Equal(t, tc.want.treeName, got.treeName)
 		})
 	}
 }
@@ -225,7 +223,7 @@ func TestImmutableRoots(t *testing.T) {
 	result, err := ComputeExtendedDataSquare([][]byte{
 		ones, twos,
 		threes, fours,
-	}, codec, NewDefaultTree)
+	}, codec, DefaultTreeName)
 	if err != nil {
 		panic(err)
 	}
@@ -260,7 +258,7 @@ func TestEDSRowColImmutable(t *testing.T) {
 	result, err := ComputeExtendedDataSquare([][]byte{
 		ones, twos,
 		threes, fours,
-	}, codec, NewDefaultTree)
+	}, codec, DefaultTreeName)
 	if err != nil {
 		panic(err)
 	}
@@ -283,7 +281,7 @@ func TestRowRoots(t *testing.T) {
 		eds, err := ComputeExtendedDataSquare([][]byte{
 			ones, twos,
 			threes, fours,
-		}, NewLeoRSCodec(), NewDefaultTree)
+		}, NewLeoRSCodec(), DefaultTreeName)
 		require.NoError(t, err)
 
 		rowRoots, err := eds.RowRoots()
@@ -295,7 +293,7 @@ func TestRowRoots(t *testing.T) {
 		eds, err := ComputeExtendedDataSquare([][]byte{
 			ones, twos,
 			threes, fours,
-		}, NewLeoRSCodec(), NewDefaultTree)
+		}, NewLeoRSCodec(), DefaultTreeName)
 		require.NoError(t, err)
 
 		// set a cell to nil to make the EDS incomplete
@@ -311,7 +309,7 @@ func TestColRoots(t *testing.T) {
 		eds, err := ComputeExtendedDataSquare([][]byte{
 			ones, twos,
 			threes, fours,
-		}, NewLeoRSCodec(), NewDefaultTree)
+		}, NewLeoRSCodec(), DefaultTreeName)
 		require.NoError(t, err)
 
 		colRoots, err := eds.ColRoots()
@@ -323,7 +321,7 @@ func TestColRoots(t *testing.T) {
 		eds, err := ComputeExtendedDataSquare([][]byte{
 			ones, twos,
 			threes, fours,
-		}, NewLeoRSCodec(), NewDefaultTree)
+		}, NewLeoRSCodec(), DefaultTreeName)
 		require.NoError(t, err)
 
 		// set a cell to nil to make the EDS incomplete
@@ -353,7 +351,7 @@ func BenchmarkExtensionEncoding(b *testing.B) {
 				fmt.Sprintf("%s %dx%dx%d ODS", codecName, i, i, len(square[0])),
 				func(b *testing.B) {
 					for n := 0; n < b.N; n++ {
-						eds, err := ComputeExtendedDataSquare(square, codec, NewDefaultTree)
+						eds, err := ComputeExtendedDataSquare(square, codec, DefaultTreeName)
 						if err != nil {
 							b.Error(err)
 						}
@@ -380,7 +378,7 @@ func BenchmarkExtensionWithRoots(b *testing.B) {
 				fmt.Sprintf("%s %dx%dx%d ODS", codecName, i, i, len(square[0])),
 				func(b *testing.B) {
 					for n := 0; n < b.N; n++ {
-						eds, err := ComputeExtendedDataSquare(square, codec, NewDefaultTree)
+						eds, err := ComputeExtendedDataSquare(square, codec, DefaultTreeName)
 						if err != nil {
 							b.Error(err)
 						}
@@ -459,7 +457,7 @@ func TestEquals(t *testing.T) {
 
 		unequalChunkSize := createExampleEds(t, shareSize*2)
 
-		unequalEds, err := ComputeExtendedDataSquare([][]byte{ones}, NewLeoRSCodec(), NewDefaultTree)
+		unequalEds, err := ComputeExtendedDataSquare([][]byte{ones}, NewLeoRSCodec(), DefaultTreeName)
 		require.NoError(t, err)
 
 		testCases := []testCase{
@@ -494,7 +492,7 @@ func TestRoots(t *testing.T) {
 		eds, err := ComputeExtendedDataSquare([][]byte{
 			ones, twos,
 			threes, fours,
-		}, NewLeoRSCodec(), NewDefaultTree)
+		}, NewLeoRSCodec(), DefaultTreeName)
 		require.NoError(t, err)
 
 		roots, err := eds.Roots()
@@ -521,7 +519,7 @@ func TestRoots(t *testing.T) {
 		eds, err := ComputeExtendedDataSquare([][]byte{
 			ones, twos,
 			threes, fours,
-		}, NewLeoRSCodec(), NewDefaultTree)
+		}, NewLeoRSCodec(), DefaultTreeName)
 		require.NoError(t, err)
 
 		// set a cell to nil to make the EDS incomplete
@@ -542,7 +540,13 @@ func createExampleEds(t *testing.T, chunkSize int) (eds *ExtendedDataSquare) {
 		threes, fours,
 	}
 
-	eds, err := ComputeExtendedDataSquare(ods, NewLeoRSCodec(), NewDefaultTree)
+	eds, err := ComputeExtendedDataSquare(ods, NewLeoRSCodec(), DefaultTreeName)
+	require.NoError(t, err)
+	return eds
+}
+
+func exampleEds(t *testing.T, treeName string) *ExtendedDataSquare {
+	eds, err := ComputeExtendedDataSquare([][]byte{ones, twos, threes, fours}, NewLeoRSCodec(), treeName)
 	require.NoError(t, err)
 	return eds
 }
