@@ -43,11 +43,17 @@ func (eds *ExtendedDataSquare) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
+	var treeConstructor TreeConstructorFn
 	if aux.Tree == "" {
 		aux.Tree = DefaultTreeName
 	}
 
-	importedEds, err := ImportExtendedDataSquare(aux.DataSquare, codecs[aux.Codec], aux.Tree)
+	treeConstructor, err = TreeFn(aux.Tree)
+	if err != nil {
+		return err
+	}
+
+	importedEds, err := ImportExtendedDataSquare(aux.DataSquare, codecs[aux.Codec], treeConstructor)
 	if err != nil {
 		return err
 	}
@@ -60,7 +66,7 @@ func (eds *ExtendedDataSquare) UnmarshalJSON(b []byte) error {
 func ComputeExtendedDataSquare(
 	data [][]byte,
 	codec Codec,
-	treeName string,
+	treeCreatorFn TreeConstructorFn,
 ) (*ExtendedDataSquare, error) {
 	if len(data) > codec.MaxChunks() {
 		return nil, errors.New("number of chunks exceeds the maximum")
@@ -72,14 +78,14 @@ func ComputeExtendedDataSquare(
 		return nil, err
 	}
 
-	treeCreatorFn, err := TreeFn(treeName)
+	ds, err := newDataSquare(data, treeCreatorFn, uint(chunkSize))
 	if err != nil {
 		return nil, err
 	}
 
-	ds, err := newDataSquare(data, treeCreatorFn, uint(chunkSize))
-	if err != nil {
-		return nil, err
+	treeName := getTreeNameFromConstructorFn(treeCreatorFn)
+	if treeName == "" {
+		return nil, errors.New("tree name not found")
 	}
 
 	eds := ExtendedDataSquare{dataSquare: ds, codec: codec, treeName: treeName}
@@ -95,7 +101,7 @@ func ComputeExtendedDataSquare(
 func ImportExtendedDataSquare(
 	data [][]byte,
 	codec Codec,
-	treeName string,
+	treeCreatorFn TreeConstructorFn,
 ) (*ExtendedDataSquare, error) {
 	if len(data) > 4*codec.MaxChunks() {
 		return nil, errors.New("number of chunks exceeds the maximum")
@@ -107,14 +113,14 @@ func ImportExtendedDataSquare(
 		return nil, err
 	}
 
-	treeCreatorFn, err := TreeFn(treeName)
+	ds, err := newDataSquare(data, treeCreatorFn, uint(chunkSize))
 	if err != nil {
 		return nil, err
 	}
 
-	ds, err := newDataSquare(data, treeCreatorFn, uint(chunkSize))
-	if err != nil {
-		return nil, err
+	treeName := getTreeNameFromConstructorFn(treeCreatorFn)
+	if treeName == "" {
+		return nil, errors.New("tree name not found")
 	}
 
 	eds := ExtendedDataSquare{dataSquare: ds, codec: codec, treeName: treeName}
@@ -248,7 +254,7 @@ func (eds *ExtendedDataSquare) erasureExtendCol(codec Codec, i uint) error {
 }
 
 func (eds *ExtendedDataSquare) deepCopy(codec Codec) (ExtendedDataSquare, error) {
-	imported, err := ImportExtendedDataSquare(eds.Flattened(), codec, eds.treeName)
+	imported, err := ImportExtendedDataSquare(eds.Flattened(), codec, eds.createTreeFn)
 	return *imported, err
 }
 
