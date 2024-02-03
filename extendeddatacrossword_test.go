@@ -390,14 +390,8 @@ func TestCorruptedEdsReturnsErrByzantineData_UnorderedShares(t *testing.T) {
 
 	codec := NewLeoRSCodec()
 
-	edsWidth := 4            // number of shares per row/column in the extended data square
-	odsWidth := edsWidth / 2 // number of shares per row/column in the original data square
-	err := RegisterTree("testing-tree", newConstructor(uint64(odsWidth), nmt.NamespaceIDSize(namespaceSize)))
-	assert.NoError(t, err)
-
 	// create a DA header
 	eds := createTestEdsWithNMT(t, codec, shareSize, namespaceSize, 1, 2, 3, 4)
-
 	assert.NotNil(t, eds)
 	dAHeaderRoots, err := eds.getRowRoots()
 	assert.NoError(t, err)
@@ -442,11 +436,10 @@ func createTestEdsWithNMT(t *testing.T, codec Codec, shareSize, namespaceSize in
 	for i, shareValue := range sharesValue {
 		shares[i] = bytes.Repeat([]byte{byte(shareValue)}, shareSize)
 	}
+	edsWidth := 4            // number of shares per row/column in the extended data square
+	odsWidth := edsWidth / 2 // number of shares per row/column in the original data square
 
-	treeConstructorFn, err := TreeFn("testing-tree")
-	require.NoError(t, err)
-
-	eds, err := ComputeExtendedDataSquare(shares, codec, treeConstructorFn)
+	eds, err := ComputeExtendedDataSquare(shares, codec, newConstructor(uint64(odsWidth), nmt.NamespaceIDSize(namespaceSize)))
 	require.NoError(t, err)
 
 	return eds
