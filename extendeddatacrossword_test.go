@@ -42,7 +42,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		flattened[12], flattened[13] = nil, nil
 
 		// Re-import the data square.
-		eds, err := ImportExtendedDataSquare(flattened, codec, DefaultTreeName)
+		eds, err := ImportExtendedDataSquare(flattened, codec, NewDefaultTree)
 		if err != nil {
 			t.Errorf("ImportExtendedDataSquare failed: %v", err)
 		}
@@ -67,7 +67,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		flattened[12], flattened[13], flattened[14] = nil, nil, nil
 
 		// Re-import the data square.
-		eds, err := ImportExtendedDataSquare(flattened, codec, DefaultTreeName)
+		eds, err := ImportExtendedDataSquare(flattened, codec, NewDefaultTree)
 		if err != nil {
 			t.Errorf("ImportExtendedDataSquare failed: %v", err)
 		}
@@ -237,7 +237,7 @@ func BenchmarkRepair(b *testing.B) {
 
 		// Generate a new range original data square then extend it
 		square := genRandDS(originalDataWidth, shareSize)
-		eds, err := ComputeExtendedDataSquare(square, codec, DefaultTreeName)
+		eds, err := ComputeExtendedDataSquare(square, codec, NewDefaultTree)
 		if err != nil {
 			b.Error(err)
 		}
@@ -275,7 +275,7 @@ func BenchmarkRepair(b *testing.B) {
 					}
 
 					// Re-import the data square.
-					eds, _ = ImportExtendedDataSquare(flattened, codec, DefaultTreeName)
+					eds, _ = ImportExtendedDataSquare(flattened, codec, NewDefaultTree)
 
 					b.StartTimer()
 
@@ -301,7 +301,7 @@ func createTestEds(codec Codec, shareSize int) *ExtendedDataSquare {
 	eds, err := ComputeExtendedDataSquare([][]byte{
 		ones, twos,
 		threes, fours,
-	}, codec, DefaultTreeName)
+	}, codec, NewDefaultTree)
 	if err != nil {
 		panic(err)
 	}
@@ -390,14 +390,8 @@ func TestCorruptedEdsReturnsErrByzantineData_UnorderedShares(t *testing.T) {
 
 	codec := NewLeoRSCodec()
 
-	edsWidth := 4            // number of shares per row/column in the extended data square
-	odsWidth := edsWidth / 2 // number of shares per row/column in the original data square
-	err := RegisterTree("testing-tree", newConstructor(uint64(odsWidth), nmt.NamespaceIDSize(namespaceSize)))
-	assert.NoError(t, err)
-
 	// create a DA header
 	eds := createTestEdsWithNMT(t, codec, shareSize, namespaceSize, 1, 2, 3, 4)
-
 	assert.NotNil(t, eds)
 	dAHeaderRoots, err := eds.getRowRoots()
 	assert.NoError(t, err)
@@ -442,8 +436,10 @@ func createTestEdsWithNMT(t *testing.T, codec Codec, shareSize, namespaceSize in
 	for i, shareValue := range sharesValue {
 		shares[i] = bytes.Repeat([]byte{byte(shareValue)}, shareSize)
 	}
+	edsWidth := 4            // number of shares per row/column in the extended data square
+	odsWidth := edsWidth / 2 // number of shares per row/column in the original data square
 
-	eds, err := ComputeExtendedDataSquare(shares, codec, "testing-tree")
+	eds, err := ComputeExtendedDataSquare(shares, codec, newConstructor(uint64(odsWidth), nmt.NamespaceIDSize(namespaceSize)))
 	require.NoError(t, err)
 
 	return eds

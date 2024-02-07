@@ -15,7 +15,6 @@ import (
 type ExtendedDataSquare struct {
 	*dataSquare
 	codec             Codec
-	treeName          string
 	originalDataWidth uint
 }
 
@@ -23,11 +22,9 @@ func (eds *ExtendedDataSquare) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
 		DataSquare [][]byte `json:"data_square"`
 		Codec      string   `json:"codec"`
-		Tree       string   `json:"tree"`
 	}{
 		DataSquare: eds.dataSquare.Flattened(),
 		Codec:      eds.codec.Name(),
-		Tree:       eds.treeName,
 	})
 }
 
@@ -35,19 +32,12 @@ func (eds *ExtendedDataSquare) UnmarshalJSON(b []byte) error {
 	var aux struct {
 		DataSquare [][]byte `json:"data_square"`
 		Codec      string   `json:"codec"`
-		Tree       string   `json:"tree"`
 	}
 
-	err := json.Unmarshal(b, &aux)
-	if err != nil {
+	if err := json.Unmarshal(b, &aux); err != nil {
 		return err
 	}
-
-	if aux.Tree == "" {
-		aux.Tree = DefaultTreeName
-	}
-
-	importedEds, err := ImportExtendedDataSquare(aux.DataSquare, codecs[aux.Codec], aux.Tree)
+	importedEds, err := ImportExtendedDataSquare(aux.DataSquare, codecs[aux.Codec], NewDefaultTree)
 	if err != nil {
 		return err
 	}
@@ -60,7 +50,7 @@ func (eds *ExtendedDataSquare) UnmarshalJSON(b []byte) error {
 func ComputeExtendedDataSquare(
 	data [][]byte,
 	codec Codec,
-	treeName string,
+	treeCreatorFn TreeConstructorFn,
 ) (*ExtendedDataSquare, error) {
 	if len(data) > codec.MaxChunks() {
 		return nil, errors.New("number of chunks exceeds the maximum")
@@ -71,18 +61,12 @@ func ComputeExtendedDataSquare(
 	if err != nil {
 		return nil, err
 	}
-
-	treeCreatorFn, err := TreeFn(treeName)
-	if err != nil {
-		return nil, err
-	}
-
 	ds, err := newDataSquare(data, treeCreatorFn, uint(chunkSize))
 	if err != nil {
 		return nil, err
 	}
 
-	eds := ExtendedDataSquare{dataSquare: ds, codec: codec, treeName: treeName}
+	eds := ExtendedDataSquare{dataSquare: ds, codec: codec}
 	err = eds.erasureExtendSquare(codec)
 	if err != nil {
 		return nil, err
@@ -95,7 +79,7 @@ func ComputeExtendedDataSquare(
 func ImportExtendedDataSquare(
 	data [][]byte,
 	codec Codec,
-	treeName string,
+	treeCreatorFn TreeConstructorFn,
 ) (*ExtendedDataSquare, error) {
 	if len(data) > 4*codec.MaxChunks() {
 		return nil, errors.New("number of chunks exceeds the maximum")
@@ -106,18 +90,12 @@ func ImportExtendedDataSquare(
 	if err != nil {
 		return nil, err
 	}
-
-	treeCreatorFn, err := TreeFn(treeName)
-	if err != nil {
-		return nil, err
-	}
-
 	ds, err := newDataSquare(data, treeCreatorFn, uint(chunkSize))
 	if err != nil {
 		return nil, err
 	}
 
-	eds := ExtendedDataSquare{dataSquare: ds, codec: codec, treeName: treeName}
+	eds := ExtendedDataSquare{dataSquare: ds, codec: codec}
 	err = validateEdsWidth(eds.width)
 	if err != nil {
 		return nil, err
@@ -248,7 +226,7 @@ func (eds *ExtendedDataSquare) erasureExtendCol(codec Codec, i uint) error {
 }
 
 func (eds *ExtendedDataSquare) deepCopy(codec Codec) (ExtendedDataSquare, error) {
-	imported, err := ImportExtendedDataSquare(eds.Flattened(), codec, eds.treeName)
+	imported, err := ImportExtendedDataSquare(eds.Flattened(), codec, eds.createTreeFn)
 	return *imported, err
 }
 

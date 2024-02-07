@@ -1,8 +1,9 @@
 package rsmt2d
 
 import (
-	"fmt"
-	"sync"
+	"crypto/sha256"
+
+	"github.com/celestiaorg/merkletree"
 )
 
 // TreeConstructorFn creates a fresh Tree instance to be used as the Merkle tree
@@ -21,38 +22,33 @@ type Tree interface {
 	Root() ([]byte, error)
 }
 
-// treeFns is a global map used for keeping track of registered tree constructors for JSON serialization
-// The keys of this map should be kebab cased. E.g. "default-tree"
-var treeFns = sync.Map{}
+var _ Tree = &DefaultTree{}
 
-// RegisterTree must be called in the init function
-func RegisterTree(treeName string, treeConstructor TreeConstructorFn) error {
-	if _, ok := treeFns.Load(treeName); ok {
-		return fmt.Errorf("%s already registered", treeName)
+type DefaultTree struct {
+	*merkletree.Tree
+	leaves [][]byte
+	root   []byte
+}
+
+func NewDefaultTree(_ Axis, _ uint) Tree {
+	return &DefaultTree{
+		Tree:   merkletree.New(sha256.New()),
+		leaves: make([][]byte, 0, 128),
 	}
+}
 
-	treeFns.Store(treeName, treeConstructor)
-
+func (d *DefaultTree) Push(data []byte) error {
+	// ignore the idx, as this implementation doesn't need that info
+	d.leaves = append(d.leaves, data)
 	return nil
 }
 
-// TreeFn get tree constructor function by tree name from the global map registry
-func TreeFn(treeName string) (TreeConstructorFn, error) {
-	var treeFn TreeConstructorFn
-	v, ok := treeFns.Load(treeName)
-	if !ok {
-		return nil, fmt.Errorf("%s not registered yet", treeName)
+func (d *DefaultTree) Root() ([]byte, error) {
+	if d.root == nil {
+		for _, l := range d.leaves {
+			d.Tree.Push(l)
+		}
+		d.root = d.Tree.Root()
 	}
-	treeFn, ok = v.(TreeConstructorFn)
-	if !ok {
-		return nil, fmt.Errorf("key %s has invalid interface", treeName)
-	}
-
-	return treeFn, nil
-}
-
-// removeTreeFn removes a treeConstructorFn by treeName.
-// Only use for test cleanup. Proceed with caution.
-func removeTreeFn(treeName string) {
-	treeFns.Delete(treeName)
+	return d.root, nil
 }
