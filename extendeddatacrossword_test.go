@@ -12,20 +12,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// shareSize is the size of each share (in bytes) used for testing.
-const shareSize = 512
+// chunkSize is the size of each chunk in bytes. This value is used for testing.
+const chunkSize = 512
 
 // PseudoFraudProof is an example fraud proof.
-// TODO a real fraud proof would have a Merkle proof for each share.
+// TODO a real fraud proof would have a Merkle proof for each chunk.
 type PseudoFraudProof struct {
 	Mode   int      // Row (0) or column (1)
 	Index  uint     // Row or column index
-	Shares [][]byte // Bad shares (nil are missing)
+	Chunks [][]byte // Bad chunks (nil are missing)
 }
 
 func TestRepairExtendedDataSquare(t *testing.T) {
 	codec := NewLeoRSCodec()
-	original := createTestEds(codec, shareSize)
+	original := createTestEds(codec, chunkSize)
 
 	rowRoots, err := original.RowRoots()
 	require.NoError(t, err)
@@ -51,10 +51,10 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 		if err != nil {
 			t.Errorf("unexpected err while repairing data square: %v, codec: :%s", err, codec.Name())
 		} else {
-			assert.Equal(t, original.GetCell(0, 0), bytes.Repeat([]byte{1}, shareSize))
-			assert.Equal(t, original.GetCell(0, 1), bytes.Repeat([]byte{2}, shareSize))
-			assert.Equal(t, original.GetCell(1, 0), bytes.Repeat([]byte{3}, shareSize))
-			assert.Equal(t, original.GetCell(1, 1), bytes.Repeat([]byte{4}, shareSize))
+			assert.Equal(t, original.GetCell(0, 0), bytes.Repeat([]byte{1}, chunkSize))
+			assert.Equal(t, original.GetCell(0, 1), bytes.Repeat([]byte{2}, chunkSize))
+			assert.Equal(t, original.GetCell(1, 0), bytes.Repeat([]byte{3}, chunkSize))
+			assert.Equal(t, original.GetCell(1, 1), bytes.Repeat([]byte{4}, chunkSize))
 		}
 	})
 
@@ -82,9 +82,9 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 func TestValidFraudProof(t *testing.T) {
 	codec := NewLeoRSCodec()
 
-	corruptChunk := bytes.Repeat([]byte{66}, shareSize)
+	corruptChunk := bytes.Repeat([]byte{66}, chunkSize)
 
-	original := createTestEds(codec, shareSize)
+	original := createTestEds(codec, chunkSize)
 
 	var byzData *ErrByzantineData
 	corrupted, err := original.deepCopy(codec)
@@ -106,23 +106,23 @@ func TestValidFraudProof(t *testing.T) {
 	// Construct the fraud proof
 	fraudProof := PseudoFraudProof{0, byzData.Index, byzData.Shares}
 	// Verify the fraud proof
-	// TODO in a real fraud proof, also verify Merkle proof for each non-nil share.
-	rebuiltShares, err := codec.Decode(fraudProof.Shares)
+	// TODO in a real fraud proof, also verify Merkle proof for each non-nil chunk.
+	rebuiltChunks, err := codec.Decode(fraudProof.Chunks)
 	if err != nil {
-		t.Errorf("could not decode fraud proof shares; got: %v", err)
+		t.Errorf("could not decode fraud proof chunks; got: %v", err)
 	}
-	root, err := corrupted.computeSharesRoot(rebuiltShares, byzData.Axis, fraudProof.Index)
+	root, err := corrupted.computeChunksRoot(rebuiltChunks, byzData.Axis, fraudProof.Index)
 	assert.NoError(t, err)
 	rowRoot, err := corrupted.getRowRoot(fraudProof.Index)
 	assert.NoError(t, err)
 	if bytes.Equal(root, rowRoot) {
 		// If the roots match, then the fraud proof should be for invalid erasure coding.
-		parityShares, err := codec.Encode(rebuiltShares[0:corrupted.originalDataWidth])
+		parityChunks, err := codec.Encode(rebuiltChunks[0:corrupted.originalDataWidth])
 		if err != nil {
-			t.Errorf("could not encode fraud proof shares; %v", fraudProof)
+			t.Errorf("could not encode fraud proof chunks; %v", fraudProof)
 		}
-		startIndex := len(rebuiltShares) - int(corrupted.originalDataWidth)
-		if bytes.Equal(flattenChunks(parityShares), flattenChunks(rebuiltShares[startIndex:])) {
+		startIndex := len(rebuiltChunks) - int(corrupted.originalDataWidth)
+		if bytes.Equal(flattenChunks(parityChunks), flattenChunks(rebuiltChunks[startIndex:])) {
 			t.Errorf("invalid fraud proof %v", fraudProof)
 		}
 	}
@@ -131,8 +131,8 @@ func TestValidFraudProof(t *testing.T) {
 func TestCannotRepairSquareWithBadRoots(t *testing.T) {
 	codec := NewLeoRSCodec()
 
-	corruptChunk := bytes.Repeat([]byte{66}, shareSize)
-	original := createTestEds(codec, shareSize)
+	corruptChunk := bytes.Repeat([]byte{66}, chunkSize)
+	original := createTestEds(codec, chunkSize)
 
 	rowRoots, err := original.RowRoots()
 	require.NoError(t, err)
@@ -149,7 +149,7 @@ func TestCannotRepairSquareWithBadRoots(t *testing.T) {
 }
 
 func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
-	corruptChunk := bytes.Repeat([]byte{66}, shareSize)
+	corruptChunk := bytes.Repeat([]byte{66}, chunkSize)
 
 	tests := []struct {
 		name   string
@@ -167,7 +167,7 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 			values: [][]byte{corruptChunk},
 		},
 		{
-			name:   "corrupt a chunk at (0, 0) and delete shares from the rest of the row",
+			name:   "corrupt a chunk at (0, 0) and delete chunks from the rest of the row",
 			coords: [][]uint{{0, 0}, {0, 1}, {0, 2}, {0, 3}},
 			values: [][]byte{corruptChunk, nil, nil, nil},
 		},
@@ -177,13 +177,13 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 			values: [][]byte{corruptChunk, nil, nil, nil},
 		},
 		{
-			// This test case sets all shares along the diagonal to nil so that
+			// This test case sets all chunks along the diagonal to nil so that
 			// the prerepairSanityCheck does not return an error and it can
 			// verify that solveCrossword returns an ErrByzantineData with
 			// shares populated.
-			name: "set all shares along the diagonal to nil and then corrupt the cell at (0, 1)",
-			// In the ASCII diagram below, _ represents a nil share and C
-			// represents a corrupted share.
+			name: "set all chunks along the diagonal to nil and then corrupt the cell at (0, 1)",
+			// In the ASCII diagram below, _ represents a nil chunk and C
+			// represents a corrupted chunk.
 			//
 			// _ C O O
 			// O _ O O
@@ -198,7 +198,7 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			eds := createTestEds(codec, shareSize)
+			eds := createTestEds(codec, chunkSize)
 
 			// compute the rowRoots prior to corruption
 			rowRoots, err := eds.getRowRoots()
@@ -236,7 +236,7 @@ func BenchmarkRepair(b *testing.B) {
 		}
 
 		// Generate a new range original data square then extend it
-		square := genRandDS(originalDataWidth, shareSize)
+		square := genRandDataSquare(originalDataWidth, chunkSize)
 		eds, err := ComputeExtendedDataSquare(square, codec, NewDefaultTree)
 		if err != nil {
 			b.Error(err)
@@ -262,7 +262,7 @@ func BenchmarkRepair(b *testing.B) {
 					b.StopTimer()
 
 					flattened := eds.Flattened()
-					// Randomly remove 1/2 of the shares of each row
+					// Randomly remove 1/2 of the chunks of each row
 					for r := 0; r < extendedDataWidth; r++ {
 						for c := 0; c < originalDataWidth; {
 							ind := rand.Intn(extendedDataWidth)
@@ -292,11 +292,11 @@ func BenchmarkRepair(b *testing.B) {
 	}
 }
 
-func createTestEds(codec Codec, shareSize int) *ExtendedDataSquare {
-	ones := bytes.Repeat([]byte{1}, shareSize)
-	twos := bytes.Repeat([]byte{2}, shareSize)
-	threes := bytes.Repeat([]byte{3}, shareSize)
-	fours := bytes.Repeat([]byte{4}, shareSize)
+func createTestEds(codec Codec, chunkSize int) *ExtendedDataSquare {
+	ones := bytes.Repeat([]byte{1}, chunkSize)
+	twos := bytes.Repeat([]byte{2}, chunkSize)
+	threes := bytes.Repeat([]byte{3}, chunkSize)
+	fours := bytes.Repeat([]byte{4}, chunkSize)
 
 	eds, err := ComputeExtendedDataSquare([][]byte{
 		ones, twos,
@@ -310,12 +310,12 @@ func createTestEds(codec Codec, shareSize int) *ExtendedDataSquare {
 }
 
 func TestCorruptedEdsReturnsErrByzantineData_UnorderedShares(t *testing.T) {
-	shareSize := 512
+	chunkSize := 512
 	namespaceSize := 1
-	one := bytes.Repeat([]byte{1}, shareSize)
-	two := bytes.Repeat([]byte{2}, shareSize)
-	three := bytes.Repeat([]byte{3}, shareSize)
-	sharesValue := []int{1, 2, 3, 4}
+	one := bytes.Repeat([]byte{1}, chunkSize)
+	two := bytes.Repeat([]byte{2}, chunkSize)
+	three := bytes.Repeat([]byte{3}, chunkSize)
+	chunksValue := []int{1, 2, 3, 4}
 	tests := []struct {
 		name           string
 		coords         [][]uint
@@ -329,8 +329,8 @@ func TestCorruptedEdsReturnsErrByzantineData_UnorderedShares(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			// disturbs the order of shares in the first row, erases the rest of the eds
-			name:          "rows with unordered shares",
+			// disturbs the order of chunks in the first row, erases the rest of the EDS
+			name:          "rows with unordered chunks",
 			wantErr:       true, // repair should error out during root construction
 			corruptedAxis: Row,
 			coords: [][]uint{
@@ -358,8 +358,8 @@ func TestCorruptedEdsReturnsErrByzantineData_UnorderedShares(t *testing.T) {
 			corruptedIndex: 0,
 		},
 		{
-			// disturbs the order of shares in the first column, erases the rest of the eds
-			name:          "columns with unordered shares",
+			// disturbs the order of chunks in the first column, erases the rest of the EDS
+			name:          "columns with unordered chunks",
 			wantErr:       true, // repair should error out during root construction
 			corruptedAxis: Col,
 			coords: [][]uint{
@@ -391,7 +391,7 @@ func TestCorruptedEdsReturnsErrByzantineData_UnorderedShares(t *testing.T) {
 	codec := NewLeoRSCodec()
 
 	// create a DA header
-	eds := createTestEdsWithNMT(t, codec, shareSize, namespaceSize, 1, 2, 3, 4)
+	eds := createTestEdsWithNMT(t, codec, chunkSize, namespaceSize, 1, 2, 3, 4)
 	assert.NotNil(t, eds)
 	dAHeaderRoots, err := eds.getRowRoots()
 	assert.NoError(t, err)
@@ -400,8 +400,8 @@ func TestCorruptedEdsReturnsErrByzantineData_UnorderedShares(t *testing.T) {
 	assert.NoError(t, err)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			// create an eds with the given shares
-			corruptEds := createTestEdsWithNMT(t, codec, shareSize, namespaceSize, sharesValue...)
+			// create an EDS with the given chunks
+			corruptEds := createTestEdsWithNMT(t, codec, chunkSize, namespaceSize, chunksValue...)
 			assert.NotNil(t, corruptEds)
 			// corrupt it by setting the values at the given coordinates
 			for i, coords := range test.coords {
@@ -423,23 +423,23 @@ func TestCorruptedEdsReturnsErrByzantineData_UnorderedShares(t *testing.T) {
 	}
 }
 
-// createTestEdsWithNMT creates an extended data square with the given shares and namespace size.
-// Shares are placed in row-major order.
-// The first namespaceSize bytes of each share are treated as its namespace.
+// createTestEdsWithNMT creates an extended data square with the given chunks and namespace size.
+// Chunks are placed in row-major order.
+// The first namespaceSize bytes of each chunk is treated as its namespace.
 // Roots of the extended data square are computed using namespace merkle trees.
-func createTestEdsWithNMT(t *testing.T, codec Codec, shareSize, namespaceSize int, sharesValue ...int) *ExtendedDataSquare {
-	// the first namespaceSize bytes of each share are the namespace
-	assert.True(t, shareSize > namespaceSize)
+func createTestEdsWithNMT(t *testing.T, codec Codec, chunkSize, namespaceSize int, chunkVals ...int) *ExtendedDataSquare {
+	// the first namespaceSize bytes of each chunk are the namespace
+	assert.True(t, chunkSize > namespaceSize)
 
-	// create shares of shareSize bytes
-	shares := make([][]byte, len(sharesValue))
-	for i, shareValue := range sharesValue {
-		shares[i] = bytes.Repeat([]byte{byte(shareValue)}, shareSize)
+	// create chunks of chunkSize bytes
+	chunks := make([][]byte, len(chunkVals))
+	for i, v := range chunkVals {
+		chunks[i] = bytes.Repeat([]byte{byte(v)}, chunkSize)
 	}
-	edsWidth := 4            // number of shares per row/column in the extended data square
-	odsWidth := edsWidth / 2 // number of shares per row/column in the original data square
+	edsWidth := 4            // number of chunks per row/column in the extended data square
+	odsWidth := edsWidth / 2 // number of chunks per row/column in the original data square
 
-	eds, err := ComputeExtendedDataSquare(shares, codec, newConstructor(uint64(odsWidth), nmt.NamespaceIDSize(namespaceSize)))
+	eds, err := ComputeExtendedDataSquare(chunks, codec, newConstructor(uint64(odsWidth), nmt.NamespaceIDSize(namespaceSize)))
 	require.NoError(t, err)
 
 	return eds

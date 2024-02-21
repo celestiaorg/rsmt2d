@@ -14,13 +14,13 @@ var (
 
 func BenchmarkEncoding(b *testing.B) {
 	// generate some fake data
-	data := generateRandData(128, shareSize)
+	data := generateRandData(128, chunkSize)
 	for codecName, codec := range codecs {
 		// For some implementations we want to ensure the encoder for this data length
 		// is already cached and initialized. For this run with same sized arbitrary data.
-		_, _ = codec.Encode(generateRandData(128, shareSize))
+		_, _ = codec.Encode(generateRandData(128, chunkSize))
 		b.Run(
-			fmt.Sprintf("%s 128 shares %d", codecName, shareSize),
+			fmt.Sprintf("%s 128 chunks %d", codecName, chunkSize),
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
 					encodedData, err := codec.Encode(data)
@@ -52,11 +52,11 @@ func BenchmarkDecoding(b *testing.B) {
 	for codecName, codec := range codecs {
 		// For some implementations we want to ensure the encoder for this data length
 		// is already cached and initialized. For this run with same sized arbitrary data.
-		_, _ = codec.Decode(generateMissingData(128, shareSize, codec))
+		_, _ = codec.Decode(generateMissingData(128, chunkSize, codec))
 
-		data := generateMissingData(128, shareSize, codec)
+		data := generateMissingData(128, chunkSize, codec)
 		b.Run(
-			fmt.Sprintf("%s 128 shares %d", codecName, shareSize),
+			fmt.Sprintf("%s 128 chunks %d", codecName, chunkSize),
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
 					decodedData, err := codec.Decode(data)
@@ -78,7 +78,7 @@ func generateMissingData(count int, chunkSize int, codec Codec) [][]byte {
 	}
 	output := append(randData, encoded...)
 
-	// remove half of the shares randomly
+	// remove half of the chunks randomly
 	for i := 0; i < (count / 2); {
 		ind := rand.Intn(count)
 		if len(output[ind]) == 0 {

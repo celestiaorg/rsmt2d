@@ -107,7 +107,7 @@ func ImportExtendedDataSquare(
 }
 
 // NewExtendedDataSquare returns a new extended data square with a width of
-// edsWidth. All shares are initialized to nil so that the returned extended
+// edsWidth. All chunks are initialized to nil so that the returned extended
 // data square can be populated via subsequent SetCell invocations.
 func NewExtendedDataSquare(codec Codec, treeCreatorFn TreeConstructorFn, edsWidth uint, chunkSize uint) (*ExtendedDataSquare, error) {
 	err := validateEdsWidth(edsWidth)
@@ -210,19 +210,19 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 }
 
 func (eds *ExtendedDataSquare) erasureExtendRow(codec Codec, i uint) error {
-	parityShares, err := codec.Encode(eds.rowSlice(i, 0, eds.originalDataWidth))
+	parityChunks, err := codec.Encode(eds.rowSlice(i, 0, eds.originalDataWidth))
 	if err != nil {
 		return err
 	}
-	return eds.setRowSlice(i, eds.originalDataWidth, parityShares)
+	return eds.setRowSlice(i, eds.originalDataWidth, parityChunks)
 }
 
 func (eds *ExtendedDataSquare) erasureExtendCol(codec Codec, i uint) error {
-	parityShares, err := codec.Encode(eds.colSlice(0, i, eds.originalDataWidth))
+	parityChunks, err := codec.Encode(eds.colSlice(0, i, eds.originalDataWidth))
 	if err != nil {
 		return err
 	}
-	return eds.setColSlice(eds.originalDataWidth, i, parityShares)
+	return eds.setColSlice(eds.originalDataWidth, i, parityChunks)
 }
 
 func (eds *ExtendedDataSquare) deepCopy(codec Codec) (ExtendedDataSquare, error) {
@@ -237,7 +237,7 @@ func (eds *ExtendedDataSquare) Col(y uint) [][]byte {
 }
 
 // ColRoots returns the Merkle roots of all the columns in the square. Returns
-// an error if the EDS is incomplete (i.e. some shares are nil).
+// an error if the EDS is incomplete (i.e. some chunks are nil).
 func (eds *ExtendedDataSquare) ColRoots() ([][]byte, error) {
 	colRoots, err := eds.getColRoots()
 	if err != nil {
@@ -253,7 +253,7 @@ func (eds *ExtendedDataSquare) Row(x uint) [][]byte {
 }
 
 // RowRoots returns the Merkle roots of all the rows in the square. Returns an
-// error if the EDS is incomplete (i.e. some shares are nil).
+// error if the EDS is incomplete (i.e. some chunks are nil).
 func (eds *ExtendedDataSquare) RowRoots() ([][]byte, error) {
 	rowRoots, err := eds.getRowRoots()
 	if err != nil {

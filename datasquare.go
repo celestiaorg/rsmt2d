@@ -246,7 +246,7 @@ func (ds *dataSquare) getRowRoots() ([][]byte, error) {
 
 // getRowRoot calculates and returns the root of the selected row. Note: unlike
 // the getRowRoots method, getRowRoot does not write to the built-in cache.
-// Returns an error if the row is incomplete (i.e. some shares are nil).
+// Returns an error if the row is incomplete (i.e. some chunks are nil).
 func (ds *dataSquare) getRowRoot(x uint) ([]byte, error) {
 	if ds.rowRoots != nil {
 		return ds.rowRoots[x], nil
@@ -281,7 +281,7 @@ func (ds *dataSquare) getColRoots() ([][]byte, error) {
 
 // getColRoot calculates and returns the root of the selected row. Note: unlike
 // the getColRoots method, getColRoot does not write to the built-in cache.
-// Returns an error if the column is incomplete (i.e. some shares are nil).
+// Returns an error if the column is incomplete (i.e. some chunks are nil).
 func (ds *dataSquare) getColRoot(y uint) ([]byte, error) {
 	if ds.colRoots != nil {
 		return ds.colRoots[y], nil
@@ -337,10 +337,10 @@ func (ds *dataSquare) Flattened() [][]byte {
 	return flattened
 }
 
-// isComplete returns true if all the shares are non-nil.
-func isComplete(shares [][]byte) bool {
-	for _, share := range shares {
-		if share == nil {
+// isComplete returns true if all the chunks are non-nil.
+func isComplete(chunks [][]byte) bool {
+	for _, chunk := range chunks {
+		if chunk == nil {
 			return false
 		}
 	}

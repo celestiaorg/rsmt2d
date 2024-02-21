@@ -6,17 +6,17 @@ const (
 	// Leopard is a codec that was originally implemented in the C++ library
 	// https://github.com/catid/leopard. rsmt2d uses a Go port of the C++
 	// library in https://github.com/klauspost/reedsolomon. The Leopard codec
-	// uses 8-bit leopard for shards less than or equal to 256. The Leopard
-	// codec uses 16-bit leopard for shards greater than 256.
+	// uses 8-bit leopard for chunks less than or equal to 256. The Leopard
+	// codec uses 16-bit leopard for chunks greater than 256.
 	Leopard = "Leopard"
 )
 
 type Codec interface {
-	// Encode encodes original data, automatically extracting share size.
-	// There must be no missing shares. Only returns parity shares.
+	// Encode encodes original data, automatically extracting chunk size.
+	// There must be no missing chunks. Only returns parity chunks.
 	Encode(data [][]byte) ([][]byte, error)
-	// Decode decodes sparse original + parity data, automatically extracting share size.
-	// Missing shares must be nil. Returns original + parity data.
+	// Decode decodes sparse original + parity data, automatically extracting chunk size.
+	// Missing chunks must be nil. Returns original + parity chunks.
 	Decode(data [][]byte) ([][]byte, error)
 	// MaxChunks returns the max number of chunks this codec supports in a 2D
 	// original data square.

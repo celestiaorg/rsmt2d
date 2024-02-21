@@ -18,17 +18,17 @@ import (
 )
 
 func main() {
-    // shareSize is the size of each share (in bytes).
-    shareSize := 512
-    // Init new codec
+    // chunkSize is the size of each chunk in bytes.
+    chunkSize := 512
+    //  new codec
     codec := rsmt2d.NewLeoRSCodec()
 
-    ones := bytes.Repeat([]byte{1}, shareSize)
-    twos := bytes.Repeat([]byte{2}, shareSize)
-    threes := bytes.Repeat([]byte{3}, shareSize)
-    fours := bytes.Repeat([]byte{4}, shareSize)
+    ones := bytes.Repeat([]byte{1}, chunkSize)
+    twos := bytes.Repeat([]byte{2}, chunkSize)
+    threes := bytes.Repeat([]byte{3}, chunkSize)
+    fours := bytes.Repeat([]byte{4}, chunkSize)
 
-    // Compute parity shares
+    // Compute parity chunks
     eds, err := rsmt2d.ComputeExtendedDataSquare(
         [][]byte{
             ones, twos,
@@ -43,7 +43,7 @@ func main() {
 
     flattened := eds.Flattened()
 
-    // Delete some shares, just enough so that repairing is possible.
+    // Delete some chunks, just enough so that repairing is possible.
     flattened[0], flattened[2], flattened[3] = nil, nil, nil
     flattened[4], flattened[5], flattened[6], flattened[7] = nil, nil, nil, nil
     flattened[8], flattened[9], flattened[10] = nil, nil, nil

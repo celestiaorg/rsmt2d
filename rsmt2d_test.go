@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// shareSize is the size of each share (in bytes) used for testing.
-const shareSize = 512
+// chunkSize is the size of each chunk (in bytes) used for testing.
+const chunkSize = 512
 
 func TestEdsRepairRoundtripSimple(t *testing.T) {
 	tests := []struct {
@@ -23,12 +23,12 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ones := bytes.Repeat([]byte{1}, shareSize)
-			twos := bytes.Repeat([]byte{2}, shareSize)
-			threes := bytes.Repeat([]byte{3}, shareSize)
-			fours := bytes.Repeat([]byte{4}, shareSize)
+			ones := bytes.Repeat([]byte{1}, chunkSize)
+			twos := bytes.Repeat([]byte{2}, chunkSize)
+			threes := bytes.Repeat([]byte{3}, chunkSize)
+			fours := bytes.Repeat([]byte{4}, chunkSize)
 
-			// Compute parity shares
+			// Compute parity chunks
 			eds, err := rsmt2d.ComputeExtendedDataSquare(
 				[][]byte{
 					ones, twos,
@@ -49,7 +49,7 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 
 			flattened := eds.Flattened()
 
-			// Delete some shares, just enough so that repairing is possible.
+			// Delete some chunks, just enough so that repairing is possible.
 			flattened[0], flattened[2], flattened[3] = nil, nil, nil
 			flattened[4], flattened[5], flattened[6], flattened[7] = nil, nil, nil, nil
 			flattened[8], flattened[9], flattened[10] = nil, nil, nil
@@ -85,12 +85,12 @@ func TestEdsRepairTwice(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ones := bytes.Repeat([]byte{1}, shareSize)
-			twos := bytes.Repeat([]byte{2}, shareSize)
-			threes := bytes.Repeat([]byte{3}, shareSize)
-			fours := bytes.Repeat([]byte{4}, shareSize)
+			ones := bytes.Repeat([]byte{1}, chunkSize)
+			twos := bytes.Repeat([]byte{2}, chunkSize)
+			threes := bytes.Repeat([]byte{3}, chunkSize)
+			fours := bytes.Repeat([]byte{4}, chunkSize)
 
-			// Compute parity shares
+			// Compute parity chunks
 			eds, err := rsmt2d.ComputeExtendedDataSquare(
 				[][]byte{
 					ones, twos,
@@ -111,8 +111,8 @@ func TestEdsRepairTwice(t *testing.T) {
 
 			flattened := eds.Flattened()
 
-			// Delete some shares, just enough so that repairing is possible, then remove one more.
-			missing := make([]byte, shareSize)
+			// Delete some chunks, just enough so that repairing is possible, then remove one more.
+			missing := make([]byte, chunkSize)
 			copy(missing, flattened[1])
 			flattened[0], flattened[1], flattened[2], flattened[3] = nil, nil, nil, nil
 			flattened[4], flattened[5], flattened[6], flattened[7] = nil, nil, nil, nil
@@ -134,8 +134,8 @@ func TestEdsRepairTwice(t *testing.T) {
 				// Should fail since insufficient data.
 				t.Errorf("RepairExtendedDataSquare did not fail with `%v`, got `%v`", rsmt2d.ErrUnrepairableDataSquare, err)
 			}
-			// Re-insert missing share and try again.
-			flattened[1] = make([]byte, shareSize)
+			// Re-insert missing chunks and try again.
+			flattened[1] = make([]byte, chunkSize)
 			copy(flattened[1], missing)
 
 			// Re-import the data square.
