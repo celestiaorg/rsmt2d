@@ -32,16 +32,16 @@ func (l *LeoRSCodec) Encode(data [][]byte) ([][]byte, error) {
 		return nil, err
 	}
 
-	shards := make([][]byte, dataLen*2)
-	copy(shards, data)
-	for i := dataLen; i < len(shards); i++ {
-		shards[i] = make([]byte, len(data[0]))
+	shares := make([][]byte, dataLen*2)
+	copy(shares, data)
+	for i := dataLen; i < len(shares); i++ {
+		shares[i] = make([]byte, len(data[0]))
 	}
 
-	if err := enc.Encode(shards); err != nil {
+	if err := enc.Encode(shares); err != nil {
 		return nil, err
 	}
-	return shards[dataLen:], nil
+	return shares[dataLen:], nil
 }
 
 func (l *LeoRSCodec) Decode(data [][]byte) ([][]byte, error) {
