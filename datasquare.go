@@ -9,8 +9,9 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// ErrUnevenChunks is thrown when non-nil chunks are not all of equal size.
-var ErrUnevenChunks = errors.New("non-nil chunks not all of equal size")
+// ErrUnevenChunks is thrown when non-nil shares are not all of equal size.
+// Note: chunks is synonymous with shares.
+var ErrUnevenChunks = errors.New("non-nil shares not all of equal size")
 
 // dataSquare stores all data for an original data square (ODS) or extended
 // data square (EDS). Data is duplicated in both row-major and column-major
@@ -20,7 +21,7 @@ type dataSquare struct {
 	squareCol    [][][]byte // col-major
 	dataMutex    sync.Mutex
 	width        uint
-	chunkSize    uint
+	shareSize    uint
 	rowRoots     [][]byte
 	colRoots     [][]byte
 	createTreeFn TreeConstructorFn
@@ -29,14 +30,15 @@ type dataSquare struct {
 // newDataSquare populates the data square from the supplied data and treeCreator.
 // No root calculation is performed.
 // data may have nil values.
-func newDataSquare(data [][]byte, treeCreator TreeConstructorFn, chunkSize uint) (*dataSquare, error) {
+func newDataSquare(data [][]byte, treeCreator TreeConstructorFn, shareSize uint) (*dataSquare, error) {
 	width := int(math.Ceil(math.Sqrt(float64(len(data)))))
 	if width*width != len(data) {
+		// TODO: export this error and modify chunks to shares
 		return nil, errors.New("number of chunks must be a square number")
 	}
 
 	for _, d := range data {
-		if d != nil && len(d) != int(chunkSize) {
+		if d != nil && len(d) != int(shareSize) {
 			return nil, ErrUnevenChunks
 		}
 	}
@@ -46,7 +48,7 @@ func newDataSquare(data [][]byte, treeCreator TreeConstructorFn, chunkSize uint)
 		squareRow[i] = data[i*width : i*width+width]
 
 		for j := 0; j < width; j++ {
-			if squareRow[i][j] != nil && len(squareRow[i][j]) != int(chunkSize) {
+			if squareRow[i][j] != nil && len(squareRow[i][j]) != int(shareSize) {
 				return nil, ErrUnevenChunks
 			}
 		}
@@ -64,15 +66,16 @@ func newDataSquare(data [][]byte, treeCreator TreeConstructorFn, chunkSize uint)
 		squareRow:    squareRow,
 		squareCol:    squareCol,
 		width:        uint(width),
-		chunkSize:    chunkSize,
+		shareSize:    shareSize,
 		createTreeFn: treeCreator,
 	}, nil
 }
 
 // extendSquare extends the original data square by extendedWidth and fills
-// the extended quadrants with fillerChunk.
-func (ds *dataSquare) extendSquare(extendedWidth uint, fillerChunk []byte) error {
-	if uint(len(fillerChunk)) != ds.chunkSize {
+// the extended quadrants with fillerShare.
+func (ds *dataSquare) extendSquare(extendedWidth uint, fillerShare []byte) error {
+	if uint(len(fillerShare)) != ds.shareSize {
+		// TODO: export this error and rename chunk to share
 		return errors.New("filler chunk size does not match data square chunk size")
 	}
 
@@ -81,12 +84,12 @@ func (ds *dataSquare) extendSquare(extendedWidth uint, fillerChunk []byte) error
 
 	fillerExtendedRow := make([][]byte, extendedWidth)
 	for i := uint(0); i < extendedWidth; i++ {
-		fillerExtendedRow[i] = fillerChunk
+		fillerExtendedRow[i] = fillerShare
 	}
 
 	fillerRow := make([][]byte, newWidth)
 	for i := uint(0); i < newWidth; i++ {
-		fillerRow[i] = fillerChunk
+		fillerRow[i] = fillerShare
 	}
 
 	row := make([][]byte, ds.width)
@@ -129,7 +132,8 @@ func (ds *dataSquare) row(x uint) [][]byte {
 
 func (ds *dataSquare) setRowSlice(x uint, y uint, newRow [][]byte) error {
 	for i := uint(0); i < uint(len(newRow)); i++ {
-		if len(newRow[i]) != int(ds.chunkSize) {
+		if len(newRow[i]) != int(ds.shareSize) {
+			// TODO: export this error and rename chunk to share
 			return errors.New("invalid chunk size")
 		}
 	}
@@ -162,7 +166,8 @@ func (ds *dataSquare) col(y uint) [][]byte {
 
 func (ds *dataSquare) setColSlice(x uint, y uint, newCol [][]byte) error {
 	for i := uint(0); i < uint(len(newCol)); i++ {
-		if len(newCol[i]) != int(ds.chunkSize) {
+		if len(newCol[i]) != int(ds.shareSize) {
+			// TODO: export this error and rename chunk to share
 			return errors.New("invalid chunk size")
 		}
 	}
@@ -307,22 +312,23 @@ func (ds *dataSquare) GetCell(x uint, y uint) []byte {
 	if ds.squareRow[x][y] == nil {
 		return nil
 	}
-	cell := make([]byte, ds.chunkSize)
+	cell := make([]byte, ds.shareSize)
 	copy(cell, ds.squareRow[x][y])
 	return cell
 }
 
 // SetCell sets a specific cell. The cell to set must be `nil`. Returns an error
-// if the cell to set is not `nil` or newChunk is not the correct size.
-func (ds *dataSquare) SetCell(x uint, y uint, newChunk []byte) error {
+// if the cell to set is not `nil` or newShare is not the correct size.
+func (ds *dataSquare) SetCell(x uint, y uint, newShare []byte) error {
 	if ds.squareRow[x][y] != nil {
 		return fmt.Errorf("cannot set cell (%d, %d) as it already has a value %x", x, y, ds.squareRow[x][y])
 	}
-	if len(newChunk) != int(ds.chunkSize) {
-		return fmt.Errorf("cannot set cell with chunk size %d because dataSquare chunk size is %d", len(newChunk), ds.chunkSize)
+	if len(newShare) != int(ds.shareSize) {
+		// TODO: export this error and rename chunk to share
+		return fmt.Errorf("cannot set cell with chunk size %d because dataSquare chunk size is %d", len(newShare), ds.shareSize)
 	}
-	ds.squareRow[x][y] = newChunk
-	ds.squareCol[y][x] = newChunk
+	ds.squareRow[x][y] = newShare
+	ds.squareCol[y][x] = newShare
 	ds.resetRoots()
 	return nil
 }

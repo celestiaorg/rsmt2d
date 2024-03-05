@@ -45,7 +45,7 @@ func (eds *ExtendedDataSquare) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// ComputeExtendedDataSquare computes the extended data square for some chunks
+// ComputeExtendedDataSquare computes the extended data square for some shares
 // of original data.
 func ComputeExtendedDataSquare(
 	data [][]byte,
@@ -53,15 +53,16 @@ func ComputeExtendedDataSquare(
 	treeCreatorFn TreeConstructorFn,
 ) (*ExtendedDataSquare, error) {
 	if len(data) > codec.MaxChunks() {
+		// TODO: export this error and rename chunk to share
 		return nil, errors.New("number of chunks exceeds the maximum")
 	}
 
-	chunkSize := getChunkSize(data)
-	err := codec.ValidateChunkSize(chunkSize)
+	shareSize := getShareSize(data)
+	err := codec.ValidateChunkSize(shareSize)
 	if err != nil {
 		return nil, err
 	}
-	ds, err := newDataSquare(data, treeCreatorFn, uint(chunkSize))
+	ds, err := newDataSquare(data, treeCreatorFn, uint(shareSize))
 	if err != nil {
 		return nil, err
 	}
@@ -75,22 +76,23 @@ func ComputeExtendedDataSquare(
 	return &eds, nil
 }
 
-// ImportExtendedDataSquare imports an extended data square, represented as flattened chunks of data.
+// ImportExtendedDataSquare imports an extended data square, represented as flattened shares of data.
 func ImportExtendedDataSquare(
 	data [][]byte,
 	codec Codec,
 	treeCreatorFn TreeConstructorFn,
 ) (*ExtendedDataSquare, error) {
 	if len(data) > 4*codec.MaxChunks() {
+		// TODO: export this error and rename chunk to share
 		return nil, errors.New("number of chunks exceeds the maximum")
 	}
 
-	chunkSize := getChunkSize(data)
-	err := codec.ValidateChunkSize(chunkSize)
+	shareSize := getShareSize(data)
+	err := codec.ValidateChunkSize(shareSize)
 	if err != nil {
 		return nil, err
 	}
-	ds, err := newDataSquare(data, treeCreatorFn, uint(chunkSize))
+	ds, err := newDataSquare(data, treeCreatorFn, uint(shareSize))
 	if err != nil {
 		return nil, err
 	}
@@ -109,18 +111,18 @@ func ImportExtendedDataSquare(
 // NewExtendedDataSquare returns a new extended data square with a width of
 // edsWidth. All shares are initialized to nil so that the returned extended
 // data square can be populated via subsequent SetCell invocations.
-func NewExtendedDataSquare(codec Codec, treeCreatorFn TreeConstructorFn, edsWidth uint, chunkSize uint) (*ExtendedDataSquare, error) {
+func NewExtendedDataSquare(codec Codec, treeCreatorFn TreeConstructorFn, edsWidth uint, shareSize uint) (*ExtendedDataSquare, error) {
 	err := validateEdsWidth(edsWidth)
 	if err != nil {
 		return nil, err
 	}
-	err = codec.ValidateChunkSize(int(chunkSize))
+	err = codec.ValidateChunkSize(int(shareSize))
 	if err != nil {
 		return nil, err
 	}
 
 	data := make([][]byte, edsWidth*edsWidth)
-	dataSquare, err := newDataSquare(data, treeCreatorFn, chunkSize)
+	dataSquare, err := newDataSquare(data, treeCreatorFn, shareSize)
 	if err != nil {
 		return nil, err
 	}
@@ -137,8 +139,8 @@ func NewExtendedDataSquare(codec Codec, treeCreatorFn TreeConstructorFn, edsWidt
 func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 	eds.originalDataWidth = eds.width
 
-	// Extend original square with filler chunks. O represents original data. F
-	// represents filler chunks.
+	// Extend original square with filler shares. O represents original data. F
+	// represents filler shares.
 	//
 	//  ------- -------
 	// |       |       |
@@ -149,13 +151,13 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 	// |   F   |   F   |
 	// |       |       |
 	//  ------- -------
-	if err := eds.extendSquare(eds.width, bytes.Repeat([]byte{0}, int(eds.chunkSize))); err != nil {
+	if err := eds.extendSquare(eds.width, bytes.Repeat([]byte{0}, int(eds.shareSize))); err != nil {
 		return err
 	}
 
 	errs, _ := errgroup.WithContext(context.Background())
 
-	// Populate filler chunks in Q1 and Q2. E represents erasure data.
+	// Populate filler shares in Q1 and Q2. E represents erasure data.
 	//
 	//  ------- -------
 	// |       |       |
@@ -184,7 +186,7 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 		return err
 	}
 
-	// Populate filler chunks in Q3. Note that the parity data in `Q3` will be
+	// Populate filler shares in Q3. Note that the parity data in `Q3` will be
 	// identical if it is vertically extended from `Q1` or horizontally extended
 	// from `Q2`.
 	//
@@ -301,7 +303,7 @@ func (eds *ExtendedDataSquare) Equals(other *ExtendedDataSquare) bool {
 	if eds.codec.Name() != other.codec.Name() {
 		return false
 	}
-	if eds.chunkSize != other.chunkSize {
+	if eds.shareSize != other.shareSize {
 		return false
 	}
 	if eds.width != other.width {
@@ -350,8 +352,8 @@ func validateEdsWidth(edsWidth uint) error {
 	return nil
 }
 
-// getChunkSize returns the size of the first non-nil chunk in data.
-func getChunkSize(data [][]byte) (chunkSize int) {
+// getShareSize returns the size of the first non-nil share in data.
+func getShareSize(data [][]byte) (shareSize int) {
 	for _, d := range data {
 		if d != nil {
 			return len(d)

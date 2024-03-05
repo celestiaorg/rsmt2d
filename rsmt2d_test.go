@@ -158,19 +158,19 @@ func TestEdsRepairTwice(t *testing.T) {
 
 // TestRepairWithOneQuarterPopulated is motivated by a use case from
 // celestia-node. It verifies that a new EDS can be populated via SetCell. After
-// enough chunks have been populated, it verifies that the EDS can be repaired.
+// enough shares have been populated, it verifies that the EDS can be repaired.
 // After the EDS is repaired, the test verifies that data in a repaired cell
 // matches the expected data.
 func TestRepairWithOneQuarterPopulated(t *testing.T) {
 	edsWidth := 4
-	chunkSize := 512
+	shareSize := 512
 
-	exampleEds := createExampleEds(t, chunkSize)
+	exampleEds := createExampleEds(t, shareSize)
 
-	eds, err := rsmt2d.NewExtendedDataSquare(rsmt2d.NewLeoRSCodec(), rsmt2d.NewDefaultTree, uint(edsWidth), uint(chunkSize))
+	eds, err := rsmt2d.NewExtendedDataSquare(rsmt2d.NewLeoRSCodec(), rsmt2d.NewDefaultTree, uint(edsWidth), uint(shareSize))
 	require.NoError(t, err)
 
-	// Populate EDS with 1/4 of chunks using SetCell
+	// Populate EDS with 1/4 of shares using SetCell
 	err = eds.SetCell(0, 0, exampleEds.GetCell(0, 0))
 	require.NoError(t, err)
 	err = eds.SetCell(0, 1, exampleEds.GetCell(0, 1))
@@ -195,11 +195,11 @@ func TestRepairWithOneQuarterPopulated(t *testing.T) {
 	assert.Equal(t, exampleEds.Flattened(), eds.Flattened())
 }
 
-func createExampleEds(t *testing.T, chunkSize int) (eds *rsmt2d.ExtendedDataSquare) {
-	ones := bytes.Repeat([]byte{1}, chunkSize)
-	twos := bytes.Repeat([]byte{2}, chunkSize)
-	threes := bytes.Repeat([]byte{3}, chunkSize)
-	fours := bytes.Repeat([]byte{4}, chunkSize)
+func createExampleEds(t *testing.T, shareSize int) (eds *rsmt2d.ExtendedDataSquare) {
+	ones := bytes.Repeat([]byte{1}, shareSize)
+	twos := bytes.Repeat([]byte{2}, shareSize)
+	threes := bytes.Repeat([]byte{3}, shareSize)
+	fours := bytes.Repeat([]byte{4}, shareSize)
 	ods := [][]byte{
 		ones, twos,
 		threes, fours,

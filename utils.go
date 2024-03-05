@@ -1,14 +1,14 @@
 package rsmt2d
 
-func flattenChunks(chunks [][]byte) []byte {
+func flattenShares(shares [][]byte) []byte {
 	length := 0
-	for _, chunk := range chunks {
-		length += len(chunk)
+	for _, share := range shares {
+		length += len(share)
 	}
 
 	flattened := make([]byte, 0, length)
-	for _, chunk := range chunks {
-		flattened = append(flattened, chunk...)
+	for _, share := range shares {
+		flattened = append(flattened, share...)
 	}
 
 	return flattened

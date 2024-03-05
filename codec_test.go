@@ -34,10 +34,10 @@ func BenchmarkEncoding(b *testing.B) {
 	}
 }
 
-func generateRandData(count int, chunkSize int) [][]byte {
+func generateRandData(count int, shareSize int) [][]byte {
 	out := make([][]byte, count)
 	for i := 0; i < count; i++ {
-		randData := make([]byte, chunkSize)
+		randData := make([]byte, shareSize)
 		_, err := cryptorand.Read(randData)
 		if err != nil {
 			panic(err)
@@ -70,8 +70,8 @@ func BenchmarkDecoding(b *testing.B) {
 	}
 }
 
-func generateMissingData(count int, chunkSize int, codec Codec) [][]byte {
-	randData := generateRandData(count, chunkSize)
+func generateMissingData(count int, shareSize int, codec Codec) [][]byte {
+	randData := generateRandData(count, shareSize)
 	encoded, err := codec.Encode(randData)
 	if err != nil {
 		panic(err)
@@ -98,12 +98,12 @@ func newTestCodec() Codec {
 	return &testCodec{}
 }
 
-func (c *testCodec) Encode(chunk [][]byte) ([][]byte, error) {
-	return chunk, nil
+func (c *testCodec) Encode(share [][]byte) ([][]byte, error) {
+	return share, nil
 }
 
-func (c *testCodec) Decode(chunk [][]byte) ([][]byte, error) {
-	return chunk, nil
+func (c *testCodec) Decode(share [][]byte) ([][]byte, error) {
+	return share, nil
 }
 
 func (c *testCodec) MaxChunks() int {

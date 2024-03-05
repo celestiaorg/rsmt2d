@@ -33,7 +33,7 @@ func (a Axis) String() string {
 	}
 }
 
-// ErrUnrepairableDataSquare is thrown when there is insufficient chunks to repair the square.
+// ErrUnrepairableDataSquare is thrown when there is insufficient shares to repair the square.
 var ErrUnrepairableDataSquare = errors.New("failed to solve data square")
 
 // ErrByzantineData is returned when a repaired row or column does not match the
@@ -380,7 +380,7 @@ func (eds *ExtendedDataSquare) preRepairSanityCheck(
 				if err != nil {
 					return err
 				}
-				if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.rowSlice(i, eds.originalDataWidth, eds.originalDataWidth))) {
+				if !bytes.Equal(flattenShares(parityShares), flattenShares(eds.rowSlice(i, eds.originalDataWidth, eds.originalDataWidth))) {
 					return &ErrByzantineData{Row, i, eds.row(i)}
 				}
 				return nil
@@ -410,7 +410,7 @@ func (eds *ExtendedDataSquare) preRepairSanityCheck(
 				if err != nil {
 					return err
 				}
-				if !bytes.Equal(flattenChunks(parityShares), flattenChunks(eds.colSlice(eds.originalDataWidth, i, eds.originalDataWidth))) {
+				if !bytes.Equal(flattenShares(parityShares), flattenShares(eds.colSlice(eds.originalDataWidth, i, eds.originalDataWidth))) {
 					return &ErrByzantineData{Col, i, eds.col(i)}
 				}
 				return nil

@@ -19,12 +19,13 @@ type Codec interface {
 	// Missing shares must be nil. Returns original + parity data.
 	Decode(data [][]byte) ([][]byte, error)
 	// MaxChunks returns the max number of chunks this codec supports in a 2D
-	// original data square.
+	// original data square. Chunk is a synonym of share.
 	MaxChunks() int
 	// Name returns the name of the codec.
 	Name() string
 	// ValidateChunkSize returns an error if this codec does not support
-	// chunkSize. Returns nil if chunkSize is supported.
+	// chunkSize. Returns nil if chunkSize is supported. Chunk is a synonym of
+	// share.
 	ValidateChunkSize(chunkSize int) error
 }
 
