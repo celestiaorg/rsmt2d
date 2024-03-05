@@ -403,7 +403,26 @@ func Test_setColSlice(t *testing.T) {
 	}
 }
 
-func BenchmarkEDSRoots(b *testing.B) {
+func BenchmarkEDSRootsWithDefaultTree(b *testing.B) {
+	for i := 32; i < 513; i *= 2 {
+		square, err := newDataSquare(genRandDS(i*2, int(shareSize)), NewDefaultTree, shareSize)
+		if err != nil {
+			b.Errorf("Failure to create square of size %d: %s", i, err)
+		}
+		b.Run(
+			fmt.Sprintf("%dx%dx%d ODS", i, i, int(square.chunkSize)),
+			func(b *testing.B) {
+				for n := 0; n < b.N; n++ {
+					square.resetRoots()
+					err := square.computeRoots()
+					assert.NoError(b, err)
+				}
+			},
+		)
+	}
+}
+
+func BenchmarkEDSRootsWithErasuredNMT(b *testing.B) {
 	ODSSizeByteUpperBound := 1024 * 1024 * 1024 // converting 1024 MB to bytes
 	totalNumberOfShares := ODSSizeByteUpperBound / shareSize
 	oDSShareSizeUpperBound := int(math.Ceil(math.Sqrt(float64(
