@@ -3,6 +3,7 @@ package rsmt2d
 import (
 	"crypto/sha256"
 	"fmt"
+	"math"
 	"reflect"
 	"testing"
 
@@ -402,13 +403,21 @@ func Test_setColSlice(t *testing.T) {
 }
 
 func BenchmarkEDSRoots(b *testing.B) {
-	for i := 32; i < 513; i *= 2 {
-		square, err := newDataSquare(genRandDS(i*2, int(shareSize)), NewDefaultTree, shareSize)
+	ODSSizeByteUpperBound := 1024 * 1024 * 1024 // converting 1024 MB to bytes
+	totalNumberOfShares := ODSSizeByteUpperBound / shareSize
+	ODSShareSizeUpperBound := int(math.Ceil(math.Sqrt(float64(
+		totalNumberOfShares))))
+	for i := 32; i < ODSShareSizeUpperBound; i *= 2 {
+		ds := genRandDS(i*2, shareSize) // i*2 X i*2 data square (number of shares in the corresponding EDS)
+		square, err := newDataSquare(ds, NewDefaultTree, shareSize)
 		if err != nil {
 			b.Errorf("Failure to create square of size %d: %s", i, err)
 		}
 		b.Run(
-			fmt.Sprintf("%dx%dx%d ODS", i, i, int(square.chunkSize)),
+			fmt.Sprintf("%dx%dx%d ODS=%dMB, EDS=%dMB", i, i,
+				int(square.chunkSize),
+				int(i*i*512/(1024*1024)),
+				int(2*2*i*i*512/(1024*1024))),
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
 					square.resetRoots()
