@@ -349,7 +349,6 @@ func genRandDS(width int, chunkSize int) [][]byte {
 }
 
 func genRandSortedDS(width int, chunkSize int, namespaceSize int) [][]byte {
-
 	ds := genRandDS(width, chunkSize)
 
 	// Sort the shares in the square based on their namespace
@@ -359,7 +358,6 @@ func genRandSortedDS(width int, chunkSize int, namespaceSize int) [][]byte {
 	})
 
 	return ds
-
 }
 
 // TestFlattened_EDS tests that eds.Flattened() returns all the shares in the

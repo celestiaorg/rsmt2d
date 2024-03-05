@@ -55,7 +55,8 @@ type nmtTree interface {
 // `ignoreMaxNamespace=true`. axisIndex is the index of the row or column that
 // this tree is committing to. squareSize must be greater than zero.
 func newErasuredNamespacedMerkleTree(squareSize uint64, axisIndex uint,
-	options ...nmt.Option) erasuredNamespacedMerkleTree {
+	options ...nmt.Option,
+) erasuredNamespacedMerkleTree {
 	if squareSize == 0 {
 		panic("cannot create a erasuredNamespacedMerkleTree of squareSize == 0")
 	}
