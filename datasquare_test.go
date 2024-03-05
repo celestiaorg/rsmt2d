@@ -423,17 +423,20 @@ func BenchmarkEDSRootsWithDefaultTree(b *testing.B) {
 }
 
 func BenchmarkEDSRootsWithErasuredNMT(b *testing.B) {
-	ODSSizeByteUpperBound := 1024 * 1024 * 1024 // converting 1024 MB to bytes
-	totalNumberOfShares := ODSSizeByteUpperBound / shareSize
-	oDSShareSizeUpperBound := int(math.Ceil(math.Sqrt(float64(
+	ODSSizeByteUpperBound := 1024 * 1024 * 1024 // converting 512 MB to bytes
+	totalNumberOfShares := float64(ODSSizeByteUpperBound) / shareSize
+	// the closest power of 2 of the square root of
+	// the total number of shares
+	oDSShareSizeUpperBound := math.Pow(2, math.Ceil(math.Log2(math.Sqrt(
 		totalNumberOfShares))))
 	namespaceIDSize := 29
-	for i := 32; i < oDSShareSizeUpperBound; i *= 2 {
+
+	for i := 32; i <= int(oDSShareSizeUpperBound); i *= 2 {
 		// generate an EDS with i*2 X i*2 dimensions in terms of shares
 		// the generated EDS does not conform to celestia-app specs in terms
-		// of namespace version, also  no  erasure encoding takes place
-		// yet none of these would affect the benchmarking
-		ds := genRandSortedDS(i*2, shareSize, 29)
+		// of namespace version, also no erasure encoding takes place
+		// yet none of these should impact the benchmarking
+		ds := genRandSortedDS(i*2, shareSize, namespaceIDSize)
 
 		// a tree constructor for erasured nmt
 		treeConstructor := newErasuredNamespacedMerkleTreeConstructor(uint64(i*2),
@@ -447,8 +450,8 @@ func BenchmarkEDSRootsWithErasuredNMT(b *testing.B) {
 		b.Run(
 			fmt.Sprintf("%dx%dx%d ODS=%dMB, EDS=%dMB", i, i,
 				int(square.chunkSize),
-				i*i*512/(1024*1024),
-				2*2*i*i*512/(1024*1024)),
+				i*i*shareSize/(1024*1024),
+				2*i*2*i*shareSize/(1024*1024)),
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
 					square.resetRoots()
