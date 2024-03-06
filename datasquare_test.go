@@ -423,7 +423,8 @@ func BenchmarkEDSRootsWithDefaultTree(b *testing.B) {
 }
 
 func BenchmarkEDSRootsWithErasuredNMT(b *testing.B) {
-	ODSSizeByteUpperBound := 512 * 1024 * 1024 // converting 512 MiB to bytes
+	const mebibyte = 1024 * 1024            // bytes
+	ODSSizeByteUpperBound := 512 * mebibyte // converting 512 MiB to bytes
 	totalNumberOfShares := float64(ODSSizeByteUpperBound) / shareSize
 	// the closest power of 2 of the square root of
 	// the total number of shares
@@ -431,9 +432,9 @@ func BenchmarkEDSRootsWithErasuredNMT(b *testing.B) {
 		totalNumberOfShares))))
 	namespaceIDSize := 29
 
-	for i := 32; i <= int(nearestPowerOf2ODSSize); i *= 2 {
+	for squareSize := 32; squareSize <= int(nearestPowerOf2ODSSize); squareSize *= 2 {
 		// number of shares in the original data square's row/column
-		odsSize := i
+		odsSize := squareSize
 		// number of shares in the extended data square's row/column
 		edsSize := 2 * odsSize
 		// generate an EDS with edsSize X edsSize dimensions in terms of shares.
@@ -443,20 +444,20 @@ func BenchmarkEDSRootsWithErasuredNMT(b *testing.B) {
 		ds := genRandSortedDS(edsSize, shareSize, namespaceIDSize)
 
 		// a tree constructor for erasured nmt
-		treeConstructor := newErasuredNamespacedMerkleTreeConstructor(uint64(i*2),
+		treeConstructor := newErasuredNamespacedMerkleTreeConstructor(uint64(edsSize),
 			nmt.NamespaceIDSize(namespaceIDSize), nmt.IgnoreMaxNamespace(true),
-			nmt.InitialCapacity(i*2))
+			nmt.InitialCapacity(odsSize*2))
 
 		square, err := newDataSquare(ds, treeConstructor, shareSize)
 		if err != nil {
-			b.Errorf("Failure to create square of size %d: %s", i, err)
+			b.Errorf("Failure to create square of size %d: %s", odsSize, err)
 		}
 		// the total size of the ODS in MiB
-		odsSizeMiBytes := i * i * shareSize / (1024 * 1024)
+		odsSizeMiBytes := odsSize * odsSize * shareSize / mebibyte
 		// the total size of the EDS in MiB
 		edsSizeMiBytes := 4 * odsSizeMiBytes
 		b.Run(
-			fmt.Sprintf("%dx%dx%d ODS=%dMB, EDS=%dMB", i, i,
+			fmt.Sprintf("%dx%dx%d ODS=%dMB, EDS=%dMB", odsSize, odsSize,
 				int(square.chunkSize),
 				odsSizeMiBytes, edsSizeMiBytes),
 			func(b *testing.B) {
