@@ -451,7 +451,9 @@ func BenchmarkEDSRootsWithErasuredNMT(b *testing.B) {
 		if err != nil {
 			b.Errorf("Failure to create square of size %d: %s", i, err)
 		}
-		odsSizeMiBytes := i * i * shareSize / (1024 * 1024) // size in MiB
+		// the total size of the ODS in MiB
+		odsSizeMiBytes := i * i * shareSize / (1024 * 1024)
+		// the total size of the EDS in MiB
 		edsSizeMiBytes := 4 * odsSizeMiBytes
 		b.Run(
 			fmt.Sprintf("%dx%dx%d ODS=%dMB, EDS=%dMB", i, i,
