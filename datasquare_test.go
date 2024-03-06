@@ -427,11 +427,11 @@ func BenchmarkEDSRootsWithErasuredNMT(b *testing.B) {
 	totalNumberOfShares := float64(ODSSizeByteUpperBound) / shareSize
 	// the closest power of 2 of the square root of
 	// the total number of shares
-	oDSShareSizeUpperBound := math.Pow(2, math.Ceil(math.Log2(math.Sqrt(
+	nearestPowerOf2ODSSize := math.Pow(2, math.Ceil(math.Log2(math.Sqrt(
 		totalNumberOfShares))))
 	namespaceIDSize := 29
 
-	for i := 32; i <= int(oDSShareSizeUpperBound); i *= 2 {
+	for i := 32; i <= int(nearestPowerOf2ODSSize); i *= 2 {
 		// number of shares in the original data square's row/column
 		odsSize := i
 		// number of shares in the extended data square's row/column
