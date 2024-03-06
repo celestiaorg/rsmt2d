@@ -423,7 +423,7 @@ func BenchmarkEDSRootsWithDefaultTree(b *testing.B) {
 }
 
 func BenchmarkEDSRootsWithErasuredNMT(b *testing.B) {
-	ODSSizeByteUpperBound := 1024 * 1024 * 1024 // converting 512 MB to bytes
+	ODSSizeByteUpperBound := 1024 * 1024 * 1024 // converting 512 MiB to bytes
 	totalNumberOfShares := float64(ODSSizeByteUpperBound) / shareSize
 	// the closest power of 2 of the square root of
 	// the total number of shares
