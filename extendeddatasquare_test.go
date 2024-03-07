@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -344,6 +345,18 @@ func genRandDS(width int, chunkSize int) [][]byte {
 		}
 		ds = append(ds, share)
 	}
+	return ds
+}
+
+func genRandSortedDS(width int, chunkSize int, namespaceSize int) [][]byte {
+	ds := genRandDS(width, chunkSize)
+
+	// Sort the shares in the square based on their namespace
+	sort.Slice(ds, func(i, j int) bool {
+		// Compare only the first  namespaceSize bytes
+		return bytes.Compare(ds[i][:namespaceSize], ds[j][:namespaceSize]) < 0
+	})
+
 	return ds
 }
 

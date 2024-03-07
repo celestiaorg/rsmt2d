@@ -3,10 +3,12 @@ package rsmt2d
 import (
 	"crypto/sha256"
 	"fmt"
+	"math"
 	"reflect"
 	"testing"
 
 	"github.com/celestiaorg/merkletree"
+	"github.com/celestiaorg/nmt"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -401,7 +403,7 @@ func Test_setColSlice(t *testing.T) {
 	}
 }
 
-func BenchmarkEDSRoots(b *testing.B) {
+func BenchmarkEDSRootsWithDefaultTree(b *testing.B) {
 	for i := 32; i < 513; i *= 2 {
 		square, err := newDataSquare(genRandDS(i*2, int(shareSize)), NewDefaultTree, shareSize)
 		if err != nil {
@@ -409,6 +411,55 @@ func BenchmarkEDSRoots(b *testing.B) {
 		}
 		b.Run(
 			fmt.Sprintf("%dx%dx%d ODS", i, i, int(square.chunkSize)),
+			func(b *testing.B) {
+				for n := 0; n < b.N; n++ {
+					square.resetRoots()
+					err := square.computeRoots()
+					assert.NoError(b, err)
+				}
+			},
+		)
+	}
+}
+
+func BenchmarkEDSRootsWithErasuredNMT(b *testing.B) {
+	const mebibyte = 1024 * 1024            // bytes
+	ODSSizeByteUpperBound := 512 * mebibyte // converting 512 MiB to bytes
+	totalNumberOfShares := float64(ODSSizeByteUpperBound) / shareSize
+	// the closest power of 2 of the square root of
+	// the total number of shares
+	nearestPowerOf2ODSSize := math.Pow(2, math.Ceil(math.Log2(math.Sqrt(
+		totalNumberOfShares))))
+	namespaceIDSize := 29
+
+	for squareSize := 32; squareSize <= int(nearestPowerOf2ODSSize); squareSize *= 2 {
+		// number of shares in the original data square's row/column
+		odsSize := squareSize
+		// number of shares in the extended data square's row/column
+		edsSize := 2 * odsSize
+		// generate an EDS with edsSize X edsSize dimensions in terms of shares.
+		// the generated EDS does not conform to celestia-app specs in terms
+		// of namespace version, also no erasure encoding takes place
+		// yet none of these should impact the benchmarking
+		ds := genRandSortedDS(edsSize, shareSize, namespaceIDSize)
+
+		// a tree constructor for erasured nmt
+		treeConstructor := newErasuredNamespacedMerkleTreeConstructor(uint64(edsSize),
+			nmt.NamespaceIDSize(namespaceIDSize), nmt.IgnoreMaxNamespace(true),
+			nmt.InitialCapacity(odsSize*2))
+
+		square, err := newDataSquare(ds, treeConstructor, shareSize)
+		if err != nil {
+			b.Errorf("Failure to create square of size %d: %s", odsSize, err)
+		}
+		// the total size of the ODS in MiB
+		odsSizeMiBytes := odsSize * odsSize * shareSize / mebibyte
+		// the total size of the EDS in MiB
+		edsSizeMiBytes := 4 * odsSizeMiBytes
+		b.Run(
+			fmt.Sprintf("%dx%dx%d ODS=%dMB, EDS=%dMB", odsSize, odsSize,
+				int(square.chunkSize),
+				odsSizeMiBytes, edsSizeMiBytes),
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
 					square.resetRoots()

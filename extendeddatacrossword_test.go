@@ -439,7 +439,7 @@ func createTestEdsWithNMT(t *testing.T, codec Codec, shareSize, namespaceSize in
 	edsWidth := 4            // number of shares per row/column in the extended data square
 	odsWidth := edsWidth / 2 // number of shares per row/column in the original data square
 
-	eds, err := ComputeExtendedDataSquare(shares, codec, newConstructor(uint64(odsWidth), nmt.NamespaceIDSize(namespaceSize)))
+	eds, err := ComputeExtendedDataSquare(shares, codec, newErasuredNamespacedMerkleTreeConstructor(uint64(odsWidth), nmt.NamespaceIDSize(namespaceSize)))
 	require.NoError(t, err)
 
 	return eds
