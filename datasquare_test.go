@@ -458,7 +458,7 @@ func BenchmarkEDSRootsWithErasuredNMT(b *testing.B) {
 		edsSizeMiBytes := 4 * odsSizeMiBytes
 		b.Run(
 			fmt.Sprintf("%dx%dx%d ODS=%dMB, EDS=%dMB", odsSize, odsSize,
-				int(square.chunkSize),
+				int(square.shareSize),
 				odsSizeMiBytes, edsSizeMiBytes),
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {

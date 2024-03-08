@@ -348,8 +348,8 @@ func genRandDS(width int, shareSize int) [][]byte {
 	return ds
 }
 
-func genRandSortedDS(width int, chunkSize int, namespaceSize int) [][]byte {
-	ds := genRandDS(width, chunkSize)
+func genRandSortedDS(width int, shareSize int, namespaceSize int) [][]byte {
+	ds := genRandDS(width, shareSize)
 
 	// Sort the shares in the square based on their namespace
 	sort.Slice(ds, func(i, j int) bool {
