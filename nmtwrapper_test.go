@@ -54,7 +54,9 @@ type nmtTree interface {
 // with an underlying NMT of namespace size `NamespaceSize` and with
 // `ignoreMaxNamespace=true`. axisIndex is the index of the row or column that
 // this tree is committing to. squareSize must be greater than zero.
-func newErasuredNamespacedMerkleTree(squareSize uint64, axisIndex uint, options ...nmt.Option) erasuredNamespacedMerkleTree {
+func newErasuredNamespacedMerkleTree(squareSize uint64, axisIndex uint,
+	options ...nmt.Option,
+) erasuredNamespacedMerkleTree {
 	if squareSize == 0 {
 		panic("cannot create a erasuredNamespacedMerkleTree of squareSize == 0")
 	}
@@ -73,10 +75,10 @@ type constructor struct {
 	opts       []nmt.Option
 }
 
-// newConstructor creates a tree constructor function as required by rsmt2d to
+// newErasuredNamespacedMerkleTreeConstructor creates a tree constructor function as required by rsmt2d to
 // calculate the data root. It creates that tree using the
 // erasuredNamespacedMerkleTree.
-func newConstructor(squareSize uint64, opts ...nmt.Option) TreeConstructorFn {
+func newErasuredNamespacedMerkleTreeConstructor(squareSize uint64, opts ...nmt.Option) TreeConstructorFn {
 	return constructor{
 		squareSize: squareSize,
 		opts:       opts,
