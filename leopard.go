@@ -32,16 +32,16 @@ func (l *LeoRSCodec) Encode(data [][]byte) ([][]byte, error) {
 		return nil, err
 	}
 
-	shards := make([][]byte, dataLen*2)
-	copy(shards, data)
-	for i := dataLen; i < len(shards); i++ {
-		shards[i] = make([]byte, len(data[0]))
+	shares := make([][]byte, dataLen*2)
+	copy(shares, data)
+	for i := dataLen; i < len(shares); i++ {
+		shares[i] = make([]byte, len(data[0]))
 	}
 
-	if err := enc.Encode(shards); err != nil {
+	if err := enc.Encode(shares); err != nil {
 		return nil, err
 	}
-	return shards[dataLen:], nil
+	return shares[dataLen:], nil
 }
 
 func (l *LeoRSCodec) Decode(data [][]byte) ([][]byte, error) {
@@ -67,7 +67,7 @@ func (l *LeoRSCodec) loadOrInitEncoder(dataLen int) (reedsolomon.Encoder, error)
 	return enc.(reedsolomon.Encoder), nil
 }
 
-// MaxChunks returns the max number of chunks this codec supports in a 2D
+// MaxChunks returns the max number of shares this codec supports in a 2D
 // original data square.
 func (l *LeoRSCodec) MaxChunks() int {
 	// klauspost/reedsolomon supports an EDS width of 65536. See:
@@ -75,7 +75,7 @@ func (l *LeoRSCodec) MaxChunks() int {
 	maxEDSWidth := 65536
 	// An EDS width of 65536 is an ODS width of 32768.
 	maxODSWidth := maxEDSWidth / 2
-	// The max number of chunks in a 2D original data square is 32768 * 32768.
+	// The max number of shares in a 2D original data square is 32768 * 32768.
 	return maxODSWidth * maxODSWidth
 }
 
@@ -84,12 +84,12 @@ func (l *LeoRSCodec) Name() string {
 }
 
 // ValidateChunkSize returns an error if this codec does not support
-// chunkSize. Returns nil if chunkSize is supported.
-func (l *LeoRSCodec) ValidateChunkSize(chunkSize int) error {
+// shareSize. Returns nil if shareSize is supported.
+func (l *LeoRSCodec) ValidateChunkSize(shareSize int) error {
 	// See https://github.com/catid/leopard/blob/22ddc7804998d31c8f1a2617ee720e063b1fa6cd/README.md?plain=1#L27
 	// See https://github.com/klauspost/reedsolomon/blob/fd3e6910a7e457563469172968f456ad9b7696b6/README.md?plain=1#L403
-	if chunkSize%64 != 0 {
-		return fmt.Errorf("chunkSize %v must be a multiple of 64 bytes", chunkSize)
+	if shareSize%64 != 0 {
+		return fmt.Errorf("shareSize %v must be a multiple of 64 bytes", shareSize)
 	}
 	return nil
 }

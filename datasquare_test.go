@@ -17,7 +17,7 @@ func TestNewDataSquare(t *testing.T) {
 		name      string
 		cells     [][]byte
 		expected  [][][]byte
-		chunkSize uint
+		shareSize uint
 	}{
 		{"1x1", [][]byte{{1, 2}}, [][][]byte{{{1, 2}}}, 2},
 		{"2x2", [][]byte{{1, 2}, {3, 4}, {5, 6}, {7, 8}}, [][][]byte{{{1, 2}, {3, 4}}, {{5, 6}, {7, 8}}}, 2},
@@ -25,7 +25,7 @@ func TestNewDataSquare(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			result, err := newDataSquare(test.cells, NewDefaultTree, test.chunkSize)
+			result, err := newDataSquare(test.cells, NewDefaultTree, test.shareSize)
 			if err != nil {
 				panic(err)
 			}
@@ -40,16 +40,16 @@ func TestInvalidDataSquareCreation(t *testing.T) {
 	tests := []struct {
 		name      string
 		cells     [][]byte
-		chunkSize uint
+		shareSize uint
 	}{
-		{"InconsistentChunkNumber", [][]byte{{1, 2}, {3, 4}, {5, 6}}, 2},
-		{"UnequalChunkSize", [][]byte{{1, 2}, {3, 4}, {5, 6}, {7}}, 2},
+		{"InconsistentShareNumber", [][]byte{{1, 2}, {3, 4}, {5, 6}}, 2},
+		{"UnequalShareSize", [][]byte{{1, 2}, {3, 4}, {5, 6}, {7}}, 2},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := newDataSquare(test.cells, NewDefaultTree, test.chunkSize)
+			_, err := newDataSquare(test.cells, NewDefaultTree, test.shareSize)
 			if err == nil {
-				t.Errorf("newDataSquare failed; chunks accepted with %v", test.name)
+				t.Errorf("newDataSquare failed; shares accepted with %v", test.name)
 			}
 		})
 	}
@@ -76,9 +76,9 @@ func TestSetCell(t *testing.T) {
 			wantErr:      true,
 		},
 		{
-			name:         "expect error if new cell is not the correct chunk size",
+			name:         "expect error if new cell is not the correct share size",
 			originalCell: nil,
-			newCell:      []byte{1, 2}, // incorrect chunk size
+			newCell:      []byte{1, 2}, // incorrect share size
 			wantErr:      true,
 		},
 	}
@@ -186,7 +186,7 @@ func TestInvalidSquareExtension(t *testing.T) {
 	}
 	err = ds.extendSquare(1, []byte{0})
 	if err == nil {
-		t.Errorf("extendSquare failed; error not returned when filler chunk size does not match data square chunk size")
+		t.Errorf("extendSquare failed; error not returned when filler share size does not match data square share size")
 	}
 }
 
@@ -318,7 +318,7 @@ func Test_setRowSlice(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "returns an error if the new row has an invalid chunk size",
+			name:    "returns an error if the new row has an invalid share size",
 			newRow:  [][]byte{{5, 6}},
 			x:       0,
 			y:       0,
@@ -374,7 +374,7 @@ func Test_setColSlice(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "returns an error if the new col has an invalid chunk size",
+			name:    "returns an error if the new col has an invalid share size",
 			newCol:  [][]byte{{5, 6}},
 			x:       0,
 			y:       0,
@@ -410,7 +410,7 @@ func BenchmarkEDSRootsWithDefaultTree(b *testing.B) {
 			b.Errorf("Failure to create square of size %d: %s", i, err)
 		}
 		b.Run(
-			fmt.Sprintf("%dx%dx%d ODS", i, i, int(square.chunkSize)),
+			fmt.Sprintf("%dx%dx%d ODS", i, i, int(square.shareSize)),
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
 					square.resetRoots()
@@ -458,7 +458,7 @@ func BenchmarkEDSRootsWithErasuredNMT(b *testing.B) {
 		edsSizeMiBytes := 4 * odsSizeMiBytes
 		b.Run(
 			fmt.Sprintf("%dx%dx%d ODS=%dMB, EDS=%dMB", odsSize, odsSize,
-				int(square.chunkSize),
+				int(square.shareSize),
 				odsSizeMiBytes, edsSizeMiBytes),
 			func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
@@ -521,8 +521,8 @@ func (d *errorTree) Root() ([]byte, error) {
 // setCell overwrites the contents of a specific cell. setCell does not perform
 // any input validation so most use cases should use `SetCell` instead of
 // `setCell`. This method exists strictly for testing.
-func (ds *dataSquare) setCell(x uint, y uint, newChunk []byte) {
-	ds.squareRow[x][y] = newChunk
-	ds.squareCol[y][x] = newChunk
+func (ds *dataSquare) setCell(x uint, y uint, newShare []byte) {
+	ds.squareRow[x][y] = newShare
+	ds.squareCol[y][x] = newShare
 	ds.resetRoots()
 }

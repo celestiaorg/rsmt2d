@@ -66,9 +66,9 @@ func TestComputeExtendedDataSquare(t *testing.T) {
 		})
 	}
 
-	t.Run("returns an error if chunkSize is not a multiple of 64", func(t *testing.T) {
-		chunk := bytes.Repeat([]byte{1}, 65)
-		_, err := ComputeExtendedDataSquare([][]byte{chunk}, NewLeoRSCodec(), NewDefaultTree)
+	t.Run("returns an error if shareSize is not a multiple of 64", func(t *testing.T) {
+		share := bytes.Repeat([]byte{1}, 65)
+		_, err := ComputeExtendedDataSquare([][]byte{share}, NewLeoRSCodec(), NewDefaultTree)
 		assert.Error(t, err)
 	})
 }
@@ -80,9 +80,9 @@ func TestImportExtendedDataSquare(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, eds.Flattened(), got.Flattened())
 	})
-	t.Run("returns an error if chunkSize is not a multiple of 64", func(t *testing.T) {
-		chunk := bytes.Repeat([]byte{1}, 65)
-		_, err := ImportExtendedDataSquare([][]byte{chunk}, NewLeoRSCodec(), NewDefaultTree)
+	t.Run("returns an error if shareSize is not a multiple of 64", func(t *testing.T) {
+		share := bytes.Repeat([]byte{1}, 65)
+		_, err := ImportExtendedDataSquare([][]byte{share}, NewLeoRSCodec(), NewDefaultTree)
 		assert.Error(t, err)
 	})
 }
@@ -119,11 +119,11 @@ func TestNewExtendedDataSquare(t *testing.T) {
 		_, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, shareSize)
 		assert.Error(t, err)
 	})
-	t.Run("returns an error if chunkSize is not a multiple of 64", func(t *testing.T) {
+	t.Run("returns an error if shareSize is not a multiple of 64", func(t *testing.T) {
 		edsWidth := uint(1)
-		chunkSize := uint(65)
+		shareSize := uint(65)
 
-		_, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, chunkSize)
+		_, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, shareSize)
 		assert.Error(t, err)
 	})
 	t.Run("returns a 4x4 EDS", func(t *testing.T) {
@@ -132,7 +132,7 @@ func TestNewExtendedDataSquare(t *testing.T) {
 		got, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, shareSize)
 		assert.NoError(t, err)
 		assert.Equal(t, edsWidth, got.width)
-		assert.Equal(t, uint(shareSize), got.chunkSize)
+		assert.Equal(t, uint(shareSize), got.shareSize)
 	})
 	t.Run("returns a 4x4 EDS that can be populated via SetCell", func(t *testing.T) {
 		edsWidth := uint(4)
@@ -140,20 +140,20 @@ func TestNewExtendedDataSquare(t *testing.T) {
 		got, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, shareSize)
 		assert.NoError(t, err)
 
-		chunk := bytes.Repeat([]byte{1}, int(shareSize))
-		err = got.SetCell(0, 0, chunk)
+		share := bytes.Repeat([]byte{1}, int(shareSize))
+		err = got.SetCell(0, 0, share)
 		assert.NoError(t, err)
-		assert.Equal(t, chunk, got.squareRow[0][0])
+		assert.Equal(t, share, got.squareRow[0][0])
 	})
-	t.Run("returns an error when SetCell is invoked on an EDS with a chunk that is not the correct size", func(t *testing.T) {
+	t.Run("returns an error when SetCell is invoked on an EDS with a share that is not the correct size", func(t *testing.T) {
 		edsWidth := uint(4)
-		incorrectChunkSize := shareSize + 1
+		incorrectShareSize := shareSize + 1
 
 		got, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, shareSize)
 		assert.NoError(t, err)
 
-		chunk := bytes.Repeat([]byte{1}, incorrectChunkSize)
-		err = got.SetCell(0, 0, chunk)
+		share := bytes.Repeat([]byte{1}, incorrectShareSize)
+		err = got.SetCell(0, 0, share)
 		assert.Error(t, err)
 	})
 }
@@ -282,7 +282,7 @@ func BenchmarkExtensionEncoding(b *testing.B) {
 	for i := 4; i < 513; i *= 2 {
 		for codecName, codec := range codecs {
 			if codec.MaxChunks() < i*i {
-				// Only test codecs that support this many chunks
+				// Only test codecs that support this many shares
 				continue
 			}
 
@@ -309,7 +309,7 @@ func BenchmarkExtensionWithRoots(b *testing.B) {
 	for i := 4; i < 513; i *= 2 {
 		for codecName, codec := range codecs {
 			if codec.MaxChunks() < i*i {
-				// Only test codecs that support this many chunks
+				// Only test codecs that support this many shares
 				continue
 			}
 
@@ -334,11 +334,11 @@ func BenchmarkExtensionWithRoots(b *testing.B) {
 
 // genRandDS make a datasquare of random data, with width describing the number
 // of shares on a single side of the ds
-func genRandDS(width int, chunkSize int) [][]byte {
+func genRandDS(width int, shareSize int) [][]byte {
 	var ds [][]byte
 	count := width * width
 	for i := 0; i < count; i++ {
-		share := make([]byte, chunkSize)
+		share := make([]byte, shareSize)
 		_, err := rand.Read(share)
 		if err != nil {
 			panic(err)
@@ -348,8 +348,8 @@ func genRandDS(width int, chunkSize int) [][]byte {
 	return ds
 }
 
-func genRandSortedDS(width int, chunkSize int, namespaceSize int) [][]byte {
-	ds := genRandDS(width, chunkSize)
+func genRandSortedDS(width int, shareSize int, namespaceSize int) [][]byte {
+	ds := genRandDS(width, shareSize)
 
 	// Sort the shares in the square based on their namespace
 	sort.Slice(ds, func(i, j int) bool {
@@ -407,7 +407,7 @@ func TestEquals(t *testing.T) {
 		unequalCodecs := createExampleEds(t, shareSize)
 		unequalCodecs.codec = newTestCodec()
 
-		unequalChunkSize := createExampleEds(t, shareSize*2)
+		unequalShareSize := createExampleEds(t, shareSize*2)
 
 		unequalEds, err := ComputeExtendedDataSquare([][]byte{ones}, NewLeoRSCodec(), NewDefaultTree)
 		require.NoError(t, err)
@@ -422,8 +422,8 @@ func TestEquals(t *testing.T) {
 				other: unequalCodecs,
 			},
 			{
-				name:  "unequal chunkSize",
-				other: unequalChunkSize,
+				name:  "unequal shareSize",
+				other: unequalShareSize,
 			},
 			{
 				name:  "unequalEds",
@@ -482,11 +482,11 @@ func TestRoots(t *testing.T) {
 	})
 }
 
-func createExampleEds(t *testing.T, chunkSize int) (eds *ExtendedDataSquare) {
-	ones := bytes.Repeat([]byte{1}, chunkSize)
-	twos := bytes.Repeat([]byte{2}, chunkSize)
-	threes := bytes.Repeat([]byte{3}, chunkSize)
-	fours := bytes.Repeat([]byte{4}, chunkSize)
+func createExampleEds(t *testing.T, shareSize int) (eds *ExtendedDataSquare) {
+	ones := bytes.Repeat([]byte{1}, shareSize)
+	twos := bytes.Repeat([]byte{2}, shareSize)
+	threes := bytes.Repeat([]byte{3}, shareSize)
+	fours := bytes.Repeat([]byte{4}, shareSize)
 	ods := [][]byte{
 		ones, twos,
 		threes, fours,

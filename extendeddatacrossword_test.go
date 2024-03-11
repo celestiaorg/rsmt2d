@@ -82,7 +82,7 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 func TestValidFraudProof(t *testing.T) {
 	codec := NewLeoRSCodec()
 
-	corruptChunk := bytes.Repeat([]byte{66}, shareSize)
+	corruptShare := bytes.Repeat([]byte{66}, shareSize)
 
 	original := createTestEds(codec, shareSize)
 
@@ -91,7 +91,7 @@ func TestValidFraudProof(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected err while copying original data: %v, codec: :%s", err, codec.Name())
 	}
-	corrupted.setCell(0, 0, corruptChunk)
+	corrupted.setCell(0, 0, corruptShare)
 	assert.NoError(t, err)
 
 	rowRoots, err := corrupted.getRowRoots()
@@ -122,7 +122,7 @@ func TestValidFraudProof(t *testing.T) {
 			t.Errorf("could not encode fraud proof shares; %v", fraudProof)
 		}
 		startIndex := len(rebuiltShares) - int(corrupted.originalDataWidth)
-		if bytes.Equal(flattenChunks(parityShares), flattenChunks(rebuiltShares[startIndex:])) {
+		if bytes.Equal(flattenShares(parityShares), flattenShares(rebuiltShares[startIndex:])) {
 			t.Errorf("invalid fraud proof %v", fraudProof)
 		}
 	}
@@ -131,7 +131,7 @@ func TestValidFraudProof(t *testing.T) {
 func TestCannotRepairSquareWithBadRoots(t *testing.T) {
 	codec := NewLeoRSCodec()
 
-	corruptChunk := bytes.Repeat([]byte{66}, shareSize)
+	corruptShare := bytes.Repeat([]byte{66}, shareSize)
 	original := createTestEds(codec, shareSize)
 
 	rowRoots, err := original.RowRoots()
@@ -140,7 +140,7 @@ func TestCannotRepairSquareWithBadRoots(t *testing.T) {
 	colRoots, err := original.ColRoots()
 	require.NoError(t, err)
 
-	original.setCell(0, 0, corruptChunk)
+	original.setCell(0, 0, corruptShare)
 	require.NoError(t, err)
 	err = original.Repair(rowRoots, colRoots)
 	if err == nil {
@@ -149,7 +149,7 @@ func TestCannotRepairSquareWithBadRoots(t *testing.T) {
 }
 
 func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
-	corruptChunk := bytes.Repeat([]byte{66}, shareSize)
+	corruptShare := bytes.Repeat([]byte{66}, shareSize)
 
 	tests := []struct {
 		name   string
@@ -157,24 +157,24 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 		values [][]byte
 	}{
 		{
-			name:   "corrupt a chunk in the original data square",
+			name:   "corrupt a share in the original data square",
 			coords: [][]uint{{0, 0}},
-			values: [][]byte{corruptChunk},
+			values: [][]byte{corruptShare},
 		},
 		{
-			name:   "corrupt a chunk in the extended data square",
+			name:   "corrupt a share in the extended data square",
 			coords: [][]uint{{0, 3}},
-			values: [][]byte{corruptChunk},
+			values: [][]byte{corruptShare},
 		},
 		{
-			name:   "corrupt a chunk at (0, 0) and delete shares from the rest of the row",
+			name:   "corrupt a share at (0, 0) and delete shares from the rest of the row",
 			coords: [][]uint{{0, 0}, {0, 1}, {0, 2}, {0, 3}},
-			values: [][]byte{corruptChunk, nil, nil, nil},
+			values: [][]byte{corruptShare, nil, nil, nil},
 		},
 		{
-			name:   "corrupt a chunk at (3, 0) and delete part of the first row ",
+			name:   "corrupt a share at (3, 0) and delete part of the first row ",
 			coords: [][]uint{{3, 0}, {0, 1}, {0, 2}, {0, 3}},
-			values: [][]byte{corruptChunk, nil, nil, nil},
+			values: [][]byte{corruptShare, nil, nil, nil},
 		},
 		{
 			// This test case sets all shares along the diagonal to nil so that
@@ -190,7 +190,7 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 			// O O _ O
 			// O O O _
 			coords: [][]uint{{0, 0}, {1, 1}, {2, 2}, {3, 3}, {0, 1}},
-			values: [][]byte{nil, nil, nil, nil, corruptChunk},
+			values: [][]byte{nil, nil, nil, nil, corruptShare},
 		},
 	}
 
@@ -221,7 +221,7 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 			var byzData *ErrByzantineData
 			assert.ErrorAs(t, err, &byzData, "did not return a ErrByzantineData for a bad col or row")
 			assert.NotEmpty(t, byzData.Shares)
-			assert.Contains(t, byzData.Shares, corruptChunk)
+			assert.Contains(t, byzData.Shares, corruptShare)
 		})
 	}
 }
@@ -231,7 +231,7 @@ func BenchmarkRepair(b *testing.B) {
 	for originalDataWidth := 4; originalDataWidth <= 512; originalDataWidth *= 2 {
 		codec := NewLeoRSCodec()
 		if codec.MaxChunks() < originalDataWidth*originalDataWidth {
-			// Only test codecs that support this many chunks
+			// Only test codecs that support this many shares
 			continue
 		}
 
