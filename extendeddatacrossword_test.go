@@ -491,9 +491,9 @@ func repairNewFromCorrupted(codec Codec, corrupted *ExtendedDataSquare, corrupte
 	}
 
 	// set corrupted share first
-	errX, errY := corruptedIdx/int(corrupted.Width()), corruptedIdx%int(corrupted.Width())
-	share := corrupted.GetCell(uint(errX), uint(errY))
-	err = square.SetCell(uint(errX), uint(errY), share)
+	corruptedX, corruptedY := corruptedIdx/int(corrupted.Width()), corruptedIdx%int(corrupted.Width())
+	share := corrupted.GetCell(uint(corruptedX), uint(corruptedY))
+	err = square.SetCell(uint(corruptedX), uint(corruptedY), share)
 	if err != nil {
 		return nil, fmt.Errorf("failure to set corrupted share: %w", err)
 	}
@@ -516,7 +516,7 @@ func repairNewFromCorrupted(codec Codec, corrupted *ExtendedDataSquare, corrupte
 		}
 		var errByz *ErrByzantineData
 		if errors.As(err, &errByz) {
-			err = checkErrByzantine(errByz, errX, errY)
+			err = checkErrByzantine(errByz, corruptedX, corruptedY)
 			if err != nil {
 				prettyPrintSamples(samples, corruptedIdx)
 			}
