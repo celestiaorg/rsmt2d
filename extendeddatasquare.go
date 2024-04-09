@@ -267,6 +267,9 @@ func (eds *ExtendedDataSquare) RowRoots() ([][]byte, error) {
 func deepCopy(original [][]byte) [][]byte {
 	dest := make([][]byte, len(original))
 	for i, cell := range original {
+		if cell == nil {
+			continue
+		}
 		dest[i] = make([]byte, len(cell))
 		copy(dest[i], cell)
 	}
