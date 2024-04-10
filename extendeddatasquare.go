@@ -280,7 +280,7 @@ func (eds *ExtendedDataSquare) Width() uint {
 
 // Flattened returns the extended data square as a flattened slice of bytes.
 func (eds *ExtendedDataSquare) Flattened() [][]byte {
-	return eds.dataSquare.Flattened()
+	return deepCopy(eds.dataSquare.Flattened())
 }
 
 // FlattenedODS returns the original data square as a flattened slice of bytes.
