@@ -335,7 +335,7 @@ func (ds *dataSquare) SetCell(x uint, y uint, newShare []byte) error {
 
 // Flattened returns the concatenated rows of the data square.
 func (ds *dataSquare) Flattened() [][]byte {
-	flattened := [][]byte(nil)
+	flattened := make([][]byte, 0, ds.width*ds.width)
 	for _, data := range ds.squareRow {
 		flattened = append(flattened, data...)
 	}
