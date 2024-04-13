@@ -471,6 +471,7 @@ func (eds *ExtendedDataSquare) computeSharesRootWithRebuiltShare(shares [][]byte
 	return tree.Root()
 }
 
+// verifyEncoding checks the Reed-Solomon encoding of the provided data.
 func (eds *ExtendedDataSquare) verifyEncoding(data [][]byte, rebuiltIndex int, rebuiltShare []byte) error {
 	data[rebuiltIndex] = rebuiltShare
 	half := len(data) / 2
