@@ -482,6 +482,23 @@ func TestRoots(t *testing.T) {
 	})
 }
 
+func TestDeepCopy(t *testing.T) {
+	original := make([][]byte, 16)
+	// fill first 8 shares with random data, leave the rest nil
+	for i := range original[:8] {
+		original[i] = make([]byte, 4)
+		_, err := rand.Read(original[i])
+		require.NoError(t, err)
+	}
+
+	copied := deepCopy(original)
+	require.Equal(t, original, copied)
+
+	// modify the original and ensure the copy is not affected
+	original[0][0]++
+	require.NotEqual(t, original, copied)
+}
+
 func createExampleEds(t *testing.T, shareSize int) (eds *ExtendedDataSquare) {
 	ones := bytes.Repeat([]byte{1}, shareSize)
 	twos := bytes.Repeat([]byte{2}, shareSize)
