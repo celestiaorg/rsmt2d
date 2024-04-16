@@ -138,10 +138,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 
 	// Prepare shares
 	shares := make([][]byte, eds.width)
-	vectorData := eds.row(uint(r))
-	for c := 0; c < int(eds.width); c++ {
-		shares[c] = vectorData[c]
-	}
+	copy(shares, eds.row(uint(r)))
 
 	// Attempt rebuild the row
 	rebuiltShares, isDecoded, err := eds.rebuildShares(shares)
@@ -177,6 +174,10 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 				}
 				return false, false, err
 			}
+
+			if eds.verifyEncoding(col, r, rebuiltShares[c]) != nil {
+				return false, false, &ErrByzantineData{Col, uint(c), col}
+			}
 		}
 	}
 
@@ -211,10 +212,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 
 	// Prepare shares
 	shares := make([][]byte, eds.width)
-	vectorData := eds.col(uint(c))
-	for r := 0; r < int(eds.width); r++ {
-		shares[r] = vectorData[r]
-	}
+	copy(shares, eds.col(uint(c)))
 
 	// Attempt rebuild
 	rebuiltShares, isDecoded, err := eds.rebuildShares(shares)
@@ -249,6 +247,10 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 					byzErr.Shares = shares
 				}
 				return false, false, err
+			}
+
+			if eds.verifyEncoding(row, c, rebuiltShares[r]) != nil {
+				return false, false, &ErrByzantineData{Row, uint(r), row}
 			}
 		}
 	}
@@ -467,4 +469,24 @@ func (eds *ExtendedDataSquare) computeSharesRootWithRebuiltShare(shares [][]byte
 		}
 	}
 	return tree.Root()
+}
+
+// verifyEncoding checks the Reed-Solomon encoding of the provided data.
+func (eds *ExtendedDataSquare) verifyEncoding(data [][]byte, rebuiltIndex int, rebuiltShare []byte) error {
+	data[rebuiltIndex] = rebuiltShare
+	half := len(data) / 2
+	original := data[:half]
+	parity, err := eds.codec.Encode(original)
+	if err != nil {
+		return err
+	}
+
+	for i := half; i < len(data); i++ {
+		if !bytes.Equal(data[i], parity[i-half]) {
+			data[rebuiltIndex] = nil
+			return errors.New("parity data does not match encoded data")
+		}
+	}
+
+	return nil
 }
