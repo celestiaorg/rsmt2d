@@ -295,8 +295,8 @@ func Test_setRowSlice(t *testing.T) {
 	type testCase struct {
 		name    string
 		newRow  [][]byte
-		x       uint
-		y       uint
+		rowIdx  uint
+		colIdx  uint
 		want    [][]byte
 		wantErr bool
 	}
@@ -304,31 +304,31 @@ func Test_setRowSlice(t *testing.T) {
 		{
 			name:    "overwrite the first row",
 			newRow:  [][]byte{{5}, {6}},
-			x:       0,
-			y:       0,
+			rowIdx:  0,
+			colIdx:  0,
 			want:    [][]byte{{5}, {6}, {3}, {4}},
 			wantErr: false,
 		},
 		{
 			name:    "overwrite the last row",
 			newRow:  [][]byte{{5}, {6}},
-			x:       1,
-			y:       0,
+			rowIdx:  1,
+			colIdx:  0,
 			want:    [][]byte{{1}, {2}, {5}, {6}},
 			wantErr: false,
 		},
 		{
 			name:    "returns an error if the new row has an invalid share size",
 			newRow:  [][]byte{{5, 6}},
-			x:       0,
-			y:       0,
+			rowIdx:  0,
+			colIdx:  0,
 			wantErr: true,
 		},
 		{
 			name:    "returns an error if the new row would surpass the data square's width",
 			newRow:  [][]byte{{5}, {6}},
-			x:       0,
-			y:       1,
+			rowIdx:  0,
+			colIdx:  1,
 			wantErr: true,
 		},
 	}
@@ -336,7 +336,7 @@ func Test_setRowSlice(t *testing.T) {
 	for _, tc := range testCases {
 		ds, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree, 1)
 		assert.NoError(t, err)
-		err = ds.setRowSlice(tc.x, tc.y, tc.newRow)
+		err = ds.setRowSlice(tc.rowIdx, tc.colIdx, tc.newRow)
 
 		if tc.wantErr {
 			assert.Error(t, err)
@@ -351,8 +351,8 @@ func Test_setColSlice(t *testing.T) {
 	type testCase struct {
 		name    string
 		newCol  [][]byte
-		x       uint
-		y       uint
+		rowIdx  uint
+		colIdx  uint
 		want    [][]byte
 		wantErr bool
 	}
@@ -360,31 +360,31 @@ func Test_setColSlice(t *testing.T) {
 		{
 			name:    "overwrite the first col",
 			newCol:  [][]byte{{5}, {6}},
-			x:       0,
-			y:       0,
+			rowIdx:  0,
+			colIdx:  0,
 			want:    [][]byte{{5}, {2}, {6}, {4}},
 			wantErr: false,
 		},
 		{
 			name:    "overwrite the last col",
 			newCol:  [][]byte{{5}, {6}},
-			x:       0,
-			y:       1,
+			rowIdx:  0,
+			colIdx:  1,
 			want:    [][]byte{{1}, {5}, {3}, {6}},
 			wantErr: false,
 		},
 		{
 			name:    "returns an error if the new col has an invalid share size",
 			newCol:  [][]byte{{5, 6}},
-			x:       0,
-			y:       0,
+			rowIdx:  0,
+			colIdx:  0,
 			wantErr: true,
 		},
 		{
 			name:    "returns an error if the new col would surpass the data square's width",
 			newCol:  [][]byte{{5}, {6}},
-			x:       1,
-			y:       0,
+			rowIdx:  1,
+			colIdx:  0,
 			wantErr: true,
 		},
 	}
@@ -392,7 +392,7 @@ func Test_setColSlice(t *testing.T) {
 	for _, tc := range testCases {
 		ds, err := newDataSquare([][]byte{{1}, {2}, {3}, {4}}, NewDefaultTree, 1)
 		assert.NoError(t, err)
-		err = ds.setColSlice(tc.x, tc.y, tc.newCol)
+		err = ds.setColSlice(tc.colIdx, tc.rowIdx, tc.newCol)
 
 		if tc.wantErr {
 			assert.Error(t, err)
@@ -471,9 +471,9 @@ func BenchmarkEDSRootsWithErasuredNMT(b *testing.B) {
 	}
 }
 
-func computeRowProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, uint, error) {
-	tree := ds.createTreeFn(Row, x)
-	data := ds.row(x)
+func computeRowProof(ds *dataSquare, rowIdx uint, colIdx uint) ([]byte, [][]byte, uint, uint, error) {
+	tree := ds.createTreeFn(Row, rowIdx)
+	data := ds.row(rowIdx)
 
 	for i := uint(0); i < ds.width; i++ {
 		err := tree.Push(data[i])
@@ -482,7 +482,7 @@ func computeRowProof(ds *dataSquare, x uint, y uint) ([]byte, [][]byte, uint, ui
 		}
 	}
 
-	merkleRoot, proof, proofIndex, numLeaves := treeProve(tree.(*DefaultTree), int(y))
+	merkleRoot, proof, proofIndex, numLeaves := treeProve(tree.(*DefaultTree), int(colIdx))
 	return merkleRoot, proof, uint(proofIndex), uint(numLeaves), nil
 }
 
@@ -521,8 +521,8 @@ func (d *errorTree) Root() ([]byte, error) {
 // setCell overwrites the contents of a specific cell. setCell does not perform
 // any input validation so most use cases should use `SetCell` instead of
 // `setCell`. This method exists strictly for testing.
-func (ds *dataSquare) setCell(x uint, y uint, newShare []byte) {
-	ds.squareRow[x][y] = newShare
-	ds.squareCol[y][x] = newShare
+func (ds *dataSquare) setCell(rowIdx uint, colIdx uint, newShare []byte) {
+	ds.squareRow[rowIdx][colIdx] = newShare
+	ds.squareCol[colIdx][rowIdx] = newShare
 	ds.resetRoots()
 }

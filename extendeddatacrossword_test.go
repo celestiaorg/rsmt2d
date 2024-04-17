@@ -210,9 +210,9 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 			assert.NoError(t, err)
 
 			for i, coords := range test.coords {
-				x := coords[0]
-				y := coords[1]
-				eds.setCell(x, y, test.values[i])
+				rowIdx := coords[0]
+				colIdx := coords[1]
+				eds.setCell(rowIdx, colIdx, test.values[i])
 			}
 
 			err = eds.Repair(rowRoots, colRoots)
@@ -406,9 +406,9 @@ func TestCorruptedEdsReturnsErrByzantineData_UnorderedShares(t *testing.T) {
 			assert.NotNil(t, corruptEds)
 			// corrupt it by setting the values at the given coordinates
 			for i, coords := range test.coords {
-				x := coords[0]
-				y := coords[1]
-				corruptEds.setCell(x, y, test.values[i])
+				rowIdx := coords[0]
+				colIdx := coords[1]
+				corruptEds.setCell(rowIdx, colIdx, test.values[i])
 			}
 
 			err = corruptEds.Repair(dAHeaderRoots, dAHeaderCols)

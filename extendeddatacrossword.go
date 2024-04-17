@@ -127,18 +127,18 @@ func (eds *ExtendedDataSquare) solveCrossword(
 // - if the row was previously unsolved and now solved
 // - an error if the repair is unsuccessful
 func (eds *ExtendedDataSquare) solveCrosswordRow(
-	r int,
+	rowIdx int,
 	rowRoots [][]byte,
 	colRoots [][]byte,
 ) (bool, bool, error) {
-	isComplete := noMissingData(eds.row(uint(r)), noShareInsertion)
+	isComplete := noMissingData(eds.row(uint(rowIdx)), noShareInsertion)
 	if isComplete {
 		return true, false, nil
 	}
 
 	// Prepare shares
 	shares := make([][]byte, eds.width)
-	copy(shares, eds.row(uint(r)))
+	copy(shares, eds.row(uint(rowIdx)))
 
 	// Attempt rebuild the row
 	rebuiltShares, isDecoded, err := eds.rebuildShares(shares)
@@ -150,7 +150,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	}
 
 	// Check that rebuilt shares matches appropriate root
-	err = eds.verifyAgainstRowRoots(rowRoots, uint(r), rebuiltShares, noShareInsertion, nil)
+	err = eds.verifyAgainstRowRoots(rowRoots, uint(rowIdx), rebuiltShares, noShareInsertion, nil)
 	if err != nil {
 		var byzErr *ErrByzantineData
 		if errors.As(err, &byzErr) {
@@ -160,13 +160,13 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	}
 
 	// Check that newly completed orthogonal vectors match their new merkle roots
-	for c := 0; c < int(eds.width); c++ {
-		col := eds.col(uint(c))
-		if col[r] != nil {
+	for colIdx := 0; colIdx < int(eds.width); colIdx++ {
+		col := eds.col(uint(colIdx))
+		if col[rowIdx] != nil {
 			continue // not newly completed
 		}
-		if noMissingData(col, r) { // completed
-			err := eds.verifyAgainstColRoots(colRoots, uint(c), col, r, rebuiltShares[c])
+		if noMissingData(col, rowIdx) { // completed
+			err := eds.verifyAgainstColRoots(colRoots, uint(colIdx), col, rowIdx, rebuiltShares[colIdx])
 			if err != nil {
 				var byzErr *ErrByzantineData
 				if errors.As(err, &byzErr) {
@@ -175,17 +175,17 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 				return false, false, err
 			}
 
-			if eds.verifyEncoding(col, r, rebuiltShares[c]) != nil {
-				return false, false, &ErrByzantineData{Col, uint(c), col}
+			if eds.verifyEncoding(col, rowIdx, rebuiltShares[colIdx]) != nil {
+				return false, false, &ErrByzantineData{Col, uint(colIdx), col}
 			}
 		}
 	}
 
 	// Insert rebuilt shares into square.
-	for c, s := range rebuiltShares {
-		cellToSet := eds.GetCell(uint(r), uint(c))
+	for colIdx, s := range rebuiltShares {
+		cellToSet := eds.GetCell(uint(rowIdx), uint(colIdx))
 		if cellToSet == nil {
-			err := eds.SetCell(uint(r), uint(c), s)
+			err := eds.SetCell(uint(rowIdx), uint(colIdx), s)
 			if err != nil {
 				return false, false, err
 			}
@@ -201,18 +201,18 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 // - if the column was previously unsolved and now solved
 // - an error if the repair is unsuccessful
 func (eds *ExtendedDataSquare) solveCrosswordCol(
-	c int,
+	colIdx int,
 	rowRoots [][]byte,
 	colRoots [][]byte,
 ) (bool, bool, error) {
-	isComplete := noMissingData(eds.col(uint(c)), noShareInsertion)
+	isComplete := noMissingData(eds.col(uint(colIdx)), noShareInsertion)
 	if isComplete {
 		return true, false, nil
 	}
 
 	// Prepare shares
 	shares := make([][]byte, eds.width)
-	copy(shares, eds.col(uint(c)))
+	copy(shares, eds.col(uint(colIdx)))
 
 	// Attempt rebuild
 	rebuiltShares, isDecoded, err := eds.rebuildShares(shares)
@@ -224,7 +224,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	}
 
 	// Check that rebuilt shares matches appropriate root
-	err = eds.verifyAgainstColRoots(colRoots, uint(c), rebuiltShares, noShareInsertion, nil)
+	err = eds.verifyAgainstColRoots(colRoots, uint(colIdx), rebuiltShares, noShareInsertion, nil)
 	if err != nil {
 		var byzErr *ErrByzantineData
 		if errors.As(err, &byzErr) {
@@ -234,13 +234,13 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	}
 
 	// Check that newly completed orthogonal vectors match their new merkle roots
-	for r := 0; r < int(eds.width); r++ {
-		row := eds.row(uint(r))
-		if row[c] != nil {
+	for rowIdx := 0; rowIdx < int(eds.width); rowIdx++ {
+		row := eds.row(uint(rowIdx))
+		if row[colIdx] != nil {
 			continue // not newly completed
 		}
-		if noMissingData(row, c) { // completed
-			err := eds.verifyAgainstRowRoots(rowRoots, uint(r), row, c, rebuiltShares[r])
+		if noMissingData(row, colIdx) { // completed
+			err := eds.verifyAgainstRowRoots(rowRoots, uint(rowIdx), row, colIdx, rebuiltShares[rowIdx])
 			if err != nil {
 				var byzErr *ErrByzantineData
 				if errors.As(err, &byzErr) {
@@ -249,17 +249,17 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 				return false, false, err
 			}
 
-			if eds.verifyEncoding(row, c, rebuiltShares[r]) != nil {
-				return false, false, &ErrByzantineData{Row, uint(r), row}
+			if eds.verifyEncoding(row, colIdx, rebuiltShares[rowIdx]) != nil {
+				return false, false, &ErrByzantineData{Row, uint(rowIdx), row}
 			}
 		}
 	}
 
 	// Insert rebuilt shares into square.
-	for r, s := range rebuiltShares {
-		cellToSet := eds.GetCell(uint(r), uint(c))
+	for rowIdx, s := range rebuiltShares {
+		cellToSet := eds.GetCell(uint(rowIdx), uint(colIdx))
 		if cellToSet == nil {
-			err := eds.SetCell(uint(r), uint(c), s)
+			err := eds.SetCell(uint(rowIdx), uint(colIdx), s)
 			if err != nil {
 				return false, false, err
 			}
@@ -289,7 +289,7 @@ func (eds *ExtendedDataSquare) rebuildShares(
 
 func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
 	rowRoots [][]byte,
-	r uint,
+	rowIdx uint,
 	oldShares [][]byte,
 	rebuiltIndex int,
 	rebuiltShare []byte,
@@ -297,19 +297,19 @@ func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
 	var root []byte
 	var err error
 	if rebuiltIndex < 0 || rebuiltShare == nil {
-		root, err = eds.computeSharesRoot(oldShares, Row, r)
+		root, err = eds.computeSharesRoot(oldShares, Row, rowIdx)
 	} else {
-		root, err = eds.computeSharesRootWithRebuiltShare(oldShares, Row, r, rebuiltIndex, rebuiltShare)
+		root, err = eds.computeSharesRootWithRebuiltShare(oldShares, Row, rowIdx, rebuiltIndex, rebuiltShare)
 	}
 	if err != nil {
 		// any error during the computation of the root is considered byzantine
 		// the shares are set to nil, as the caller will populate them
-		return &ErrByzantineData{Row, r, nil}
+		return &ErrByzantineData{Row, rowIdx, nil}
 	}
 
-	if !bytes.Equal(root, rowRoots[r]) {
+	if !bytes.Equal(root, rowRoots[rowIdx]) {
 		// the shares are set to nil, as the caller will populate them
-		return &ErrByzantineData{Row, r, nil}
+		return &ErrByzantineData{Row, rowIdx, nil}
 	}
 
 	return nil
@@ -323,7 +323,7 @@ func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
 // Returns a ErrByzantineData error if the computed root does not match the expected root or if the root computation fails.
 func (eds *ExtendedDataSquare) verifyAgainstColRoots(
 	colRoots [][]byte,
-	c uint,
+	colIdx uint,
 	shares [][]byte,
 	rebuiltIndex int,
 	rebuiltShare []byte,
@@ -331,18 +331,18 @@ func (eds *ExtendedDataSquare) verifyAgainstColRoots(
 	var root []byte
 	var err error
 	if rebuiltIndex < 0 || rebuiltShare == nil {
-		root, err = eds.computeSharesRoot(shares, Col, c)
+		root, err = eds.computeSharesRoot(shares, Col, colIdx)
 	} else {
-		root, err = eds.computeSharesRootWithRebuiltShare(shares, Col, c, rebuiltIndex, rebuiltShare)
+		root, err = eds.computeSharesRootWithRebuiltShare(shares, Col, colIdx, rebuiltIndex, rebuiltShare)
 	}
 	if err != nil {
 		// the shares are set to nil, as the caller will populate them
-		return &ErrByzantineData{Col, c, nil}
+		return &ErrByzantineData{Col, colIdx, nil}
 	}
 
-	if !bytes.Equal(root, colRoots[c]) {
+	if !bytes.Equal(root, colRoots[colIdx]) {
 		// the shares are set to nil, as the caller will populate them
-		return &ErrByzantineData{Col, c, nil}
+		return &ErrByzantineData{Col, colIdx, nil}
 	}
 
 	return nil

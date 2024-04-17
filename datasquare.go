@@ -44,21 +44,21 @@ func newDataSquare(data [][]byte, treeCreator TreeConstructorFn, shareSize uint)
 	}
 
 	squareRow := make([][][]byte, width)
-	for i := 0; i < width; i++ {
-		squareRow[i] = data[i*width : i*width+width]
+	for rowIdx := 0; rowIdx < width; rowIdx++ {
+		squareRow[rowIdx] = data[rowIdx*width : rowIdx*width+width]
 
-		for j := 0; j < width; j++ {
-			if squareRow[i][j] != nil && len(squareRow[i][j]) != int(shareSize) {
+		for colIdx := 0; colIdx < width; colIdx++ {
+			if squareRow[rowIdx][colIdx] != nil && len(squareRow[rowIdx][colIdx]) != int(shareSize) {
 				return nil, ErrUnevenChunks
 			}
 		}
 	}
 
 	squareCol := make([][][]byte, width)
-	for j := 0; j < width; j++ {
-		squareCol[j] = make([][]byte, width)
-		for i := 0; i < width; i++ {
-			squareCol[j][i] = data[i*width+j]
+	for colIdx := 0; colIdx < width; colIdx++ {
+		squareCol[colIdx] = make([][]byte, width)
+		for rowIdx := 0; rowIdx < width; rowIdx++ {
+			squareCol[colIdx][rowIdx] = data[rowIdx*width+colIdx]
 		}
 	}
 
@@ -106,10 +106,10 @@ func (ds *dataSquare) extendSquare(extendedWidth uint, fillerShare []byte) error
 	ds.squareRow = newSquareRow
 
 	newSquareCol := make([][][]byte, newWidth)
-	for j := uint(0); j < newWidth; j++ {
-		newSquareCol[j] = make([][]byte, newWidth)
-		for i := uint(0); i < newWidth; i++ {
-			newSquareCol[j][i] = newSquareRow[i][j]
+	for colIdx := uint(0); colIdx < newWidth; colIdx++ {
+		newSquareCol[colIdx] = make([][]byte, newWidth)
+		for rowIdx := uint(0); rowIdx < newWidth; rowIdx++ {
+			newSquareCol[colIdx][rowIdx] = newSquareRow[rowIdx][colIdx]
 		}
 	}
 	ds.squareCol = newSquareCol
@@ -120,33 +120,33 @@ func (ds *dataSquare) extendSquare(extendedWidth uint, fillerShare []byte) error
 	return nil
 }
 
-func (ds *dataSquare) rowSlice(x uint, y uint, length uint) [][]byte {
-	return ds.squareRow[x][y : y+length]
+func (ds *dataSquare) rowSlice(rowIdx uint, fromIdx uint, length uint) [][]byte {
+	return ds.squareRow[rowIdx][fromIdx : fromIdx+length]
 }
 
 // row returns a row slice.
 // Do not modify this slice directly, instead use SetCell.
-func (ds *dataSquare) row(x uint) [][]byte {
-	return ds.rowSlice(x, 0, ds.width)
+func (ds *dataSquare) row(rowIdx uint) [][]byte {
+	return ds.rowSlice(rowIdx, 0, ds.width)
 }
 
-func (ds *dataSquare) setRowSlice(x uint, y uint, newRow [][]byte) error {
+func (ds *dataSquare) setRowSlice(rowIdx uint, fromIdx uint, newRow [][]byte) error {
 	for i := uint(0); i < uint(len(newRow)); i++ {
 		if len(newRow[i]) != int(ds.shareSize) {
 			// TODO: export this error and rename chunk to share
 			return errors.New("invalid chunk size")
 		}
 	}
-	if y+uint(len(newRow)) > ds.width {
-		return fmt.Errorf("cannot set row slice at (%d, %d) of length %d: because it would exceed the data square width %d", x, y, len(newRow), ds.width)
+	if fromIdx+uint(len(newRow)) > ds.width {
+		return fmt.Errorf("cannot set row slice at (%d, %d) of length %d: because it would exceed the data square width %d", rowIdx, fromIdx, len(newRow), ds.width)
 	}
 
 	ds.dataMutex.Lock()
 	defer ds.dataMutex.Unlock()
 
 	for i := uint(0); i < uint(len(newRow)); i++ {
-		ds.squareRow[x][y+i] = newRow[i]
-		ds.squareCol[y+i][x] = newRow[i]
+		ds.squareRow[rowIdx][fromIdx+i] = newRow[i]
+		ds.squareCol[fromIdx+i][rowIdx] = newRow[i]
 	}
 
 	ds.resetRoots()
@@ -154,33 +154,33 @@ func (ds *dataSquare) setRowSlice(x uint, y uint, newRow [][]byte) error {
 	return nil
 }
 
-func (ds *dataSquare) colSlice(x uint, y uint, length uint) [][]byte {
-	return ds.squareCol[y][x : x+length]
+func (ds *dataSquare) colSlice(rowIdx uint, colIdx uint, length uint) [][]byte {
+	return ds.squareCol[colIdx][rowIdx : rowIdx+length]
 }
 
 // col returns a column slice.
 // Do not modify this slice directly, instead use SetCell.
-func (ds *dataSquare) col(y uint) [][]byte {
-	return ds.colSlice(0, y, ds.width)
+func (ds *dataSquare) col(colIdx uint) [][]byte {
+	return ds.colSlice(0, colIdx, ds.width)
 }
 
-func (ds *dataSquare) setColSlice(x uint, y uint, newCol [][]byte) error {
+func (ds *dataSquare) setColSlice(colIdx uint, fromIdx uint, newCol [][]byte) error {
 	for i := uint(0); i < uint(len(newCol)); i++ {
 		if len(newCol[i]) != int(ds.shareSize) {
 			// TODO: export this error and rename chunk to share
 			return errors.New("invalid chunk size")
 		}
 	}
-	if x+uint(len(newCol)) > ds.width {
-		return fmt.Errorf("cannot set col slice at (%d, %d) of length %d: because it would exceed the data square width %d", x, y, len(newCol), ds.width)
+	if fromIdx+uint(len(newCol)) > ds.width {
+		return fmt.Errorf("cannot set col slice at (%d, %d) of length %d: because it would exceed the data square width %d", fromIdx, colIdx, len(newCol), ds.width)
 	}
 
 	ds.dataMutex.Lock()
 	defer ds.dataMutex.Unlock()
 
 	for i := uint(0); i < uint(len(newCol)); i++ {
-		ds.squareRow[x+i][y] = newCol[i]
-		ds.squareCol[y][x+i] = newCol[i]
+		ds.squareRow[fromIdx+i][colIdx] = newCol[i]
+		ds.squareCol[colIdx][fromIdx+i] = newCol[i]
 	}
 
 	ds.resetRoots()
@@ -252,13 +252,13 @@ func (ds *dataSquare) getRowRoots() ([][]byte, error) {
 // getRowRoot calculates and returns the root of the selected row. Note: unlike
 // the getRowRoots method, getRowRoot does not write to the built-in cache.
 // Returns an error if the row is incomplete (i.e. some shares are nil).
-func (ds *dataSquare) getRowRoot(x uint) ([]byte, error) {
+func (ds *dataSquare) getRowRoot(rowIdx uint) ([]byte, error) {
 	if ds.rowRoots != nil {
-		return ds.rowRoots[x], nil
+		return ds.rowRoots[rowIdx], nil
 	}
 
-	tree := ds.createTreeFn(Row, x)
-	row := ds.row(x)
+	tree := ds.createTreeFn(Row, rowIdx)
+	row := ds.row(rowIdx)
 	if !isComplete(row) {
 		return nil, errors.New("can not compute root of incomplete row")
 	}
@@ -287,13 +287,13 @@ func (ds *dataSquare) getColRoots() ([][]byte, error) {
 // getColRoot calculates and returns the root of the selected row. Note: unlike
 // the getColRoots method, getColRoot does not write to the built-in cache.
 // Returns an error if the column is incomplete (i.e. some shares are nil).
-func (ds *dataSquare) getColRoot(y uint) ([]byte, error) {
+func (ds *dataSquare) getColRoot(colIdx uint) ([]byte, error) {
 	if ds.colRoots != nil {
-		return ds.colRoots[y], nil
+		return ds.colRoots[colIdx], nil
 	}
 
-	tree := ds.createTreeFn(Col, y)
-	col := ds.col(y)
+	tree := ds.createTreeFn(Col, colIdx)
+	col := ds.col(colIdx)
 	if !isComplete(col) {
 		return nil, errors.New("can not compute root of incomplete column")
 	}
@@ -308,27 +308,27 @@ func (ds *dataSquare) getColRoot(y uint) ([]byte, error) {
 }
 
 // GetCell returns a copy of a specific cell.
-func (ds *dataSquare) GetCell(x uint, y uint) []byte {
-	if ds.squareRow[x][y] == nil {
+func (ds *dataSquare) GetCell(rowIdx uint, colIdx uint) []byte {
+	if ds.squareRow[rowIdx][colIdx] == nil {
 		return nil
 	}
 	cell := make([]byte, ds.shareSize)
-	copy(cell, ds.squareRow[x][y])
+	copy(cell, ds.squareRow[rowIdx][colIdx])
 	return cell
 }
 
 // SetCell sets a specific cell. The cell to set must be `nil`. Returns an error
 // if the cell to set is not `nil` or newShare is not the correct size.
-func (ds *dataSquare) SetCell(x uint, y uint, newShare []byte) error {
-	if ds.squareRow[x][y] != nil {
-		return fmt.Errorf("cannot set cell (%d, %d) as it already has a value %x", x, y, ds.squareRow[x][y])
+func (ds *dataSquare) SetCell(rowIdx uint, colIdx uint, newShare []byte) error {
+	if ds.squareRow[rowIdx][colIdx] != nil {
+		return fmt.Errorf("cannot set cell (%d, %d) as it already has a value %x", rowIdx, colIdx, ds.squareRow[rowIdx][colIdx])
 	}
 	if len(newShare) != int(ds.shareSize) {
 		// TODO: export this error and rename chunk to share
 		return fmt.Errorf("cannot set cell with chunk size %d because dataSquare chunk size is %d", len(newShare), ds.shareSize)
 	}
-	ds.squareRow[x][y] = newShare
-	ds.squareCol[y][x] = newShare
+	ds.squareRow[rowIdx][colIdx] = newShare
+	ds.squareCol[colIdx][rowIdx] = newShare
 	ds.resetRoots()
 	return nil
 }
