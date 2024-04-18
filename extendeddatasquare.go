@@ -211,20 +211,20 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 	return errs.Wait()
 }
 
-func (eds *ExtendedDataSquare) erasureExtendRow(codec Codec, i uint) error {
-	parityShares, err := codec.Encode(eds.rowSlice(i, 0, eds.originalDataWidth))
+func (eds *ExtendedDataSquare) erasureExtendRow(codec Codec, rowIdx uint) error {
+	parityShares, err := codec.Encode(eds.rowSlice(rowIdx, 0, eds.originalDataWidth))
 	if err != nil {
 		return err
 	}
-	return eds.setRowSlice(i, eds.originalDataWidth, parityShares)
+	return eds.setRowSlice(rowIdx, eds.originalDataWidth, parityShares)
 }
 
-func (eds *ExtendedDataSquare) erasureExtendCol(codec Codec, i uint) error {
-	parityShares, err := codec.Encode(eds.colSlice(0, i, eds.originalDataWidth))
+func (eds *ExtendedDataSquare) erasureExtendCol(codec Codec, colIdx uint) error {
+	parityShares, err := codec.Encode(eds.colSlice(0, colIdx, eds.originalDataWidth))
 	if err != nil {
 		return err
 	}
-	return eds.setColSlice(eds.originalDataWidth, i, parityShares)
+	return eds.setColSlice(colIdx, eds.originalDataWidth, parityShares)
 }
 
 func (eds *ExtendedDataSquare) deepCopy(codec Codec) (ExtendedDataSquare, error) {
@@ -234,8 +234,8 @@ func (eds *ExtendedDataSquare) deepCopy(codec Codec) (ExtendedDataSquare, error)
 
 // Col returns a column slice.
 // This slice is a copy of the internal column slice.
-func (eds *ExtendedDataSquare) Col(y uint) [][]byte {
-	return deepCopy(eds.col(y))
+func (eds *ExtendedDataSquare) Col(colIdx uint) [][]byte {
+	return deepCopy(eds.col(colIdx))
 }
 
 // ColRoots returns the Merkle roots of all the columns in the square. Returns
@@ -250,8 +250,8 @@ func (eds *ExtendedDataSquare) ColRoots() ([][]byte, error) {
 
 // Row returns a row slice.
 // This slice is a copy of the internal row slice.
-func (eds *ExtendedDataSquare) Row(x uint) [][]byte {
-	return deepCopy(eds.row(x))
+func (eds *ExtendedDataSquare) Row(rowIdx uint) [][]byte {
+	return deepCopy(eds.row(rowIdx))
 }
 
 // RowRoots returns the Merkle roots of all the rows in the square. Returns an
@@ -289,10 +289,10 @@ func (eds *ExtendedDataSquare) Flattened() [][]byte {
 // FlattenedODS returns the original data square as a flattened slice of bytes.
 func (eds *ExtendedDataSquare) FlattenedODS() (flattened [][]byte) {
 	flattened = make([][]byte, eds.originalDataWidth*eds.originalDataWidth)
-	for i := uint(0); i < eds.originalDataWidth; i++ {
-		row := eds.Row(i)
-		for j := uint(0); j < eds.originalDataWidth; j++ {
-			flattened[(i*eds.originalDataWidth)+j] = row[j]
+	for rowIdx := uint(0); rowIdx < eds.originalDataWidth; rowIdx++ {
+		row := eds.Row(rowIdx)
+		for colIdx := uint(0); colIdx < eds.originalDataWidth; colIdx++ {
+			flattened[(rowIdx*eds.originalDataWidth)+colIdx] = row[colIdx]
 		}
 	}
 	return flattened
@@ -313,12 +313,12 @@ func (eds *ExtendedDataSquare) Equals(other *ExtendedDataSquare) bool {
 		return false
 	}
 
-	for rowIndex := uint(0); rowIndex < eds.Width(); rowIndex++ {
-		edsRow := eds.Row(rowIndex)
-		otherRow := other.Row(rowIndex)
+	for rowIdx := uint(0); rowIdx < eds.Width(); rowIdx++ {
+		edsRow := eds.Row(rowIdx)
+		otherRow := other.Row(rowIdx)
 
-		for colIndex := 0; colIndex < len(edsRow); colIndex++ {
-			if !bytes.Equal(edsRow[colIndex], otherRow[colIndex]) {
+		for colIdx := 0; colIdx < len(edsRow); colIdx++ {
+			if !bytes.Equal(edsRow[colIdx], otherRow[colIdx]) {
 				return false
 			}
 		}
