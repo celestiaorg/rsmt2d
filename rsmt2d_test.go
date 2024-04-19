@@ -56,13 +56,13 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 			flattened[12], flattened[13] = nil, nil
 
 			// Re-import the data square.
-			eds, err = rsmt2d.ImportExtendedDataSquare(flattened, tt.codec, rsmt2d.NewDefaultTree)
+			newEds, err := rsmt2d.ImportExtendedDataSquare(flattened, tt.codec, rsmt2d.NewDefaultTree)
 			if err != nil {
 				t.Errorf("ImportExtendedDataSquare failed: %v", err)
 			}
 
 			// Repair square.
-			err = eds.Repair(
+			err = newEds.Repair(
 				rowRoots,
 				colRoots,
 			)
@@ -70,6 +70,9 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 				// err contains information to construct a fraud proof
 				// See extendeddatacrossword_test.go
 				t.Errorf("RepairExtendedDataSquare failed: %v", err)
+			}
+			if !newEds.Equals(eds) {
+				t.Errorf("Repaired ExtendedDataSquare does not match original")
 			}
 		})
 	}

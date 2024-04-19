@@ -378,11 +378,8 @@ func (eds *ExtendedDataSquare) preRepairSanityCheck(
 				return nil
 			})
 			errs.Go(func() error {
-				parityShares, err := eds.codec.Encode(eds.rowSlice(i, 0, eds.originalDataWidth))
+				err := eds.verifyEncoding(eds.row(i), noShareInsertion, nil)
 				if err != nil {
-					return err
-				}
-				if !bytes.Equal(flattenShares(parityShares), flattenShares(eds.rowSlice(i, eds.originalDataWidth, eds.originalDataWidth))) {
 					return &ErrByzantineData{Row, i, eds.row(i)}
 				}
 				return nil
@@ -407,12 +404,8 @@ func (eds *ExtendedDataSquare) preRepairSanityCheck(
 				return nil
 			})
 			errs.Go(func() error {
-				// check if we take the first half of the col and encode it, we get the second half
-				parityShares, err := eds.codec.Encode(eds.colSlice(0, i, eds.originalDataWidth))
+				err := eds.verifyEncoding(eds.col(i), noShareInsertion, nil)
 				if err != nil {
-					return err
-				}
-				if !bytes.Equal(flattenShares(parityShares), flattenShares(eds.colSlice(eds.originalDataWidth, i, eds.originalDataWidth))) {
 					return &ErrByzantineData{Col, i, eds.col(i)}
 				}
 				return nil
@@ -473,7 +466,14 @@ func (eds *ExtendedDataSquare) computeSharesRootWithRebuiltShare(shares [][]byte
 
 // verifyEncoding checks the Reed-Solomon encoding of the provided data.
 func (eds *ExtendedDataSquare) verifyEncoding(data [][]byte, rebuiltIndex int, rebuiltShare []byte) error {
-	data[rebuiltIndex] = rebuiltShare
+	if rebuiltShare != nil && rebuiltIndex >= 0 {
+		data[rebuiltIndex] = rebuiltShare
+		defer func() {
+			// revert the change to the data slice after the verification
+			data[rebuiltIndex] = nil
+		}()
+	}
+
 	half := len(data) / 2
 	original := data[:half]
 	parity, err := eds.codec.Encode(original)
@@ -483,10 +483,8 @@ func (eds *ExtendedDataSquare) verifyEncoding(data [][]byte, rebuiltIndex int, r
 
 	for i := half; i < len(data); i++ {
 		if !bytes.Equal(data[i], parity[i-half]) {
-			data[rebuiltIndex] = nil
 			return errors.New("parity data does not match encoded data")
 		}
 	}
-
 	return nil
 }
