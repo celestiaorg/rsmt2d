@@ -78,6 +78,39 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 			t.Errorf("did not return an error on trying to repair an unrepairable square")
 		}
 	})
+
+	t.Run("repair in random order", func(t *testing.T) {
+		for i := 0; i < 100; i++ {
+			newEds, err := NewExtendedDataSquare(codec, NewDefaultTree, original.Width(), shareSize)
+			require.NoError(t, err)
+			// Randomly set shares in the newEds from the original and repair.
+			for {
+				x := rand.Intn(int(original.Width()))
+				y := rand.Intn(int(original.Width()))
+				if newEds.GetCell(uint(x), uint(y)) != nil {
+					continue
+				}
+				err = newEds.SetCell(uint(x), uint(y), original.GetCell(uint(x), uint(y)))
+				require.NoError(t, err)
+
+				// Repair square.
+				err = newEds.Repair(rowRoots, colRoots)
+				if errors.Is(err, ErrUnrepairableDataSquare) {
+					continue
+				}
+				require.NoError(t, err)
+				break
+			}
+
+			require.True(t, newEds.Equals(original))
+			newRowRoots, err := newEds.RowRoots()
+			require.NoError(t, err)
+			require.Equal(t, rowRoots, newRowRoots)
+			newColRoots, err := newEds.ColRoots()
+			require.NoError(t, err)
+			require.Equal(t, colRoots, newColRoots)
+		}
+	})
 }
 
 func TestValidFraudProof(t *testing.T) {
