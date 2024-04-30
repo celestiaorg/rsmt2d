@@ -21,7 +21,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: golangci/golangci-lint-action@v5.0.0
+      - uses: golangci/golangci-lint-action@v5.1.0
         with:
           version: v1.54.0
           args: --timeout 10m
