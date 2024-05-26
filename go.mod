@@ -5,18 +5,14 @@ go 1.21
 require (
 	github.com/celestiaorg/merkletree v0.0.0-20210714075610-a84dc3ddbbe4
 	github.com/celestiaorg/nmt v0.20.0
-	github.com/stretchr/testify v1.9.0
-)
-
-require (
 	github.com/klauspost/reedsolomon v1.12.1
+	github.com/stretchr/testify v1.9.0
 	golang.org/x/sync v0.7.0
 )
 
-require github.com/gogo/protobuf v1.3.2 // indirect
-
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.6 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
