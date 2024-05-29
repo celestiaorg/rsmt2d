@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/celestiaorg/merkletree v0.0.0-20210714075610-a84dc3ddbbe4
-	github.com/celestiaorg/nmt v0.20.0
+	github.com/celestiaorg/nmt v0.21.0
 	github.com/klauspost/reedsolomon v1.12.1
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/sync v0.7.0
