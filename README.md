@@ -41,6 +41,15 @@ func main() {
         // ComputeExtendedDataSquare failed
     }
 
+    rowRoots, err := eds.RowRoots()
+    if err != nil {
+	// RowRoots failed
+    }
+    colRoots, err := eds.ColRoots()
+    if err != nil {
+	// ColRoots failed
+    }
+
     flattened := eds.Flattened()
 
     // Delete some shares, just enough so that repairing is possible.
@@ -56,9 +65,9 @@ func main() {
     }
 
     // Repair square.
-    err := eds.Repair(
-        eds.RowRoots(),
-        eds.ColRoots(),
+    err = eds.Repair(
+        rowRoots,
+        colRoots,
     )
     if err != nil {
         // err contains information to construct a fraud proof
