@@ -36,7 +36,7 @@ jobs:
         run: |
           GOARCH=${{ matrix.goarch }} go test ./... -mod=readonly -timeout 8m -race -coverprofile=coverage.txt -covermode=atomic
         if: env.GIT_DIFF
-      - uses: codecov/codecov-action@v4.6.0
+      - uses: codecov/codecov-action@v5.1.2
         with:
           file: ./coverage.txt
         if: env.GIT_DIFF
