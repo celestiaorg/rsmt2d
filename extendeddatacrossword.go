@@ -155,6 +155,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 		var byzErr *ErrByzantineData
 		if errors.As(err, &byzErr) {
 			byzErr.Shares = shares
+			return false, false, byzErr
 		}
 		return false, false, err
 	}
@@ -229,6 +230,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 		var byzErr *ErrByzantineData
 		if errors.As(err, &byzErr) {
 			byzErr.Shares = shares
+			return false, false, byzErr
 		}
 		return false, false, err
 	}
