@@ -1,6 +1,6 @@
 # rsmt2d
 
-Go implementation of [two dimensional Reed-Solomon Merkle tree data availability scheme](https://arxiv.org/abs/1809.09044).
+Go and Rust implementation of [two dimensional Reed-Solomon Merkle tree data availability scheme](https://arxiv.org/abs/1809.09044).
 
 [![Tests](https://github.com/celestiaorg/rsmt2d/actions/workflows/ci.yml/badge.svg)](https://github.com/celestiaorg/rsmt2d/actions/workflows/ci.yml)
 [![Codecov](https://img.shields.io/codecov/c/github/celestiaorg/rsmt2d)](https://app.codecov.io/gh/celestiaorg/rsmt2d)
@@ -76,12 +76,52 @@ func main() {
 }
 ```
 
+## Rust Implementation
+
+This repository contains both Go and Rust implementations of the rsmt2d library. The Rust implementation provides the same core functionality as the Go version:
+
+- Data square construction and manipulation
+- Reed-Solomon encoding/decoding (placeholder implementation)
+- Merkle tree operations (placeholder implementation)
+- Extended data square with repair functionality (placeholder implementation)
+
+The Rust implementation is currently in early development with placeholder implementations for Reed-Solomon codec and repair algorithms. This provides a foundation for a complete Rust port while maintaining the existing Go functionality.
+
+### Rust Example
+
+```rust
+use rsmt2d::{ExtendedDataSquare, LeoRSCodec, new_default_tree};
+
+// Create some example data
+let data = vec![
+    vec![1, 2], vec![3, 4],
+    vec![5, 6], vec![7, 8],
+];
+
+// Import as extended data square
+let codec = Box::new(LeoRSCodec::new());
+let mut eds = ExtendedDataSquare::import(data, codec, new_default_tree)?;
+
+// Get roots (when implementations are complete)
+let row_roots = eds.row_roots()?;
+let col_roots = eds.col_roots()?;
+```
+
 ## Contributing
+
+### Go Development
 
 1. [Install Go](https://go.dev/doc/install) 1.21+
 1. [Install golangci-lint](https://golangci-lint.run/usage/install/)
 
+### Rust Development
+
+1. [Install Rust](https://rustup.rs/) 1.86+
+1. Run `cargo --version` to verify installation
+
 ### Helpful Commands
+
+#### Go Commands
 
 ```sh
 # Run unit tests
@@ -92,6 +132,22 @@ go test -benchmem -bench=.
 
 # Run linter
 golangci-lint run
+```
+
+#### Rust Commands
+
+```sh
+# Run unit tests
+cargo test
+
+# Run benchmarks
+cargo bench
+
+# Run linter
+cargo clippy
+
+# Build
+cargo build
 ```
 
 ## Audits

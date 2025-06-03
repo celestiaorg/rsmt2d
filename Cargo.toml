@@ -1,0 +1,16 @@
+[package]
+name = "rsmt2d"
+version = "0.1.0"
+edition = "2021"
+description = "Rust implementation of two dimensional Reed-Solomon Merkle tree data availability scheme"
+license = "Apache-2.0"
+repository = "https://github.com/celestiaorg/rsmt2d"
+
+[dependencies]
+thiserror = "2.0"
+
+[dev-dependencies]
+
+[lib]
+name = "rsmt2d"
+path = "src/lib.rs"
