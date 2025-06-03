@@ -158,64 +158,6 @@ func TestNewExtendedDataSquare(t *testing.T) {
 	})
 }
 
-func TestImmutableRoots(t *testing.T) {
-	codec := NewLeoRSCodec()
-	result, err := ComputeExtendedDataSquare([][]byte{
-		ones, twos,
-		threes, fours,
-	}, codec, NewDefaultTree)
-	if err != nil {
-		panic(err)
-	}
-
-	mutatedRowRoots, err := result.RowRoots()
-	assert.NoError(t, err)
-
-	mutatedRowRoots[0][0]++ // mutate
-
-	rowRoots, err := result.RowRoots()
-	assert.NoError(t, err)
-
-	if reflect.DeepEqual(mutatedRowRoots, rowRoots) {
-		t.Errorf("Exported EDS RowRoots was mutable")
-	}
-
-	mutatedColRoots, err := result.ColRoots()
-	assert.NoError(t, err)
-
-	mutatedColRoots[0][0]++ // mutate
-
-	colRoots, err := result.ColRoots()
-	assert.NoError(t, err)
-
-	if reflect.DeepEqual(mutatedColRoots, colRoots) {
-		t.Errorf("Exported EDS ColRoots was mutable")
-	}
-}
-
-func TestEDSRowColImmutable(t *testing.T) {
-	codec := NewLeoRSCodec()
-	result, err := ComputeExtendedDataSquare([][]byte{
-		ones, twos,
-		threes, fours,
-	}, codec, NewDefaultTree)
-	if err != nil {
-		panic(err)
-	}
-
-	row := result.Row(0)
-	row[0][0]++
-	if reflect.DeepEqual(row, result.Row(0)) {
-		t.Errorf("Exported EDS Row was mutable")
-	}
-
-	col := result.Col(0)
-	col[0][0]++
-	if reflect.DeepEqual(col, result.Col(0)) {
-		t.Errorf("Exported EDS Col was mutable")
-	}
-}
-
 func TestRowRoots(t *testing.T) {
 	t.Run("returns row roots for a 4x4 EDS", func(t *testing.T) {
 		eds, err := ComputeExtendedDataSquare([][]byte{
@@ -497,6 +439,100 @@ func TestDeepCopy(t *testing.T) {
 	// modify the original and ensure the copy is not affected
 	original[0][0]++
 	require.NotEqual(t, original, copied)
+}
+
+// TestDirectReferences verifies that the exported methods return direct references
+// to internal data for performance reasons, and demonstrates how to use deepCopy
+// when modification is needed.
+func TestDirectReferences(t *testing.T) {
+	codec := NewLeoRSCodec()
+	eds, err := ComputeExtendedDataSquare([][]byte{
+		ones, twos,
+		threes, fours,
+	}, codec, NewDefaultTree)
+	require.NoError(t, err)
+
+	t.Run("Row returns direct reference", func(t *testing.T) {
+		row1 := eds.Row(0)
+		row2 := eds.Row(0)
+
+		// Should be the same underlying slice (direct reference)
+		require.True(t, &row1[0] == &row2[0], "Row() should return direct references")
+
+		// If caller needs to modify, they should use deepCopy
+		rowCopy := deepCopy(row1)
+		rowCopy[0][0]++ // safe to modify
+
+		// Original should be unchanged
+		require.NotEqual(t, rowCopy[0][0], row1[0][0])
+	})
+
+	t.Run("Col returns direct reference", func(t *testing.T) {
+		col1 := eds.Col(0)
+		col2 := eds.Col(0)
+
+		// Should be the same underlying slice (direct reference)
+		require.True(t, &col1[0] == &col2[0], "Col() should return direct references")
+
+		// If caller needs to modify, they should use deepCopy
+		colCopy := deepCopy(col1)
+		colCopy[0][0]++ // safe to modify
+
+		// Original should be unchanged
+		require.NotEqual(t, colCopy[0][0], col1[0][0])
+	})
+
+	t.Run("RowRoots returns direct reference", func(t *testing.T) {
+		roots1, err := eds.RowRoots()
+		require.NoError(t, err)
+		roots2, err := eds.RowRoots()
+		require.NoError(t, err)
+
+		// Should be the same underlying slice (direct reference)
+		require.True(t, &roots1[0] == &roots2[0], "RowRoots() should return direct references")
+
+		// If caller needs to modify, they should use deepCopy
+		rootsCopy := deepCopy(roots1)
+		rootsCopy[0][0]++ // safe to modify
+
+		// Original should be unchanged
+		require.NotEqual(t, rootsCopy[0][0], roots1[0][0])
+	})
+
+	t.Run("ColRoots returns direct reference", func(t *testing.T) {
+		roots1, err := eds.ColRoots()
+		require.NoError(t, err)
+		roots2, err := eds.ColRoots()
+		require.NoError(t, err)
+
+		// Should be the same underlying slice (direct reference)
+		require.True(t, &roots1[0] == &roots2[0], "ColRoots() should return direct references")
+
+		// If caller needs to modify, they should use deepCopy
+		rootsCopy := deepCopy(roots1)
+		rootsCopy[0][0]++ // safe to modify
+
+		// Original should be unchanged
+		require.NotEqual(t, rootsCopy[0][0], roots1[0][0])
+	})
+
+	t.Run("Flattened creates new slice but shares underlying data", func(t *testing.T) {
+		flat1 := eds.Flattened()
+		flat2 := eds.Flattened()
+
+		// Should be different slices (new allocation each time due to flattening)
+		require.False(t, &flat1[0] == &flat2[0], "Flattened() creates new slice structure")
+
+		// But the underlying byte slices should be the same (shared data)
+		require.True(t, &flat1[0][0] == &flat2[0][0], "Flattened() should share underlying byte slices")
+
+		// If caller needs to modify, they should use deepCopy
+		flatCopy := deepCopy(flat1)
+		flatCopy[0][0]++ // safe to modify
+
+		// Original should be unchanged
+		require.NotEqual(t, flatCopy[0][0], flat1[0][0])
+	})
 }
 
 func createExampleEds(t *testing.T, shareSize int) (eds *ExtendedDataSquare) {
