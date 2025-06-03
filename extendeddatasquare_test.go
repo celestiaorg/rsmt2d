@@ -433,7 +433,7 @@ func TestDeepCopy(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	copied := deepCopy(original)
+	copied := DeepCopy(original)
 	require.Equal(t, original, copied)
 
 	// modify the original and ensure the copy is not affected
@@ -442,7 +442,7 @@ func TestDeepCopy(t *testing.T) {
 }
 
 // TestDirectReferences verifies that the exported methods return direct references
-// to internal data for performance reasons, and demonstrates how to use deepCopy
+// to internal data for performance reasons, and demonstrates how to use DeepCopy
 // when modification is needed.
 func TestDirectReferences(t *testing.T) {
 	codec := NewLeoRSCodec()
@@ -459,8 +459,8 @@ func TestDirectReferences(t *testing.T) {
 		// Should be the same underlying slice (direct reference)
 		require.True(t, &row1[0] == &row2[0], "Row() should return direct references")
 
-		// If caller needs to modify, they should use deepCopy
-		rowCopy := deepCopy(row1)
+		// If caller needs to modify, they should use DeepCopy
+		rowCopy := DeepCopy(row1)
 		rowCopy[0][0]++ // safe to modify
 
 		// Original should be unchanged
@@ -474,8 +474,8 @@ func TestDirectReferences(t *testing.T) {
 		// Should be the same underlying slice (direct reference)
 		require.True(t, &col1[0] == &col2[0], "Col() should return direct references")
 
-		// If caller needs to modify, they should use deepCopy
-		colCopy := deepCopy(col1)
+		// If caller needs to modify, they should use DeepCopy
+		colCopy := DeepCopy(col1)
 		colCopy[0][0]++ // safe to modify
 
 		// Original should be unchanged
@@ -491,8 +491,8 @@ func TestDirectReferences(t *testing.T) {
 		// Should be the same underlying slice (direct reference)
 		require.True(t, &roots1[0] == &roots2[0], "RowRoots() should return direct references")
 
-		// If caller needs to modify, they should use deepCopy
-		rootsCopy := deepCopy(roots1)
+		// If caller needs to modify, they should use DeepCopy
+		rootsCopy := DeepCopy(roots1)
 		rootsCopy[0][0]++ // safe to modify
 
 		// Original should be unchanged
@@ -508,8 +508,8 @@ func TestDirectReferences(t *testing.T) {
 		// Should be the same underlying slice (direct reference)
 		require.True(t, &roots1[0] == &roots2[0], "ColRoots() should return direct references")
 
-		// If caller needs to modify, they should use deepCopy
-		rootsCopy := deepCopy(roots1)
+		// If caller needs to modify, they should use DeepCopy
+		rootsCopy := DeepCopy(roots1)
 		rootsCopy[0][0]++ // safe to modify
 
 		// Original should be unchanged
@@ -526,8 +526,8 @@ func TestDirectReferences(t *testing.T) {
 		// But the underlying byte slices should be the same (shared data)
 		require.True(t, &flat1[0][0] == &flat2[0][0], "Flattened() should share underlying byte slices")
 
-		// If caller needs to modify, they should use deepCopy
-		flatCopy := deepCopy(flat1)
+		// If caller needs to modify, they should use DeepCopy
+		flatCopy := DeepCopy(flat1)
 		flatCopy[0][0]++ // safe to modify
 
 		// Original should be unchanged
