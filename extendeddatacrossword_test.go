@@ -128,10 +128,10 @@ func TestValidFraudProof(t *testing.T) {
 	corrupted.setCell(0, 0, corruptShare)
 	assert.NoError(t, err)
 
-	rowRoots, err := corrupted.getRowRoots()
+	rowRoots, err := corrupted.RowRoots()
 	assert.NoError(t, err)
 
-	colRoots, err := corrupted.getColRoots()
+	colRoots, err := corrupted.ColRoots()
 	assert.NoError(t, err)
 
 	err = corrupted.Repair(rowRoots, colRoots)
@@ -235,11 +235,11 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 			eds := createTestEds(codec, shareSize)
 
 			// compute the rowRoots prior to corruption
-			rowRoots, err := eds.getRowRoots()
+			rowRoots, err := eds.RowRoots()
 			assert.NoError(t, err)
 
 			// compute the colRoots prior to corruption
-			colRoots, err := eds.getColRoots()
+			colRoots, err := eds.ColRoots()
 			assert.NoError(t, err)
 
 			for i, coords := range test.coords {
@@ -427,10 +427,10 @@ func TestCorruptedEdsReturnsErrByzantineData_UnorderedShares(t *testing.T) {
 	// create a DA header
 	eds := createTestEdsWithNMT(t, codec, shareSize, namespaceSize, 1, 2, 3, 4)
 	assert.NotNil(t, eds)
-	dAHeaderRoots, err := eds.getRowRoots()
+	dAHeaderRoots, err := eds.RowRoots()
 	assert.NoError(t, err)
 
-	dAHeaderCols, err := eds.getColRoots()
+	dAHeaderCols, err := eds.ColRoots()
 	assert.NoError(t, err)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
