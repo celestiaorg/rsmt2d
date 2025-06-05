@@ -236,7 +236,7 @@ func (eds *ExtendedDataSquare) deepCopy(codec Codec) (ExtendedDataSquare, error)
 // The returned slice references internal data and should not be modified.
 // If modification is needed, the caller should make a copy using DeepCopy().
 func (eds *ExtendedDataSquare) Col(colIdx uint) [][]byte {
-	return eds.col(colIdx)
+	return eds.colSlice(0, colIdx, eds.width)
 }
 
 // ColRoots returns the Merkle roots of all the columns in the square. Returns
@@ -244,18 +244,20 @@ func (eds *ExtendedDataSquare) Col(colIdx uint) [][]byte {
 // The returned slice references internal data and should not be modified.
 // If modification is needed, the caller should make a copy using DeepCopy().
 func (eds *ExtendedDataSquare) ColRoots() ([][]byte, error) {
-	colRoots, err := eds.getColRoots()
-	if err != nil {
-		return nil, err
+	if eds.colRoots == nil {
+		err := eds.computeRoots()
+		if err != nil {
+			return nil, err
+		}
 	}
-	return colRoots, nil
+	return eds.colRoots, nil
 }
 
 // Row returns a row slice.
 // The returned slice references internal data and should not be modified.
 // If modification is needed, the caller should make a copy using DeepCopy().
 func (eds *ExtendedDataSquare) Row(rowIdx uint) [][]byte {
-	return eds.row(rowIdx)
+	return eds.rowSlice(rowIdx, 0, eds.width)
 }
 
 // RowRoots returns the Merkle roots of all the rows in the square. Returns an
@@ -263,11 +265,13 @@ func (eds *ExtendedDataSquare) Row(rowIdx uint) [][]byte {
 // The returned slice references internal data and should not be modified.
 // If modification is needed, the caller should make a copy using DeepCopy().
 func (eds *ExtendedDataSquare) RowRoots() ([][]byte, error) {
-	rowRoots, err := eds.getRowRoots()
-	if err != nil {
-		return nil, err
+	if eds.rowRoots == nil {
+		err := eds.computeRoots()
+		if err != nil {
+			return nil, err
+		}
 	}
-	return rowRoots, nil
+	return eds.rowRoots, nil
 }
 
 // DeepCopy returns a deep copy of the given slice of byte slices.

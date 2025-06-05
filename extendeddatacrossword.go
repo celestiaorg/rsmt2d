@@ -131,14 +131,14 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	rowRoots [][]byte,
 	colRoots [][]byte,
 ) (bool, bool, error) {
-	isComplete := noMissingData(eds.row(uint(rowIdx)), noShareInsertion)
+	isComplete := noMissingData(eds.rowSlice(uint(rowIdx), 0, eds.width), noShareInsertion)
 	if isComplete {
 		return true, false, nil
 	}
 
 	// Prepare shares
 	shares := make([][]byte, eds.width)
-	copy(shares, eds.row(uint(rowIdx)))
+	copy(shares, eds.rowSlice(uint(rowIdx), 0, eds.width))
 
 	// Attempt rebuild the row
 	rebuiltShares, isDecoded, err := eds.rebuildShares(shares)
@@ -162,7 +162,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 
 	// Check that newly completed orthogonal vectors match their new merkle roots
 	for colIdx := 0; colIdx < int(eds.width); colIdx++ {
-		col := eds.col(uint(colIdx))
+		col := eds.colSlice(0, uint(colIdx), eds.width)
 		if col[rowIdx] != nil {
 			continue // not newly completed
 		}
@@ -206,14 +206,14 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	rowRoots [][]byte,
 	colRoots [][]byte,
 ) (bool, bool, error) {
-	isComplete := noMissingData(eds.col(uint(colIdx)), noShareInsertion)
+	isComplete := noMissingData(eds.colSlice(0, uint(colIdx), eds.width), noShareInsertion)
 	if isComplete {
 		return true, false, nil
 	}
 
 	// Prepare shares
 	shares := make([][]byte, eds.width)
-	copy(shares, eds.col(uint(colIdx)))
+	copy(shares, eds.colSlice(0, uint(colIdx), eds.width))
 
 	// Attempt rebuild
 	rebuiltShares, isDecoded, err := eds.rebuildShares(shares)
@@ -237,7 +237,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 
 	// Check that newly completed orthogonal vectors match their new merkle roots
 	for rowIdx := 0; rowIdx < int(eds.width); rowIdx++ {
-		row := eds.row(uint(rowIdx))
+		row := eds.rowSlice(uint(rowIdx), 0, eds.width)
 		if row[colIdx] != nil {
 			continue // not newly completed
 		}
@@ -362,7 +362,7 @@ func (eds *ExtendedDataSquare) preRepairSanityCheck(
 	for i := uint(0); i < eds.width; i++ {
 		i := i
 
-		rowIsComplete := noMissingData(eds.row(i), noShareInsertion)
+		rowIsComplete := noMissingData(eds.rowSlice(i, 0, eds.width), noShareInsertion)
 		// if there's no missing data in this row
 		if rowIsComplete {
 			errs.Go(func() error {
@@ -371,24 +371,24 @@ func (eds *ExtendedDataSquare) preRepairSanityCheck(
 				if err != nil {
 					// any error regarding the root calculation signifies an issue in the shares e.g., out of order shares
 					// therefore, it should be treated as byzantine data
-					return &ErrByzantineData{Row, i, eds.row(i)}
+					return &ErrByzantineData{Row, i, eds.rowSlice(i, 0, eds.width)}
 				}
 				if !bytes.Equal(rowRoots[i], rowRoot) {
 					// if the roots are not equal, then the data is byzantine
-					return &ErrByzantineData{Row, i, eds.row(i)}
+					return &ErrByzantineData{Row, i, eds.rowSlice(i, 0, eds.width)}
 				}
 				return nil
 			})
 			errs.Go(func() error {
-				err := eds.verifyEncoding(eds.row(i), noShareInsertion, nil)
+				err := eds.verifyEncoding(eds.rowSlice(i, 0, eds.width), noShareInsertion, nil)
 				if err != nil {
-					return &ErrByzantineData{Row, i, eds.row(i)}
+					return &ErrByzantineData{Row, i, eds.rowSlice(i, 0, eds.width)}
 				}
 				return nil
 			})
 		}
 
-		colIsComplete := noMissingData(eds.col(i), noShareInsertion)
+		colIsComplete := noMissingData(eds.colSlice(0, i, eds.width), noShareInsertion)
 		// if there's no missing data in this col
 		if colIsComplete {
 			errs.Go(func() error {
@@ -397,18 +397,18 @@ func (eds *ExtendedDataSquare) preRepairSanityCheck(
 				if err != nil {
 					// any error regarding the root calculation signifies an issue in the shares e.g., out of order shares
 					// therefore, it should be treated as byzantine data
-					return &ErrByzantineData{Col, i, eds.col(i)}
+					return &ErrByzantineData{Col, i, eds.colSlice(0, i, eds.width)}
 				}
 				if !bytes.Equal(colRoots[i], colRoot) {
 					// if the roots are not equal, then the data is byzantine
-					return &ErrByzantineData{Col, i, eds.col(i)}
+					return &ErrByzantineData{Col, i, eds.colSlice(0, i, eds.width)}
 				}
 				return nil
 			})
 			errs.Go(func() error {
-				err := eds.verifyEncoding(eds.col(i), noShareInsertion, nil)
+				err := eds.verifyEncoding(eds.colSlice(0, i, eds.width), noShareInsertion, nil)
 				if err != nil {
-					return &ErrByzantineData{Col, i, eds.col(i)}
+					return &ErrByzantineData{Col, i, eds.colSlice(0, i, eds.width)}
 				}
 				return nil
 			})
