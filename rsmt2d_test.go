@@ -1,24 +1,27 @@
-package rsmt2d_test
+package rsmt2d
 
 import (
 	"bytes"
 	"errors"
 	"testing"
 
-	"github.com/celestiaorg/rsmt2d"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// shareSize is the size of each share (in bytes) used for testing.
-const shareSize = 512
+// Test constants shared across benchmark and test functions.
+const (
+	shareSize           = 512 // size of each share (in bytes) used for testing
+	benchmarkMinODSSize = 4   // minimum ODS size for benchmarks
+	benchmarkMaxODSSize = 1024 // maximum ODS size for benchmarks
+)
 
 func TestEdsRepairRoundtripSimple(t *testing.T) {
 	tests := []struct {
 		name  string
-		codec rsmt2d.Codec
+		codec Codec
 	}{
-		{"leopard", rsmt2d.NewLeoRSCodec()},
+		{"leopard", NewLeoRSCodec()},
 	}
 
 	for _, tt := range tests {
@@ -29,13 +32,13 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 			fours := bytes.Repeat([]byte{4}, shareSize)
 
 			// Compute parity shares
-			eds, err := rsmt2d.ComputeExtendedDataSquare(
+			eds, err := ComputeExtendedDataSquare(
 				[][]byte{
 					ones, twos,
 					threes, fours,
 				},
 				tt.codec,
-				rsmt2d.NewDefaultTree,
+				NewDefaultTree,
 			)
 			if err != nil {
 				t.Errorf("ComputeExtendedDataSquare failed: %v", err)
@@ -56,7 +59,7 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 			flattened[12], flattened[13] = nil, nil
 
 			// Re-import the data square.
-			eds, err = rsmt2d.ImportExtendedDataSquare(flattened, tt.codec, rsmt2d.NewDefaultTree)
+			eds, err = ImportExtendedDataSquare(flattened, tt.codec, NewDefaultTree)
 			if err != nil {
 				t.Errorf("ImportExtendedDataSquare failed: %v", err)
 			}
@@ -78,9 +81,9 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 func TestEdsRepairTwice(t *testing.T) {
 	tests := []struct {
 		name  string
-		codec rsmt2d.Codec
+		codec Codec
 	}{
-		{"leopard", rsmt2d.NewLeoRSCodec()},
+		{"leopard", NewLeoRSCodec()},
 	}
 
 	for _, tt := range tests {
@@ -91,13 +94,13 @@ func TestEdsRepairTwice(t *testing.T) {
 			fours := bytes.Repeat([]byte{4}, shareSize)
 
 			// Compute parity shares
-			eds, err := rsmt2d.ComputeExtendedDataSquare(
+			eds, err := ComputeExtendedDataSquare(
 				[][]byte{
 					ones, twos,
 					threes, fours,
 				},
 				tt.codec,
-				rsmt2d.NewDefaultTree,
+				NewDefaultTree,
 			)
 			if err != nil {
 				t.Errorf("ComputeExtendedDataSquare failed: %v", err)
@@ -120,7 +123,7 @@ func TestEdsRepairTwice(t *testing.T) {
 			flattened[12], flattened[13] = nil, nil
 
 			// Re-import the data square.
-			eds, err = rsmt2d.ImportExtendedDataSquare(flattened, tt.codec, rsmt2d.NewDefaultTree)
+			eds, err = ImportExtendedDataSquare(flattened, tt.codec, NewDefaultTree)
 			if err != nil {
 				t.Errorf("ImportExtendedDataSquare failed: %v", err)
 			}
@@ -130,16 +133,16 @@ func TestEdsRepairTwice(t *testing.T) {
 				rowRoots,
 				colRoots,
 			)
-			if !errors.Is(err, rsmt2d.ErrUnrepairableDataSquare) {
+			if !errors.Is(err, ErrUnrepairableDataSquare) {
 				// Should fail since insufficient data.
-				t.Errorf("RepairExtendedDataSquare did not fail with `%v`, got `%v`", rsmt2d.ErrUnrepairableDataSquare, err)
+				t.Errorf("RepairExtendedDataSquare did not fail with `%v`, got `%v`", ErrUnrepairableDataSquare, err)
 			}
 			// Re-insert missing share and try again.
 			flattened[1] = make([]byte, shareSize)
 			copy(flattened[1], missing)
 
 			// Re-import the data square.
-			eds, err = rsmt2d.ImportExtendedDataSquare(flattened, tt.codec, rsmt2d.NewDefaultTree)
+			eds, err = ImportExtendedDataSquare(flattened, tt.codec, NewDefaultTree)
 			if err != nil {
 				t.Errorf("ImportExtendedDataSquare failed: %v", err)
 			}
@@ -167,7 +170,7 @@ func TestRepairWithOneQuarterPopulated(t *testing.T) {
 
 	exampleEds := createExampleEds(t, shareSize)
 
-	eds, err := rsmt2d.NewExtendedDataSquare(rsmt2d.NewLeoRSCodec(), rsmt2d.NewDefaultTree, uint(edsWidth), uint(shareSize))
+	eds, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, uint(edsWidth), uint(shareSize))
 	require.NoError(t, err)
 
 	// Populate EDS with 1/4 of shares using SetCell
@@ -195,7 +198,7 @@ func TestRepairWithOneQuarterPopulated(t *testing.T) {
 	assert.Equal(t, exampleEds.Flattened(), eds.Flattened())
 }
 
-func createExampleEds(t *testing.T, shareSize int) (eds *rsmt2d.ExtendedDataSquare) {
+func createExampleEds(t *testing.T, shareSize int) (eds *ExtendedDataSquare) {
 	ones := bytes.Repeat([]byte{1}, shareSize)
 	twos := bytes.Repeat([]byte{2}, shareSize)
 	threes := bytes.Repeat([]byte{3}, shareSize)
@@ -205,7 +208,7 @@ func createExampleEds(t *testing.T, shareSize int) (eds *rsmt2d.ExtendedDataSqua
 		threes, fours,
 	}
 
-	eds, err := rsmt2d.ComputeExtendedDataSquare(ods, rsmt2d.NewLeoRSCodec(), rsmt2d.NewDefaultTree)
+	eds, err := ComputeExtendedDataSquare(ods, NewLeoRSCodec(), NewDefaultTree)
 	require.NoError(t, err)
 	return eds
 }

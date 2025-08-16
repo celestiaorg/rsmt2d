@@ -9,6 +9,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/celestiaorg/nmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -279,7 +280,7 @@ var dump *ExtendedDataSquare
 // BenchmarkExtension benchmarks extending datasquares sizes 4-128 using all
 // supported codecs (encoding only)
 func BenchmarkExtensionEncoding(b *testing.B) {
-	for i := 4; i < 513; i *= 2 {
+	for i := benchmarkMinODSSize; i <= benchmarkMaxODSSize; i *= 2 {
 		for codecName, codec := range codecs {
 			if codec.MaxChunks() < i*i {
 				// Only test codecs that support this many shares
@@ -303,10 +304,10 @@ func BenchmarkExtensionEncoding(b *testing.B) {
 	}
 }
 
-// BenchmarkExtension benchmarks extending datasquares sizes 4-128 using all
-// supported codecs (both encoding and root computation)
-func BenchmarkExtensionWithRoots(b *testing.B) {
-	for i := 4; i < 513; i *= 2 {
+// BenchmarkExtension benchmarks extending datasquares using all
+// supported codecs (both encoding and root computation) with default tree
+func BenchmarkExtensionWithRootsDefaultTree(b *testing.B) {
+	for i := benchmarkMinODSSize; i <= benchmarkMaxODSSize; i *= 2 {
 		for codecName, codec := range codecs {
 			if codec.MaxChunks() < i*i {
 				// Only test codecs that support this many shares
@@ -319,6 +320,41 @@ func BenchmarkExtensionWithRoots(b *testing.B) {
 				func(b *testing.B) {
 					for n := 0; n < b.N; n++ {
 						eds, err := ComputeExtendedDataSquare(square, codec, NewDefaultTree)
+						if err != nil {
+							b.Error(err)
+						}
+						_, _ = eds.RowRoots()
+						_, _ = eds.ColRoots()
+						dump = eds
+					}
+				},
+			)
+		}
+	}
+}
+
+// BenchmarkExtension benchmarks extending datasquares using all
+// supported codecs (both encoding and root computation) with erasured NMT
+func BenchmarkExtensionWithRootsErasuredNMT(b *testing.B) {
+	namespaceIDSize := 29
+
+	for i := benchmarkMinODSSize; i <= benchmarkMaxODSSize; i *= 2 {
+		for codecName, codec := range codecs {
+			if codec.MaxChunks() < i*i {
+				// Only test codecs that support this many shares
+				continue
+			}
+
+			square := genRandSortedDS(i, shareSize, namespaceIDSize)
+			treeConstructor := newErasuredNamespacedMerkleTreeConstructor(uint64(i*2),
+				nmt.NamespaceIDSize(namespaceIDSize), nmt.IgnoreMaxNamespace(true),
+				nmt.InitialCapacity(i*2))
+
+			b.Run(
+				fmt.Sprintf("%s %dx%dx%d ODS", codecName, i, i, len(square[0])),
+				func(b *testing.B) {
+					for n := 0; n < b.N; n++ {
+						eds, err := ComputeExtendedDataSquare(square, codec, treeConstructor)
 						if err != nil {
 							b.Error(err)
 						}
@@ -499,17 +535,3 @@ func TestDeepCopy(t *testing.T) {
 	require.NotEqual(t, original, copied)
 }
 
-func createExampleEds(t *testing.T, shareSize int) (eds *ExtendedDataSquare) {
-	ones := bytes.Repeat([]byte{1}, shareSize)
-	twos := bytes.Repeat([]byte{2}, shareSize)
-	threes := bytes.Repeat([]byte{3}, shareSize)
-	fours := bytes.Repeat([]byte{4}, shareSize)
-	ods := [][]byte{
-		ones, twos,
-		threes, fours,
-	}
-
-	eds, err := ComputeExtendedDataSquare(ods, NewLeoRSCodec(), NewDefaultTree)
-	require.NoError(t, err)
-	return eds
-}

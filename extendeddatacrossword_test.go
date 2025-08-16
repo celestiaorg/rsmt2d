@@ -13,8 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// shareSize is the size of each share (in bytes) used for testing.
-const shareSize = 512
 
 // PseudoFraudProof is an example fraud proof.
 // TODO a real fraud proof would have a Merkle proof for each share.
@@ -262,7 +260,7 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 
 func BenchmarkRepair(b *testing.B) {
 	// For different ODS sizes
-	for originalDataWidth := 4; originalDataWidth <= 512; originalDataWidth *= 2 {
+	for originalDataWidth := benchmarkMinODSSize; originalDataWidth <= benchmarkMaxODSSize; originalDataWidth *= 2 {
 		codec := NewLeoRSCodec()
 		if codec.MaxChunks() < originalDataWidth*originalDataWidth {
 			// Only test codecs that support this many shares
