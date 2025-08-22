@@ -43,11 +43,11 @@ func main() {
 
     rowRoots, err := eds.RowRoots()
     if err != nil {
-	// RowRoots failed
+    // RowRoots failed
     }
     colRoots, err := eds.ColRoots()
     if err != nil {
-	// ColRoots failed
+    // ColRoots failed
     }
 
     flattened := eds.Flattened()
@@ -78,20 +78,23 @@ func main() {
 
 ## Contributing
 
-1. [Install Go](https://go.dev/doc/install) 1.22+
+1. [Install Go](https://go.dev/doc/install) 1.24+
 1. [Install golangci-lint](https://golangci-lint.run/usage/install/)
 
 ### Helpful Commands
 
 ```sh
+# Build the project
+make build
+
 # Run unit tests
-go test ./...
+make test
 
 # Run benchmarks
-go test -benchmem -bench=.
+make bench
 
 # Run linter
-golangci-lint run
+make lint
 ```
 
 ## Audits
