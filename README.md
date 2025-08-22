@@ -43,11 +43,11 @@ func main() {
 
     rowRoots, err := eds.RowRoots()
     if err != nil {
-	// RowRoots failed
+    // RowRoots failed
     }
     colRoots, err := eds.ColRoots()
     if err != nil {
-	// ColRoots failed
+    // ColRoots failed
     }
 
     flattened := eds.Flattened()
