@@ -1,3 +1,9 @@
+## build: Build the project.
+build:
+	@echo "--> Running go build"
+	@go build ./...
+.PHONY: build
+
 ## lint: Run golangci-lint.
 lint:
 	@echo "--> Running golangci-lint"
