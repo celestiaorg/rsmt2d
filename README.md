@@ -85,13 +85,13 @@ func main() {
 
 ```sh
 # Run unit tests
-go test ./...
+make test
 
 # Run benchmarks
-go test -benchmem -bench=.
+make bench
 
 # Run linter
-golangci-lint run
+make lint
 ```
 
 ## Audits
