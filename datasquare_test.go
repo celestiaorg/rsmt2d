@@ -487,13 +487,13 @@ func computeRowProof(ds *dataSquare, rowIdx uint, colIdx uint) ([]byte, [][]byte
 }
 
 func treeProve(d *DefaultTree, idx int) (merkleRoot []byte, proofSet [][]byte, proofIndex uint64, numLeaves uint64) {
-	if err := d.Tree.SetIndex(uint64(idx)); err != nil {
+	if err := d.SetIndex(uint64(idx)); err != nil {
 		panic(fmt.Sprintf("don't call prove on a already used tree: %v", err))
 	}
 	for _, l := range d.leaves {
 		d.Tree.Push(l)
 	}
-	return d.Tree.Prove()
+	return d.Prove()
 }
 
 type errorTree struct {
