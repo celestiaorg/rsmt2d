@@ -78,12 +78,15 @@ func main() {
 
 ## Contributing
 
-1. [Install Go](https://go.dev/doc/install) 1.22+
+1. [Install Go](https://go.dev/doc/install) 1.24+
 1. [Install golangci-lint](https://golangci-lint.run/usage/install/)
 
 ### Helpful Commands
 
 ```sh
+# Build the project
+make build
+
 # Run unit tests
 make test
 
