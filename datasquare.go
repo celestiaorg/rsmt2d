@@ -200,6 +200,16 @@ func (ds *dataSquare) resetRoots() {
 	}
 }
 
+// releaseTree releases a tree if it implements a Release method
+func releaseTree(tree Tree) {
+	type releasable interface {
+		Release()
+	}
+	if r, ok := tree.(releasable); ok {
+		r.Release()
+	}
+}
+
 func (ds *dataSquare) computeRoots() error {
 	var g errgroup.Group
 
@@ -258,6 +268,8 @@ func (ds *dataSquare) getRowRoot(rowIdx uint) ([]byte, error) {
 	}
 
 	tree := ds.createTreeFn(Row, rowIdx)
+	defer releaseTree(tree) // Release tree after use
+
 	row := ds.row(rowIdx)
 	if !isComplete(row) {
 		return nil, errors.New("can not compute root of incomplete row")
@@ -269,7 +281,7 @@ func (ds *dataSquare) getRowRoot(rowIdx uint) ([]byte, error) {
 		}
 	}
 
-	return tree.Root()
+	return tree.ConsumeRoot()
 }
 
 // getColRoots returns the Merkle roots of all the columns in the square.
@@ -293,6 +305,8 @@ func (ds *dataSquare) getColRoot(colIdx uint) ([]byte, error) {
 	}
 
 	tree := ds.createTreeFn(Col, colIdx)
+	defer releaseTree(tree) // Release tree after use
+
 	col := ds.col(colIdx)
 	if !isComplete(col) {
 		return nil, errors.New("can not compute root of incomplete column")
@@ -304,7 +318,7 @@ func (ds *dataSquare) getColRoot(colIdx uint) ([]byte, error) {
 		}
 	}
 
-	return tree.Root()
+	return tree.ConsumeRoot()
 }
 
 // GetCell returns a copy of a specific cell.

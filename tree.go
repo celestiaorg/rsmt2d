@@ -20,6 +20,7 @@ type SquareIndex struct {
 type Tree interface {
 	Push(data []byte) error
 	Root() ([]byte, error)
+	ConsumeRoot() ([]byte, error)
 }
 
 var _ Tree = &DefaultTree{}
@@ -44,6 +45,16 @@ func (d *DefaultTree) Push(data []byte) error {
 }
 
 func (d *DefaultTree) Root() ([]byte, error) {
+	if d.root == nil {
+		for _, l := range d.leaves {
+			d.Tree.Push(l)
+		}
+		d.root = d.Tree.Root()
+	}
+	return d.root, nil
+}
+
+func (d *DefaultTree) ConsumeRoot() ([]byte, error) {
 	if d.root == nil {
 		for _, l := range d.leaves {
 			d.Tree.Push(l)

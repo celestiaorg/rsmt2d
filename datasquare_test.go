@@ -518,6 +518,10 @@ func (d *errorTree) Root() ([]byte, error) {
 	return nil, fmt.Errorf("error")
 }
 
+func (d *errorTree) ConsumeRoot() ([]byte, error) {
+	return nil, fmt.Errorf("error")
+}
+
 // setCell overwrites the contents of a specific cell. setCell does not perform
 // any input validation so most use cases should use `SetCell` instead of
 // `setCell`. This method exists strictly for testing.
