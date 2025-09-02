@@ -16,71 +16,71 @@ import (
 // boundedTreePool implements a bounded pool that creates at most maxSize elements
 // and blocks when trying to get an element if the pool is at capacity
 type boundedTreePool struct {
-    maxSize    int
-    created    atomic.Int32
-    free       chan *erasuredNamespacedMerkleTree
-    opts       []nmt.Option
-    squareSize uint64
+	maxSize    int
+	created    atomic.Int32
+	free       chan *erasuredNamespacedMerkleTree
+	opts       []nmt.Option
+	squareSize uint64
 }
 
 func newBoundedTreePool(maxSize int, squareSize uint64, opts []nmt.Option) *boundedTreePool {
-    return &boundedTreePool{
-        maxSize:    maxSize,
-        free:       make(chan *erasuredNamespacedMerkleTree, maxSize),
-        opts:       opts,
-        squareSize: squareSize,
-    }
+	return &boundedTreePool{
+		maxSize:    maxSize,
+		free:       make(chan *erasuredNamespacedMerkleTree, maxSize),
+		opts:       opts,
+		squareSize: squareSize,
+	}
 }
 
 func (p *boundedTreePool) Get() *erasuredNamespacedMerkleTree {
-    // Fast path: try to get from pool
-    select {
-    case tree := <-p.free:
-        return tree
-    default:
-    }
-    
-    // No tree available in pool, create a new one
-    for {
-        current := p.created.Load()
-        if int(current) >= p.maxSize {
-            // At capacity - but create tree anyway (won't block)
-            tree := newErasuredNamespacedMerkleTree(p.squareSize, 0, p.opts...)
-            treePtr := &tree
-            treePtr.pool = p
-            return treePtr
-        }
-        
-        // Under capacity - try to atomically increment
-        if p.created.CompareAndSwap(current, current+1) {
-            // Successfully reserved a slot
-            tree := newErasuredNamespacedMerkleTree(p.squareSize, 0, p.opts...)
-            treePtr := &tree
-            treePtr.pool = p
-            return treePtr
-        }
-        // CAS failed, retry
-    }
+	// Fast path: try to get from pool
+	select {
+	case tree := <-p.free:
+		return tree
+	default:
+	}
+
+	// No tree available in pool, create a new one
+	for {
+		current := p.created.Load()
+		if int(current) >= p.maxSize {
+			// At capacity - but create tree anyway (won't block)
+			tree := newErasuredNamespacedMerkleTree(p.squareSize, 0, p.opts...)
+			treePtr := &tree
+			treePtr.pool = p
+			return treePtr
+		}
+
+		// Under capacity - try to atomically increment
+		if p.created.CompareAndSwap(current, current+1) {
+			// Successfully reserved a slot
+			tree := newErasuredNamespacedMerkleTree(p.squareSize, 0, p.opts...)
+			treePtr := &tree
+			treePtr.pool = p
+			return treePtr
+		}
+		// CAS failed, retry
+	}
 }
 
 func (p *boundedTreePool) Put(tree *erasuredNamespacedMerkleTree) {
-    if tree == nil {
-        return
-    }
-    
-    // Reset tree state
-    tree.axisIndex = 0
-    tree.shareIndex = 0
-    
-    // Always try to return to pool
-    select {
-    case p.free <- tree:
-        // Successfully returned to pool
-    default:
-        // Pool is full, let this tree be GC'd
-        // Note: we don't decrement created since that tracks pool capacity,
-        // not total trees created
-    }
+	if tree == nil {
+		return
+	}
+
+	// Reset tree state
+	tree.axisIndex = 0
+	tree.shareIndex = 0
+
+	// Always try to return to pool
+	select {
+	case p.free <- tree:
+		// Successfully returned to pool
+	default:
+		// Pool is full, let this tree be GC'd
+		// Note: we don't decrement created since that tracks pool capacity,
+		// not total trees created
+	}
 }
 
 // Fulfills the Tree interface and TreeConstructorFn function
@@ -110,7 +110,7 @@ type erasuredNamespacedMerkleTree struct {
 	shareIndex      uint64
 	namespaceSize   int
 	pool            *boundedTreePool // reference to the pool this tree belongs to
-	parityNamespace []byte           // Pre-allocated parity namespace bytes  
+	parityNamespace []byte           // Pre-allocated parity namespace bytes
 	buffer          []byte           // Reusable buffer for nidAndData to avoid allocations
 }
 
@@ -142,24 +142,24 @@ func newErasuredNamespacedMerkleTree(squareSize uint64, axisIndex uint,
 	}
 	options = append(options, nmt.IgnoreMaxNamespace(true))
 	tree := nmt.New(sha256.New(), options...)
-	
+
 	// Pre-allocate parity namespace and buffer to avoid repeated allocations
 	namespaceSize := int(opts.NamespaceIDSize)
 	parityNamespace := make([]byte, namespaceSize)
 	for i := range parityNamespace {
 		parityNamespace[i] = 0xFF
 	}
-	
+
 	// Pre-size buffer for typical share size (namespace + 512 bytes is common)
 	buffer := make([]byte, 0, namespaceSize+512)
-	
+
 	return erasuredNamespacedMerkleTree{
-		squareSize:      squareSize, 
-		namespaceSize:   namespaceSize, 
-		options:         options, 
-		tree:            tree, 
-		axisIndex:       uint64(axisIndex), 
-		shareIndex:      0, 
+		squareSize:      squareSize,
+		namespaceSize:   namespaceSize,
+		options:         options,
+		tree:            tree,
+		axisIndex:       uint64(axisIndex),
+		shareIndex:      0,
 		pool:            nil,
 		parityNamespace: parityNamespace,
 		buffer:          buffer,
@@ -239,26 +239,18 @@ func (w *erasuredNamespacedMerkleTree) Push(data []byte) error {
 	if len(data) < w.namespaceSize {
 		return fmt.Errorf("data is too short to contain namespace ID")
 	}
-	
+
 	// Reuse pre-allocated buffer, resize if needed to avoid allocations
-	requiredSize := w.namespaceSize + len(data)
-	if cap(w.buffer) < requiredSize {
-		w.buffer = make([]byte, requiredSize)
-	} else {
-		w.buffer = w.buffer[:requiredSize]
-	}
-	
-	// Copy data portion
-	copy(w.buffer[w.namespaceSize:], data)
-	
-	// Use pre-allocated namespace or original data namespace
+	nidAndData := make([]byte, w.namespaceSize+len(data))
+	copy(nidAndData[w.namespaceSize:], data)
+	// use the parity namespace if the cell is not in Q0 of the extended data square
 	if w.isQuadrantZero() {
-		copy(w.buffer[:w.namespaceSize], data[:w.namespaceSize])
+		copy(nidAndData[:w.namespaceSize], data[:w.namespaceSize])
 	} else {
-		copy(w.buffer[:w.namespaceSize], w.parityNamespace)
+		copy(nidAndData[:w.namespaceSize], w.parityNamespace)
 	}
-	
-	err := w.tree.Push(w.buffer)
+	err := w.tree.Push(nidAndData)
+
 	if err != nil {
 		return err
 	}

@@ -268,7 +268,9 @@ func (ds *dataSquare) getRowRoot(rowIdx uint) ([]byte, error) {
 	}
 
 	tree := ds.createTreeFn(Row, rowIdx)
-	defer releaseTree(tree) // Release tree after use
+	defer func() {
+		releaseTree(tree)
+	}()
 
 	row := ds.row(rowIdx)
 	if !isComplete(row) {
@@ -305,7 +307,9 @@ func (ds *dataSquare) getColRoot(colIdx uint) ([]byte, error) {
 	}
 
 	tree := ds.createTreeFn(Col, colIdx)
-	defer releaseTree(tree) // Release tree after use
+	defer func() {
+		releaseTree(tree)
+	}()
 
 	col := ds.col(colIdx)
 	if !isComplete(col) {
