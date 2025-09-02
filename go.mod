@@ -10,8 +10,6 @@ require (
 	golang.org/x/sync v0.10.0
 )
 
-replace github.com/celestiaorg/nmt => /Users/mikhailrakhmanov/repos/nmt
-
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -24,3 +22,5 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/celestiaorg/nmt => github.com/mcrakhman/nmt v0.24.1-0.20250902084411-80a4a53a2345
