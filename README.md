@@ -50,6 +50,12 @@ func main() {
     // ColRoots failed
     }
 
+    // For read-only access, use the returned roots directly (fast).
+    // For modification, create a deep copy to avoid affecting internal data:
+    rowRootsCopy := rsmt2d.DeepCopy(rowRoots)
+    // Now rowRootsCopy can be safely modified without affecting the original EDS
+    _ = rowRootsCopy // Example: modify as needed
+
     flattened := eds.Flattened()
 
     // Delete some shares, just enough so that repairing is possible.

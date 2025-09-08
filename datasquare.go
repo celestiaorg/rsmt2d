@@ -124,11 +124,6 @@ func (ds *dataSquare) rowSlice(rowIdx uint, fromIdx uint, length uint) [][]byte 
 	return ds.squareRow[rowIdx][fromIdx : fromIdx+length]
 }
 
-// row returns a row slice.
-// Do not modify this slice directly, instead use SetCell.
-func (ds *dataSquare) row(rowIdx uint) [][]byte {
-	return ds.rowSlice(rowIdx, 0, ds.width)
-}
 
 func (ds *dataSquare) setRowSlice(rowIdx uint, fromIdx uint, newRow [][]byte) error {
 	for i := uint(0); i < uint(len(newRow)); i++ {
@@ -158,11 +153,7 @@ func (ds *dataSquare) colSlice(rowIdx uint, colIdx uint, length uint) [][]byte {
 	return ds.squareCol[colIdx][rowIdx : rowIdx+length]
 }
 
-// col returns a column slice.
-// Do not modify this slice directly, instead use SetCell.
-func (ds *dataSquare) col(colIdx uint) [][]byte {
-	return ds.colSlice(0, colIdx, ds.width)
-}
+
 
 func (ds *dataSquare) setColSlice(colIdx uint, fromIdx uint, newCol [][]byte) error {
 	for i := uint(0); i < uint(len(newCol)); i++ {
@@ -258,7 +249,7 @@ func (ds *dataSquare) getRowRoot(rowIdx uint) ([]byte, error) {
 	}
 
 	tree := ds.createTreeFn(Row, rowIdx)
-	row := ds.row(rowIdx)
+	row := ds.rowSlice(rowIdx, 0, ds.width)
 	if !isComplete(row) {
 		return nil, errors.New("can not compute root of incomplete row")
 	}
@@ -293,7 +284,7 @@ func (ds *dataSquare) getColRoot(colIdx uint) ([]byte, error) {
 	}
 
 	tree := ds.createTreeFn(Col, colIdx)
-	col := ds.col(colIdx)
+	col := ds.colSlice(0, colIdx, ds.width)
 	if !isComplete(col) {
 		return nil, errors.New("can not compute root of incomplete column")
 	}
