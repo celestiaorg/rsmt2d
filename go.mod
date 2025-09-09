@@ -6,7 +6,7 @@ require (
 	github.com/celestiaorg/merkletree v0.0.0-20210714075610-a84dc3ddbbe4
 	github.com/celestiaorg/nmt v0.22.2
 	github.com/klauspost/reedsolomon v1.12.5
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	golang.org/x/sync v0.10.0
 )
 
@@ -23,4 +23,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/celestiaorg/nmt => github.com/mcrakhman/nmt v0.24.1-0.20250902084411-80a4a53a2345
+replace github.com/celestiaorg/nmt => github.com/mcrakhman/nmt v0.24.2-0.20250909215711-dd5518232294

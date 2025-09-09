@@ -17,14 +17,15 @@ var ErrUnevenChunks = errors.New("non-nil shares not all of equal size")
 // data square (EDS). Data is duplicated in both row-major and column-major
 // order in order to be able to provide zero-allocation column slices.
 type dataSquare struct {
-	squareRow    [][][]byte // row-major
-	squareCol    [][][]byte // col-major
-	dataMutex    sync.Mutex
-	width        uint
-	shareSize    uint
-	rowRoots     [][]byte
-	colRoots     [][]byte
-	createTreeFn TreeConstructorFn
+	squareRow            [][][]byte // row-major
+	squareCol            [][][]byte // col-major
+	dataMutex            sync.Mutex
+	width                uint
+	shareSize            uint
+	rowRoots             [][]byte
+	colRoots             [][]byte
+	createTreeFn         TreeConstructorFn
+	parallelComputeOpNum int
 }
 
 // newDataSquare populates the data square from the supplied data and treeCreator.
@@ -210,12 +211,20 @@ func releaseTree(tree Tree) {
 	}
 }
 
+func (ds *dataSquare) setParallelOps(ops int) {
+	ds.parallelComputeOpNum = ops
+}
+
 func (ds *dataSquare) computeRoots() error {
 	var g errgroup.Group
 
 	rowRoots := make([][]byte, ds.width)
 	colRoots := make([][]byte, ds.width)
-
+	if ds.parallelComputeOpNum != 0 {
+		// this can be used in conjunction with reusing of nmts, we can reuse only fixed amount of nmts
+		// essentially having fixed allocations there when storing/computing hashes
+		g.SetLimit(ds.parallelComputeOpNum)
+	}
 	for i := uint(0); i < ds.width; i++ {
 		i := i // https://go.dev/doc/faq#closures_and_goroutines
 		g.Go(func() error {
@@ -269,6 +278,7 @@ func (ds *dataSquare) getRowRoot(rowIdx uint) ([]byte, error) {
 
 	tree := ds.createTreeFn(Row, rowIdx)
 	defer func() {
+		// reusing nmt after calculating the root
 		releaseTree(tree)
 	}()
 
@@ -308,6 +318,7 @@ func (ds *dataSquare) getColRoot(colIdx uint) ([]byte, error) {
 
 	tree := ds.createTreeFn(Col, colIdx)
 	defer func() {
+		// reusing nmt after calculating the root
 		releaseTree(tree)
 	}()
 

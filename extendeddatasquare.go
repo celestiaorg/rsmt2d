@@ -52,6 +52,17 @@ func ComputeExtendedDataSquare(
 	codec Codec,
 	treeCreatorFn TreeConstructorFn,
 ) (*ExtendedDataSquare, error) {
+	return ComputeExtendedDataSquareLimitParallelOps(data, codec, treeCreatorFn, 0)
+}
+
+// ComputeExtendedDataSquareLimitParallelOps computes the extended data square for some shares
+// of original data.
+func ComputeExtendedDataSquareLimitParallelOps(
+	data [][]byte,
+	codec Codec,
+	treeCreatorFn TreeConstructorFn,
+	numParallelOps int,
+) (*ExtendedDataSquare, error) {
 	if len(data) > codec.MaxChunks() {
 		// TODO: export this error and rename chunk to share
 		return nil, errors.New("number of chunks exceeds the maximum")
@@ -66,6 +77,8 @@ func ComputeExtendedDataSquare(
 	if err != nil {
 		return nil, err
 	}
+
+	ds.setParallelOps(numParallelOps)
 
 	eds := ExtendedDataSquare{dataSquare: ds, codec: codec}
 	err = eds.erasureExtendSquare(codec)
