@@ -191,16 +191,12 @@ func (c constructor) NewTree(_ Axis, axisIndex uint) Tree {
 		tree := newErasuredNamespacedMerkleTree(c.squareSize, 0, c.opts...)
 		return &tree
 	}
-	// Get a tree from the pool or create a new one
 	tree := c.treePool.Get()
 
-	// Reset the tree for reuse and collect byte slices for pooling
 	tree.axisIndex = uint64(axisIndex)
 	tree.shareIndex = 0
-
 	leaves := tree.tree.Reset()
 
-	// Put the returned byte slices into the sync.Pool for reuse
 	for _, leaf := range leaves {
 		if leaf != nil {
 			byteSlicePool.Put(leaf)
@@ -222,7 +218,6 @@ func ReleaseTree(tree Tree) {
 // Release implements the Releasable interface for erasuredNamespacedMerkleTree
 func (t *erasuredNamespacedMerkleTree) Release() {
 	if t.pool != nil {
-		// Put the tree back in its pool (Put method handles state reset)
 		t.pool.Put(t)
 	}
 }

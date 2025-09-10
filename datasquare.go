@@ -201,11 +201,12 @@ func (ds *dataSquare) resetRoots() {
 	}
 }
 
+type releasable interface {
+	Release()
+}
+
 // releaseTree releases a tree if it implements a Release method
 func releaseTree(tree Tree) {
-	type releasable interface {
-		Release()
-	}
 	if r, ok := tree.(releasable); ok {
 		r.Release()
 	}
@@ -277,10 +278,7 @@ func (ds *dataSquare) getRowRoot(rowIdx uint) ([]byte, error) {
 	}
 
 	tree := ds.createTreeFn(Row, rowIdx)
-	defer func() {
-		// reusing nmt after calculating the root
-		releaseTree(tree)
-	}()
+	defer releaseTree(tree)
 
 	row := ds.row(rowIdx)
 	if !isComplete(row) {
@@ -317,10 +315,7 @@ func (ds *dataSquare) getColRoot(colIdx uint) ([]byte, error) {
 	}
 
 	tree := ds.createTreeFn(Col, colIdx)
-	defer func() {
-		// reusing nmt after calculating the root
-		releaseTree(tree)
-	}()
+	defer releaseTree(tree)
 
 	col := ds.col(colIdx)
 	if !isComplete(col) {
