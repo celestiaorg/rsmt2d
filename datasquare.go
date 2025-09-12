@@ -291,7 +291,7 @@ func (ds *dataSquare) getRowRoot(rowIdx uint) ([]byte, error) {
 		}
 	}
 
-	return tree.ConsumeRoot()
+	return tree.FastRoot()
 }
 
 // getColRoots returns the Merkle roots of all the columns in the square.
@@ -328,7 +328,7 @@ func (ds *dataSquare) getColRoot(colIdx uint) ([]byte, error) {
 		}
 	}
 
-	return tree.ConsumeRoot()
+	return tree.FastRoot()
 }
 
 // GetCell returns a copy of a specific cell.

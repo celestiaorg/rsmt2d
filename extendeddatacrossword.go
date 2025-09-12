@@ -441,7 +441,7 @@ func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, axis Axis, i u
 			return nil, err
 		}
 	}
-	return tree.ConsumeRoot()
+	return tree.FastRoot()
 }
 
 // computeSharesRootWithRebuiltShare computes the root of the shares with the rebuilt share `rebuiltShare` at the specified index `rebuiltIndex`.
@@ -467,7 +467,7 @@ func (eds *ExtendedDataSquare) computeSharesRootWithRebuiltShare(shares [][]byte
 			return nil, err
 		}
 	}
-	return tree.ConsumeRoot()
+	return tree.FastRoot()
 }
 
 // verifyEncoding checks the Reed-Solomon encoding of the provided data.

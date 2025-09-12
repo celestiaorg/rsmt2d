@@ -96,7 +96,7 @@ type erasuredNamespacedMerkleTree struct {
 // interface by implementing a different implementation.
 type nmtTree interface {
 	Root() ([]byte, error)
-	ConsumeRoot() ([]byte, error)
+	FastRoot() ([]byte, error)
 	Push(namespacedData namespace.PrefixedData) error
 	Reset() [][]byte
 }
@@ -261,10 +261,10 @@ func (w *erasuredNamespacedMerkleTree) Root() ([]byte, error) {
 	return root, nil
 }
 
-// ConsumeRoot fulfills the rsmt2d.Tree interface by generating and returning the
+// FastRoot fulfills the rsmt2d.Tree interface by generating and returning the
 // underlying NamespaceMerkleTree Root. For this implementation, it behaves the same as Root().
-func (w *erasuredNamespacedMerkleTree) ConsumeRoot() ([]byte, error) {
-	return w.tree.ConsumeRoot()
+func (w *erasuredNamespacedMerkleTree) FastRoot() ([]byte, error) {
+	return w.tree.FastRoot()
 }
 
 // incrementShareIndex increments the share index by one.

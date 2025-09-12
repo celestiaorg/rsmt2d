@@ -569,7 +569,7 @@ func (d *errorTree) Root() ([]byte, error) {
 	return nil, fmt.Errorf("error")
 }
 
-func (d *errorTree) ConsumeRoot() ([]byte, error) {
+func (d *errorTree) FastRoot() ([]byte, error) {
 	return nil, fmt.Errorf("error")
 }
 

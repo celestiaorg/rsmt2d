@@ -23,4 +23,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/celestiaorg/nmt => github.com/mcrakhman/nmt v0.24.2-0.20250909215711-dd5518232294
+replace github.com/celestiaorg/nmt => github.com/mcrakhman/nmt v0.24.2-0.20250911170026-6abcb0bc1698
