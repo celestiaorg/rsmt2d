@@ -8,7 +8,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"sync"
-	"sync/atomic"
 
 	"github.com/celestiaorg/nmt"
 	"github.com/celestiaorg/nmt/namespace"
@@ -23,8 +22,6 @@ var byteSlicePool = sync.Pool{
 
 // boundedTreePool implements a bounded pool that creates at most maxSize elements
 type boundedTreePool struct {
-	maxSize    int
-	created    atomic.Int32
 	free       chan *erasuredNamespacedMerkleTree
 	opts       []nmt.Option
 	squareSize uint64
@@ -32,7 +29,6 @@ type boundedTreePool struct {
 
 func newBoundedTreePool(maxSize int, squareSize uint64, opts []nmt.Option) *boundedTreePool {
 	return &boundedTreePool{
-		maxSize:    maxSize,
 		free:       make(chan *erasuredNamespacedMerkleTree, maxSize),
 		opts:       opts,
 		squareSize: squareSize,
@@ -40,22 +36,16 @@ func newBoundedTreePool(maxSize int, squareSize uint64, opts []nmt.Option) *boun
 }
 
 func (p *boundedTreePool) Get() *erasuredNamespacedMerkleTree {
-	// Fast path: try to get from pool (without waiting)
 	select {
 	case tree := <-p.free:
 		return tree
 	default:
-	}
-
-	for {
-		current := p.created.Load()
-		if int(current) >= p.maxSize || p.created.CompareAndSwap(current, current+1) {
-			// Successfully reserved a slot
-			tree := newErasuredNamespacedMerkleTree(p.squareSize, 0, p.opts...)
-			treePtr := &tree
-			treePtr.pool = p
-			return treePtr
-		}
+		// if no tree is available, return new tree, so we are not blocked
+		// in practice this should happen only before the pool is full, because we limit the number of goroutines to maxSize
+		tree := newErasuredNamespacedMerkleTree(p.squareSize, 0, p.opts...)
+		treePtr := &tree
+		treePtr.pool = p
+		return treePtr
 	}
 }
 
@@ -63,10 +53,6 @@ func (p *boundedTreePool) Put(tree *erasuredNamespacedMerkleTree) {
 	if tree == nil {
 		return
 	}
-
-	tree.axisIndex = 0
-	tree.shareIndex = 0
-
 	select {
 	case p.free <- tree:
 	default:
