@@ -194,13 +194,6 @@ func (c constructor) NewTree(_ Axis, axisIndex uint) Tree {
 	return tree
 }
 
-// ReleaseTree returns a tree to the pool for reuse
-func ReleaseTree(tree Tree) {
-	if t, ok := tree.(*erasuredNamespacedMerkleTree); ok && t.pool != nil {
-		t.pool.Put(t)
-	}
-}
-
 // Release implements the Releasable interface for erasuredNamespacedMerkleTree
 func (t *erasuredNamespacedMerkleTree) Release() {
 	if t.pool != nil {
