@@ -194,13 +194,12 @@ type constructor struct {
 
 // newErasuredNamespacedMerkleTreeConstructor creates a tree constructor function as required by rsmt2d to
 // calculate the data root. It creates that tree using the
-// erasuredNamespacedMerkleTree with a bounded pool of maxSize elements.
+// erasuredNamespacedMerkleTree
 func newErasuredNamespacedMerkleTreeConstructor(squareSize uint64, opts ...nmt.Option) TreeConstructorFn {
-	c := constructor{
+	return constructor{
 		squareSize: squareSize,
 		opts:       opts,
-	}
-	return c.NewTree
+	}.NewTree
 }
 
 // NewTree creates a new Tree using the
@@ -268,7 +267,7 @@ func (w *erasuredNamespacedMerkleTree) Root() ([]byte, error) {
 }
 
 // FastRoot fulfills the rsmt2d.Tree interface by generating and returning the
-// underlying NamespaceMerkleTree Root. For this implementation, it behaves the same as Root().
+// underlying NamespaceMerkleTree Root. It destroys tree internal hash state after computation
 func (w *erasuredNamespacedMerkleTree) FastRoot() ([]byte, error) {
 	return w.tree.FastRoot()
 }
