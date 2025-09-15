@@ -18,13 +18,9 @@ type bytePool struct {
 	pool *sync.Pool
 }
 
-func newBytePool(capacity int) *bytePool {
+func newBytePool() *bytePool {
 	return &bytePool{
-		pool: &sync.Pool{
-			New: func() interface{} {
-				return make([]byte, 0, capacity)
-			},
-		},
+		pool: &sync.Pool{},
 	}
 }
 
@@ -39,7 +35,7 @@ func (bp *bytePool) getOrAlloc(requiredLen int) []byte {
 }
 
 func (bp *bytePool) put(b []byte) {
-	bp.pool.Put(b)
+	bp.pool.Put(b[:0]) // Reset length to 0 before returning to pool
 }
 
 type treeFactory struct {
@@ -48,17 +44,15 @@ type treeFactory struct {
 	treePool      *fixedTreePool
 	byteSlicePool *bytePool
 	shareSize     int
-	namespaceSize int
 }
 
-func newTreeFactory(squareSize uint64, poolSize int, shareSize int, namespaceSize int, opts ...nmt.Option) *treeFactory {
+func newTreeFactory(squareSize uint64, poolSize int, opts ...nmt.Option) *treeFactory {
 	return &treeFactory{
 		squareSize:    squareSize,
 		opts:          opts,
 		shareSize:     shareSize,
-		namespaceSize: namespaceSize,
 		treePool:      newFixedTreePool(poolSize, squareSize, opts),
-		byteSlicePool: newBytePool(namespaceSize + shareSize),
+		byteSlicePool: newBytePool(),
 	}
 }
 

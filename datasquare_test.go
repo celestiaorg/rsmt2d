@@ -496,7 +496,7 @@ func BenchmarkEDSRootsWithBufferedErasuredNMT(b *testing.B) {
 
 		// a tree constructor for erasured nmt
 		parallelOps := runtime.NumCPU() * 4
-		factory := newTreeFactory(uint64(edsSize), parallelOps, shareSize, namespaceIDSize, nmt.IgnoreMaxNamespace(true), nmt.InitialCapacity(odsSize*2))
+		factory := newTreeFactory(uint64(squareSize), parallelOps, nmt.NamespaceIDSize(namespaceIDSize), nmt.IgnoreMaxNamespace(true), nmt.InitialCapacity(odsSize*2))
 
 		square, err := newDataSquare(ds, factory.NewConstructor(), shareSize)
 		require.NoError(b, err)
