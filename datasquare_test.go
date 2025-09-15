@@ -574,6 +574,58 @@ func (d *errorTree) FastRoot() ([]byte, error) {
 func (d *errorTree) Release() {
 }
 
+type treeRootWrapper struct {
+	Tree
+}
+
+func (t *treeRootWrapper) FastRoot() ([]byte, error) {
+	return t.Root()
+}
+
+func TestRootVsFastRootAndReuse(t *testing.T) {
+	sizes := []struct {
+		name    string
+		odsSize int
+	}{
+		{"ods-32", 32},
+		{"ods-64", 64},
+		{"ods-128", 128},
+	}
+
+	for _, tc := range sizes {
+		t.Run(tc.name, func(t *testing.T) {
+			edsSize := tc.odsSize * 2
+			data := genRandSortedDS(edsSize, shareSize, 8)
+
+			factory := newTreeFactory(uint64(tc.odsSize), 4, nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
+			constructor := newErasuredNamespacedMerkleTreeConstructor(uint64(tc.odsSize), nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
+
+			rootWrapper := func(axis Axis, index uint) Tree {
+				return &treeRootWrapper{Tree: constructor(axis, index)}
+			}
+
+			squareFast, err := newDataSquare(data, factory.NewConstructor(), shareSize)
+			require.NoError(t, err)
+			squareFast.setParallelOps(4)
+			squareRoot, err := newDataSquare(data, rootWrapper, shareSize)
+			require.NoError(t, err)
+
+			rowRootsFast, err := squareFast.getRowRoots()
+			require.NoError(t, err)
+			rowRootsRoot, err := squareRoot.getRowRoots()
+			require.NoError(t, err)
+
+			colRootsFast, err := squareFast.getColRoots()
+			require.NoError(t, err)
+			colRootsRoot, err := squareRoot.getColRoots()
+			require.NoError(t, err)
+
+			require.Equal(t, rowRootsFast, rowRootsRoot)
+			require.Equal(t, colRootsFast, colRootsRoot)
+		})
+	}
+}
+
 // setCell overwrites the contents of a specific cell. setCell does not perform
 // any input validation so most use cases should use `SetCell` instead of
 // `setCell`. This method exists strictly for testing.
