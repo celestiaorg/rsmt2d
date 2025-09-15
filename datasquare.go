@@ -201,17 +201,6 @@ func (ds *dataSquare) resetRoots() {
 	}
 }
 
-type releasable interface {
-	Release()
-}
-
-// releaseTree releases a tree if it implements a Release method
-func releaseTree(tree Tree) {
-	if r, ok := tree.(releasable); ok {
-		r.Release()
-	}
-}
-
 func (ds *dataSquare) setParallelOps(ops int) {
 	ds.parallelComputeOpNum = ops
 }
@@ -278,7 +267,7 @@ func (ds *dataSquare) getRowRoot(rowIdx uint) ([]byte, error) {
 	}
 
 	tree := ds.createTreeFn(Row, rowIdx)
-	defer releaseTree(tree)
+	defer tree.Release()
 
 	row := ds.row(rowIdx)
 	if !isComplete(row) {
@@ -315,7 +304,7 @@ func (ds *dataSquare) getColRoot(colIdx uint) ([]byte, error) {
 	}
 
 	tree := ds.createTreeFn(Col, colIdx)
-	defer releaseTree(tree)
+	defer tree.Release()
 
 	col := ds.col(colIdx)
 	if !isComplete(col) {

@@ -5,6 +5,7 @@ package rsmt2d
 // Please note that this file has undergone several modifications and may not match the original file exactly.
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"fmt"
 	"sync"
@@ -13,50 +14,101 @@ import (
 	"github.com/celestiaorg/nmt/namespace"
 )
 
-// Global byte slice pool for reusing namespace-prefixed data
-var byteSlicePool = sync.Pool{
-	New: func() interface{} {
-		return make([]byte, 0, 8+512) // Initial capacity for namespace + typical share size
-	},
+type bytePool struct {
+	pool *sync.Pool
 }
 
-// boundedTreePool implements a bounded pool that creates at most maxSize elements
-type boundedTreePool struct {
-	free       chan *erasuredNamespacedMerkleTree
-	opts       []nmt.Option
-	squareSize uint64
-}
-
-func newBoundedTreePool(maxSize int, squareSize uint64, opts []nmt.Option) *boundedTreePool {
-	return &boundedTreePool{
-		free:       make(chan *erasuredNamespacedMerkleTree, maxSize),
-		opts:       opts,
-		squareSize: squareSize,
+func newBytePool(capacity int) *bytePool {
+	return &bytePool{
+		pool: &sync.Pool{
+			New: func() interface{} {
+				return make([]byte, 0, capacity)
+			},
+		},
 	}
 }
 
-func (p *boundedTreePool) Get() *erasuredNamespacedMerkleTree {
-	select {
-	case tree := <-p.free:
+func (bp *bytePool) getOrAlloc(requiredLen int) []byte {
+	if pooled := bp.pool.Get(); pooled != nil {
+		b := pooled.([]byte)
+		if cap(b) >= requiredLen {
+			return b[:requiredLen]
+		}
+	}
+	return make([]byte, requiredLen)
+}
+
+func (bp *bytePool) put(b []byte) {
+	bp.pool.Put(b)
+}
+
+type treeFactory struct {
+	squareSize    uint64
+	opts          []nmt.Option
+	treePool      *fixedTreePool
+	byteSlicePool *bytePool
+	shareSize     int
+	namespaceSize int
+}
+
+func newTreeFactory(squareSize uint64, poolSize int, shareSize int, namespaceSize int, opts ...nmt.Option) *treeFactory {
+	return &treeFactory{
+		squareSize:    squareSize,
+		opts:          opts,
+		shareSize:     shareSize,
+		namespaceSize: namespaceSize,
+		treePool:      newFixedTreePool(poolSize, squareSize, opts),
+		byteSlicePool: newBytePool(namespaceSize + shareSize),
+	}
+}
+
+func (f *treeFactory) NewConstructor() TreeConstructorFn {
+	return func(_ Axis, axisIndex uint) Tree {
+		tree := f.treePool.acquire()
+		tree.axisIndex = uint64(axisIndex)
+		tree.shareIndex = 0
+		tree.byteSlicePool = f.byteSlicePool
+
+		leaves := tree.tree.Reset()
+		for _, leaf := range leaves {
+			if leaf != nil {
+				f.byteSlicePool.put(leaf)
+			}
+		}
+
 		return tree
-	default:
-		// if no tree is available, return new tree, so we are not blocked
-		// in practice this should happen only before the pool is full, because we limit the number of goroutines to maxSize
-		tree := newErasuredNamespacedMerkleTree(p.squareSize, 0, p.opts...)
-		treePtr := &tree
-		treePtr.pool = p
-		return treePtr
 	}
 }
 
-func (p *boundedTreePool) Put(tree *erasuredNamespacedMerkleTree) {
-	if tree == nil {
-		return
+type fixedTreePool struct {
+	availableNMTs chan *erasuredNamespacedMerkleTree
+	opts          []nmt.Option
+	squareSize    uint64
+}
+
+func newFixedTreePool(size int, squareSize uint64, opts []nmt.Option) *fixedTreePool {
+	pool := &fixedTreePool{
+		availableNMTs: make(chan *erasuredNamespacedMerkleTree, size),
+		opts:          opts,
+		squareSize:    squareSize,
 	}
-	select {
-	case p.free <- tree:
-	default:
+
+	for i := 0; i < size; i++ {
+		tree := newErasuredNamespacedMerkleTree(squareSize, 0, opts...)
+		treePtr := &tree
+		treePtr.pool = pool
+		pool.availableNMTs <- treePtr
 	}
+
+	return pool
+}
+
+func (p *fixedTreePool) acquire() *erasuredNamespacedMerkleTree {
+	return <-p.availableNMTs
+}
+
+func (p *fixedTreePool) release(tree *erasuredNamespacedMerkleTree) {
+	p.availableNMTs <- tree
 }
 
 // Fulfills the Tree interface and TreeConstructorFn function
@@ -79,15 +131,15 @@ type erasuredNamespacedMerkleTree struct {
 	// by rsmt2d and used to help determine which quadrant each leaf belongs to.
 	axisIndex uint64
 	// shareIndex is the index of the share in a row or column that is being
-	// pushed to the tree. It is expected to be in the range: 0 <= shareIndex <
+	// pushed to the tree. It is expected to be in the range: 0 <= shareIndex
 	// 2*squareSize. shareIndex is used to help determine which quadrant each
 	// leaf belongs to, along with keeping track of how many leaves have been
 	// added to the tree so far.
 	shareIndex      uint64
 	namespaceSize   int
-	pool            *boundedTreePool // reference to the pool this tree belongs to
-	parityNamespace []byte           // Pre-allocated parity namespace bytes
-	buffer          []byte           // Reusable buffer for nidAndData to avoid allocations
+	pool            *fixedTreePool
+	byteSlicePool   *bytePool
+	parityNamespace []byte // Pre-allocated parity namespace bytes
 }
 
 // nmtTree is an interface that wraps the methods of the underlying
@@ -121,13 +173,7 @@ func newErasuredNamespacedMerkleTree(squareSize uint64, axisIndex uint,
 
 	// Pre-allocate parity namespace and buffer to avoid repeated allocations
 	namespaceSize := int(opts.NamespaceIDSize)
-	parityNamespace := make([]byte, namespaceSize)
-	for i := range parityNamespace {
-		parityNamespace[i] = 0xFF
-	}
-
-	// Pre-size buffer for typical share size (namespace + 512 bytes is common)
-	buffer := make([]byte, 0, namespaceSize+512)
+	parityNamespace := bytes.Repeat([]byte{0xFF}, namespaceSize)
 
 	return erasuredNamespacedMerkleTree{
 		squareSize:      squareSize,
@@ -138,14 +184,12 @@ func newErasuredNamespacedMerkleTree(squareSize uint64, axisIndex uint,
 		shareIndex:      0,
 		pool:            nil,
 		parityNamespace: parityNamespace,
-		buffer:          buffer,
 	}
 }
 
 type constructor struct {
 	squareSize uint64
 	opts       []nmt.Option
-	treePool   *boundedTreePool
 }
 
 // newErasuredNamespacedMerkleTreeConstructor creates a tree constructor function as required by rsmt2d to
@@ -159,45 +203,18 @@ func newErasuredNamespacedMerkleTreeConstructor(squareSize uint64, opts ...nmt.O
 	return c.NewTree
 }
 
-// newBufferedErasuredNamespacedMerkleTreeConstructor creates a tree constructor with a specified max pool size
-func newBufferedErasuredNamespacedMerkleTreeConstructor(squareSize uint64, maxSize int, opts ...nmt.Option) TreeConstructorFn {
-	c := constructor{
-		squareSize: squareSize,
-		opts:       opts,
-		treePool:   newBoundedTreePool(maxSize, squareSize, opts),
-	}
-	return c.NewTree
-}
-
 // NewTree creates a new Tree using the
 // erasuredNamespacedMerkleTree with predefined square size and
 // nmt.Options
 func (c constructor) NewTree(_ Axis, axisIndex uint) Tree {
-	if c.treePool == nil {
-		tree := newErasuredNamespacedMerkleTree(c.squareSize, 0, c.opts...)
-		return &tree
-	}
-	tree := c.treePool.Get()
-
-	tree.axisIndex = uint64(axisIndex)
-	tree.shareIndex = 0
-	leaves := tree.tree.Reset()
-
-	for _, leaf := range leaves {
-		if leaf != nil {
-			byteSlicePool.Put(leaf)
-		}
-	}
-
-	tree.pool = c.treePool
-
-	return tree
+	tree := newErasuredNamespacedMerkleTree(c.squareSize, axisIndex, c.opts...)
+	return &tree
 }
 
 // Release implements the Releasable interface for erasuredNamespacedMerkleTree
 func (t *erasuredNamespacedMerkleTree) Release() {
 	if t.pool != nil {
-		t.pool.Put(t)
+		t.pool.release(t)
 	}
 }
 
@@ -218,13 +235,9 @@ func (w *erasuredNamespacedMerkleTree) Push(data []byte) error {
 		nidAndData  []byte
 		requiredLen = w.namespaceSize + len(data)
 	)
-	if pooled := byteSlicePool.Get(); pooled != nil {
-		nidAndData = pooled.([]byte)
-		if cap(nidAndData) < requiredLen {
-			nidAndData = make([]byte, requiredLen)
-		} else {
-			nidAndData = nidAndData[:requiredLen]
-		}
+
+	if w.byteSlicePool != nil {
+		nidAndData = w.byteSlicePool.getOrAlloc(requiredLen)
 	} else {
 		nidAndData = make([]byte, requiredLen)
 	}

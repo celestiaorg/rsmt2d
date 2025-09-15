@@ -21,6 +21,7 @@ type Tree interface {
 	Push(data []byte) error
 	Root() ([]byte, error)
 	FastRoot() ([]byte, error)
+	Release()
 }
 
 var _ Tree = &DefaultTree{}
@@ -29,6 +30,10 @@ type DefaultTree struct {
 	*merkletree.Tree
 	leaves [][]byte
 	root   []byte
+}
+
+// Release implements Tree.
+func (d *DefaultTree) Release() {
 }
 
 func NewDefaultTree(_ Axis, _ uint) Tree {

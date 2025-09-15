@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"runtime"
 	"testing"
 
 	"github.com/celestiaorg/merkletree"
 	"github.com/celestiaorg/nmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewDataSquare(t *testing.T) {
@@ -493,15 +495,11 @@ func BenchmarkEDSRootsWithBufferedErasuredNMT(b *testing.B) {
 		ds := genRandSortedDS(edsSize, shareSize, namespaceIDSize)
 
 		// a tree constructor for erasured nmt
-		parallelOps := 40
-		treeConstructor := newBufferedErasuredNamespacedMerkleTreeConstructor(uint64(edsSize), parallelOps,
-			nmt.NamespaceIDSize(namespaceIDSize), nmt.IgnoreMaxNamespace(true),
-			nmt.InitialCapacity(odsSize*2))
+		parallelOps := runtime.NumCPU() * 4
+		factory := newTreeFactory(uint64(edsSize), parallelOps, shareSize, namespaceIDSize, nmt.IgnoreMaxNamespace(true), nmt.InitialCapacity(odsSize*2))
 
-		square, err := newDataSquare(ds, treeConstructor, shareSize)
-		if err != nil {
-			b.Errorf("Failure to create square of size %d: %s", odsSize, err)
-		}
+		square, err := newDataSquare(ds, factory.NewConstructor(), shareSize)
+		require.NoError(b, err)
 		square.setParallelOps(parallelOps)
 		// the total size of the ODS in MiB
 		odsSizeMiBytes := odsSize * odsSize * shareSize / mebibyte
@@ -571,6 +569,9 @@ func (d *errorTree) Root() ([]byte, error) {
 
 func (d *errorTree) FastRoot() ([]byte, error) {
 	return nil, fmt.Errorf("error")
+}
+
+func (d *errorTree) Release() {
 }
 
 // setCell overwrites the contents of a specific cell. setCell does not perform
