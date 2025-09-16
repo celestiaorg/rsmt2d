@@ -8,51 +8,51 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
-	"sync"
 
 	"github.com/celestiaorg/nmt"
 	"github.com/celestiaorg/nmt/namespace"
 )
 
-type bytePool struct {
-	pool *sync.Pool
+// contiguousShareMemory provides a pre-allocated contiguous memory block for share data
+type contiguousShareMemory struct {
+	data       []byte // Pre-allocated contiguous memory block
+	squareSize uint64
+	shareSize  int
 }
 
-func newBytePool() *bytePool {
-	return &bytePool{
-		pool: &sync.Pool{},
+func newContiguousSharePool(squareSize, shareSize uint64) *contiguousShareMemory {
+	// Each share needs share size bytes
+	// We have 2 * squareSize shares in the extended square (per row or column)
+	totalSize := int(2 * squareSize * shareSize)
+
+	return &contiguousShareMemory{
+		data:       make([]byte, totalSize),
+		squareSize: squareSize,
+		shareSize:  int(shareSize),
 	}
 }
 
-func (bp *bytePool) getOrAlloc(requiredLen int) []byte {
-	if pooled := bp.pool.Get(); pooled != nil {
-		b := pooled.([]byte)
-		if cap(b) >= requiredLen {
-			return b[:requiredLen]
-		}
+// getBuffer returns a slice from the pre-allocated memory for a given share index
+func (m *contiguousShareMemory) getBuffer(shareIndex uint64) []byte {
+	if shareIndex >= 2*m.squareSize {
+		panic(fmt.Sprintf("share index %d exceeds maximum %d", shareIndex, 2*m.squareSize))
 	}
-	return make([]byte, requiredLen)
-}
 
-func (bp *bytePool) put(b []byte) {
-	bp.pool.Put(b[:0]) // Reset length to 0 before returning to pool
+	offset := int(shareIndex) * m.shareSize
+	return m.data[offset : offset+m.shareSize]
 }
 
 type treeFactory struct {
-	squareSize    uint64
-	opts          []nmt.Option
-	treePool      *fixedTreePool
-	byteSlicePool *bytePool
-	shareSize     int
+	squareSize uint64
+	opts       []nmt.Option
+	treePool   *fixedTreePool
 }
 
-func newTreeFactory(squareSize uint64, poolSize int, opts ...nmt.Option) *treeFactory {
+func newTreeFactory(squareSize, shareSize uint64, poolSize int, opts ...nmt.Option) *treeFactory {
 	return &treeFactory{
-		squareSize:    squareSize,
-		opts:          opts,
-		shareSize:     shareSize,
-		treePool:      newFixedTreePool(poolSize, squareSize, opts),
-		byteSlicePool: newBytePool(),
+		squareSize: squareSize,
+		opts:       opts,
+		treePool:   newFixedTreePool(poolSize, squareSize, shareSize, opts),
 	}
 }
 
@@ -61,14 +61,8 @@ func (f *treeFactory) NewConstructor() TreeConstructorFn {
 		tree := f.treePool.acquire()
 		tree.axisIndex = uint64(axisIndex)
 		tree.shareIndex = 0
-		tree.byteSlicePool = f.byteSlicePool
 
-		leaves := tree.tree.Reset()
-		for _, leaf := range leaves {
-			if leaf != nil {
-				f.byteSlicePool.put(leaf)
-			}
-		}
+		tree.tree.Reset()
 
 		return tree
 	}
@@ -80,7 +74,7 @@ type fixedTreePool struct {
 	squareSize    uint64
 }
 
-func newFixedTreePool(size int, squareSize uint64, opts []nmt.Option) *fixedTreePool {
+func newFixedTreePool(size int, squareSize, shareSize uint64, opts []nmt.Option) *fixedTreePool {
 	pool := &fixedTreePool{
 		availableNMTs: make(chan *erasuredNamespacedMerkleTree, size),
 		opts:          opts,
@@ -91,6 +85,7 @@ func newFixedTreePool(size int, squareSize uint64, opts []nmt.Option) *fixedTree
 		tree := newErasuredNamespacedMerkleTree(squareSize, 0, opts...)
 		treePtr := &tree
 		treePtr.pool = pool
+		treePtr.sharePool = newContiguousSharePool(squareSize, shareSize)
 		pool.availableNMTs <- treePtr
 	}
 
@@ -132,7 +127,7 @@ type erasuredNamespacedMerkleTree struct {
 	shareIndex      uint64
 	namespaceSize   int
 	pool            *fixedTreePool
-	byteSlicePool   *bytePool
+	sharePool       *contiguousShareMemory
 	parityNamespace []byte // Pre-allocated parity namespace bytes
 }
 
@@ -224,15 +219,13 @@ func (w *erasuredNamespacedMerkleTree) Push(data []byte) error {
 		return fmt.Errorf("data is too short to contain namespace ID")
 	}
 
-	var (
-		nidAndData  []byte
-		requiredLen = w.namespaceSize + len(data)
-	)
+	var nidAndData []byte
 
-	if w.byteSlicePool != nil {
-		nidAndData = w.byteSlicePool.getOrAlloc(requiredLen)
+	if w.sharePool != nil {
+		nidAndData = w.sharePool.getBuffer(w.shareIndex)
+		nidAndData = nidAndData[:len(data)]
 	} else {
-		nidAndData = make([]byte, requiredLen)
+		nidAndData = make([]byte, len(data))
 	}
 	copy(nidAndData[w.namespaceSize:], data)
 	// use the parity namespace if the cell is not in Q0 of the extended data square
