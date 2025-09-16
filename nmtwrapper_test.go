@@ -177,9 +177,9 @@ func (c constructor) NewTree(_ Axis, axisIndex uint) Tree {
 }
 
 // Release implements the Releasable interface for erasuredNamespacedMerkleTree
-func (t *erasuredNamespacedMerkleTree) Release() {
-	if t.pool != nil {
-		t.pool.release(t)
+func (w *erasuredNamespacedMerkleTree) Release() {
+	if w.pool != nil {
+		w.pool.release(w)
 	}
 }
 
@@ -218,7 +218,6 @@ func (w *erasuredNamespacedMerkleTree) Push(data []byte) error {
 		copy(nidAndData[:w.namespaceSize], w.parityNamespace)
 	}
 	err := w.tree.Push(nidAndData)
-
 	if err != nil {
 		return err
 	}
