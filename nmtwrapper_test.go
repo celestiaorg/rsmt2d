@@ -13,35 +13,6 @@ import (
 	"github.com/celestiaorg/nmt/namespace"
 )
 
-// contiguousShareMemory provides a pre-allocated contiguous memory block for share data
-type contiguousShareMemory struct {
-	data       []byte // Pre-allocated contiguous memory block
-	squareSize uint64
-	shareSize  int
-}
-
-func newContiguousSharePool(squareSize, shareSize uint64) *contiguousShareMemory {
-	// Each share needs share size bytes
-	// We have 2 * squareSize shares in the extended square (per row or column)
-	totalSize := int(2 * squareSize * shareSize)
-
-	return &contiguousShareMemory{
-		data:       make([]byte, totalSize),
-		squareSize: squareSize,
-		shareSize:  int(shareSize),
-	}
-}
-
-// getBuffer returns a slice from the pre-allocated memory for a given share index
-func (m *contiguousShareMemory) getBuffer(shareIndex uint64) []byte {
-	if shareIndex >= 2*m.squareSize {
-		panic(fmt.Sprintf("share index %d exceeds maximum %d", shareIndex, 2*m.squareSize))
-	}
-
-	offset := int(shareIndex) * m.shareSize
-	return m.data[offset : offset+m.shareSize]
-}
-
 type treeFactory struct {
 	squareSize uint64
 	opts       []nmt.Option
@@ -82,10 +53,11 @@ func newFixedTreePool(size int, squareSize, shareSize uint64, opts []nmt.Option)
 	}
 
 	for i := 0; i < size; i++ {
-		tree := newErasuredNamespacedMerkleTree(squareSize, 0, opts...)
+		tree := newErasuredNamespacedMerkleTree(squareSize, shareSize, 0, opts...)
 		treePtr := &tree
 		treePtr.pool = pool
-		treePtr.sharePool = newContiguousSharePool(squareSize, shareSize)
+		// Pre-allocate a buffer for all share data (2 * squareSize * shareSize bytes total)
+		treePtr.buffer = make([]byte, 2*squareSize*shareSize)
 		pool.availableNMTs <- treePtr
 	}
 
@@ -127,7 +99,8 @@ type erasuredNamespacedMerkleTree struct {
 	shareIndex      uint64
 	namespaceSize   int
 	pool            *fixedTreePool
-	sharePool       *contiguousShareMemory
+	shareSize       int
+	buffer          []byte // Pre-allocated buffer for share data
 	parityNamespace []byte // Pre-allocated parity namespace bytes
 }
 
@@ -146,7 +119,7 @@ type nmtTree interface {
 // with an underlying NMT of namespace size `NamespaceSize` and with
 // `ignoreMaxNamespace=true`. axisIndex is the index of the row or column that
 // this tree is committing to. squareSize must be greater than zero.
-func newErasuredNamespacedMerkleTree(squareSize uint64, axisIndex uint,
+func newErasuredNamespacedMerkleTree(squareSize, shareSize uint64, axisIndex uint,
 	options ...nmt.Option,
 ) erasuredNamespacedMerkleTree {
 	if squareSize == 0 {
@@ -171,6 +144,7 @@ func newErasuredNamespacedMerkleTree(squareSize uint64, axisIndex uint,
 		tree:            tree,
 		axisIndex:       uint64(axisIndex),
 		shareIndex:      0,
+		shareSize:       int(shareSize),
 		pool:            nil,
 		parityNamespace: parityNamespace,
 	}
@@ -195,7 +169,7 @@ func newErasuredNamespacedMerkleTreeConstructor(squareSize uint64, opts ...nmt.O
 // erasuredNamespacedMerkleTree with predefined square size and
 // nmt.Options
 func (c constructor) NewTree(_ Axis, axisIndex uint) Tree {
-	tree := newErasuredNamespacedMerkleTree(c.squareSize, axisIndex, c.opts...)
+	tree := newErasuredNamespacedMerkleTree(c.squareSize, shareSize, axisIndex, c.opts...)
 	return &tree
 }
 
@@ -218,12 +192,14 @@ func (w *erasuredNamespacedMerkleTree) Push(data []byte) error {
 	if len(data) < w.namespaceSize {
 		return fmt.Errorf("data is too short to contain namespace ID")
 	}
+	if len(data) > int(w.shareSize) {
+		return fmt.Errorf("data is too large to contain namespace ID")
+	}
 
 	var nidAndData []byte
-
-	if w.sharePool != nil {
-		nidAndData = w.sharePool.getBuffer(w.shareIndex)
-		nidAndData = nidAndData[:len(data)]
+	if w.buffer != nil {
+		offset := int(w.shareIndex) * w.shareSize
+		nidAndData = w.buffer[offset : offset+len(data)]
 	} else {
 		nidAndData = make([]byte, len(data))
 	}
