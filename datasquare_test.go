@@ -496,7 +496,7 @@ func BenchmarkEDSRootsWithBufferedErasuredNMT(b *testing.B) {
 
 		// a tree constructor for erasured nmt
 		parallelOps := runtime.NumCPU() * 4
-		factory := newTreeFactory(uint64(squareSize), uint64(shareSize), parallelOps, nmt.NamespaceIDSize(namespaceIDSize), nmt.IgnoreMaxNamespace(true), nmt.InitialCapacity(odsSize*2))
+		factory := newTreeFactory(uint64(squareSize), parallelOps, nmt.NamespaceIDSize(namespaceIDSize), nmt.IgnoreMaxNamespace(true), nmt.InitialCapacity(odsSize*2))
 
 		square, err := newDataSquare(ds, factory.NewConstructor(), shareSize)
 		require.NoError(b, err)
@@ -597,7 +597,7 @@ func TestRootVsFastRootAndReuse(t *testing.T) {
 			edsSize := tc.odsSize * 2
 			data := genRandSortedDS(edsSize, shareSize, 8)
 
-			factory := newTreeFactory(uint64(tc.odsSize), uint64(shareSize), 4, nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
+			factory := newTreeFactory(uint64(tc.odsSize), 4, nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
 			constructor := newErasuredNamespacedMerkleTreeConstructor(uint64(tc.odsSize), nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
 
 			rootWrapper := func(axis Axis, index uint) Tree {

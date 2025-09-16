@@ -19,11 +19,11 @@ type treeFactory struct {
 	treePool   *fixedTreePool
 }
 
-func newTreeFactory(squareSize, shareSize uint64, poolSize int, opts ...nmt.Option) *treeFactory {
+func newTreeFactory(squareSize uint64, poolSize int, opts ...nmt.Option) *treeFactory {
 	return &treeFactory{
 		squareSize: squareSize,
 		opts:       opts,
-		treePool:   newFixedTreePool(poolSize, squareSize, shareSize, opts),
+		treePool:   newFixedTreePool(poolSize, squareSize, opts),
 	}
 }
 
@@ -45,19 +45,24 @@ type fixedTreePool struct {
 	squareSize    uint64
 }
 
-func newFixedTreePool(size int, squareSize, shareSize uint64, opts []nmt.Option) *fixedTreePool {
+func newFixedTreePool(size int, squareSize uint64, options []nmt.Option) *fixedTreePool {
 	pool := &fixedTreePool{
 		availableNMTs: make(chan *erasuredNamespacedMerkleTree, size),
-		opts:          opts,
+		opts:          options,
 		squareSize:    squareSize,
 	}
-
+	opts := &nmt.Options{}
+	for _, setter := range options {
+		setter(opts)
+	}
+	namespaceSize := int(opts.NamespaceIDSize)
+	entrySize := namespaceSize + shareSize
 	for i := 0; i < size; i++ {
-		tree := newErasuredNamespacedMerkleTree(squareSize, shareSize, 0, opts...)
+		tree := newErasuredNamespacedMerkleTree(squareSize, 0, options...)
 		treePtr := &tree
 		treePtr.pool = pool
-		// Pre-allocate a buffer for all share data (2 * squareSize * shareSize bytes total)
-		treePtr.buffer = make([]byte, 2*squareSize*shareSize)
+		// Pre-allocate a buffer for all share data (2 * squareSize * entrySize bytes total)
+		treePtr.buffer = make([]byte, 2*int(squareSize)*entrySize)
 		pool.availableNMTs <- treePtr
 	}
 
@@ -99,7 +104,6 @@ type erasuredNamespacedMerkleTree struct {
 	shareIndex      uint64
 	namespaceSize   int
 	pool            *fixedTreePool
-	shareSize       int
 	buffer          []byte // Pre-allocated buffer for share data
 	parityNamespace []byte // Pre-allocated parity namespace bytes
 }
@@ -119,7 +123,7 @@ type nmtTree interface {
 // with an underlying NMT of namespace size `NamespaceSize` and with
 // `ignoreMaxNamespace=true`. axisIndex is the index of the row or column that
 // this tree is committing to. squareSize must be greater than zero.
-func newErasuredNamespacedMerkleTree(squareSize, shareSize uint64, axisIndex uint,
+func newErasuredNamespacedMerkleTree(squareSize uint64, axisIndex uint,
 	options ...nmt.Option,
 ) erasuredNamespacedMerkleTree {
 	if squareSize == 0 {
@@ -144,7 +148,6 @@ func newErasuredNamespacedMerkleTree(squareSize, shareSize uint64, axisIndex uin
 		tree:            tree,
 		axisIndex:       uint64(axisIndex),
 		shareIndex:      0,
-		shareSize:       int(shareSize),
 		pool:            nil,
 		parityNamespace: parityNamespace,
 	}
@@ -169,7 +172,7 @@ func newErasuredNamespacedMerkleTreeConstructor(squareSize uint64, opts ...nmt.O
 // erasuredNamespacedMerkleTree with predefined square size and
 // nmt.Options
 func (c constructor) NewTree(_ Axis, axisIndex uint) Tree {
-	tree := newErasuredNamespacedMerkleTree(c.squareSize, shareSize, axisIndex, c.opts...)
+	tree := newErasuredNamespacedMerkleTree(c.squareSize, axisIndex, c.opts...)
 	return &tree
 }
 
@@ -192,16 +195,20 @@ func (w *erasuredNamespacedMerkleTree) Push(data []byte) error {
 	if len(data) < w.namespaceSize {
 		return fmt.Errorf("data is too short to contain namespace ID")
 	}
-	if len(data) > int(w.shareSize) {
-		return fmt.Errorf("data is too large to contain namespace ID")
-	}
+	var (
+		nidAndData      []byte
+		bufferEntrySize = w.namespaceSize + shareSize
+		nidDataLen      = w.namespaceSize + len(data)
+	)
 
-	var nidAndData []byte
 	if w.buffer != nil {
-		offset := int(w.shareIndex) * w.shareSize
-		nidAndData = w.buffer[offset : offset+len(data)]
+		if nidDataLen > bufferEntrySize {
+			return fmt.Errorf("data is too large to be used with allocated buffer")
+		}
+		offset := int(w.shareIndex) * bufferEntrySize
+		nidAndData = w.buffer[offset : offset+nidDataLen]
 	} else {
-		nidAndData = make([]byte, len(data))
+		nidAndData = make([]byte, nidDataLen)
 	}
 	copy(nidAndData[w.namespaceSize:], data)
 	// use the parity namespace if the cell is not in Q0 of the extended data square
