@@ -501,6 +501,25 @@ func TestDeepCopy(t *testing.T) {
 }
 
 func TestComputeExtendedDataSquareVsWithBuffer(t *testing.T) {
+	factory := newTreeFactory(uint64(2), 4, nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
+	codec := NewLeoRSCodec()
+
+	t.Run("error cases", func(t *testing.T) {
+		t.Run("returns an error if shareSize is not a multiple of 64", func(t *testing.T) {
+			share := bytes.Repeat([]byte{1}, 65)
+			_, err := ComputeExtendedDataSquareWithBuffer([][]byte{share}, codec, factory)
+			assert.Error(t, err)
+		})
+		t.Run("returns an error if number of shares is not a perfect square", func(t *testing.T) {
+			shares := make([][]byte, 3)
+			for i := range shares {
+				shares[i] = bytes.Repeat([]byte{byte(i + 1)}, shareSize)
+			}
+			_, err := ComputeExtendedDataSquareWithBuffer(shares, codec, factory)
+			assert.Error(t, err)
+		})
+	})
+
 	sizes := []struct {
 		name    string
 		odsSize int
@@ -513,7 +532,6 @@ func TestComputeExtendedDataSquareVsWithBuffer(t *testing.T) {
 	for _, tc := range sizes {
 		t.Run(tc.name, func(t *testing.T) {
 			data := genRandSortedDS(tc.odsSize, shareSize, 8)
-			codec := NewLeoRSCodec()
 
 			factory := newTreeFactory(uint64(tc.odsSize), 4, nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
 			constructor := newErasuredNamespacedMerkleTreeConstructor(uint64(tc.odsSize), nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
