@@ -17,6 +17,7 @@ type treeFactory struct {
 	squareSize uint64
 	opts       []nmt.Option
 	treePool   *fixedTreePool
+	poolSize   int
 }
 
 func newTreeFactory(squareSize uint64, poolSize int, opts ...nmt.Option) *treeFactory {
@@ -24,7 +25,12 @@ func newTreeFactory(squareSize uint64, poolSize int, opts ...nmt.Option) *treeFa
 		squareSize: squareSize,
 		opts:       opts,
 		treePool:   newFixedTreePool(poolSize, squareSize, opts),
+		poolSize:   poolSize,
 	}
+}
+
+func (f *treeFactory) BufferSize() int {
+	return f.poolSize
 }
 
 func (f *treeFactory) NewConstructor() TreeConstructorFn {
@@ -97,7 +103,7 @@ type erasuredNamespacedMerkleTree struct {
 	// by rsmt2d and used to help determine which quadrant each leaf belongs to.
 	axisIndex uint64
 	// shareIndex is the index of the share in a row or column that is being
-	// pushed to the tree. It is expected to be in the range: 0 <= shareIndex
+	// pushed to the tree. It is expected to be in the range: 0 <= shareIndex <
 	// 2*squareSize. shareIndex is used to help determine which quadrant each
 	// leaf belongs to, along with keeping track of how many leaves have been
 	// added to the tree so far.
@@ -160,7 +166,7 @@ type constructor struct {
 
 // newErasuredNamespacedMerkleTreeConstructor creates a tree constructor function as required by rsmt2d to
 // calculate the data root. It creates that tree using the
-// erasuredNamespacedMerkleTree
+// erasuredNamespacedMerkleTree.
 func newErasuredNamespacedMerkleTreeConstructor(squareSize uint64, opts ...nmt.Option) TreeConstructorFn {
 	return constructor{
 		squareSize: squareSize,
@@ -172,8 +178,8 @@ func newErasuredNamespacedMerkleTreeConstructor(squareSize uint64, opts ...nmt.O
 // erasuredNamespacedMerkleTree with predefined square size and
 // nmt.Options
 func (c constructor) NewTree(_ Axis, axisIndex uint) Tree {
-	tree := newErasuredNamespacedMerkleTree(c.squareSize, axisIndex, c.opts...)
-	return &tree
+	newTree := newErasuredNamespacedMerkleTree(c.squareSize, axisIndex, c.opts...)
+	return &newTree
 }
 
 // Release implements the Releasable interface for erasuredNamespacedMerkleTree
@@ -228,6 +234,11 @@ func (w *erasuredNamespacedMerkleTree) Push(data []byte) error {
 // Root fulfills the rsmt2d.Tree interface by generating and returning the
 // underlying NamespaceMerkleTree Root.
 func (w *erasuredNamespacedMerkleTree) Root() ([]byte, error) {
+	// in case we have buffer we switch to reuse logic, basically this is determined via relevant constructor
+	if w.buffer != nil {
+		defer w.Release()
+		return w.tree.FastRoot()
+	}
 	root, err := w.tree.Root()
 	if err != nil {
 		return nil, err

@@ -17,15 +17,15 @@ var ErrUnevenChunks = errors.New("non-nil shares not all of equal size")
 // data square (EDS). Data is duplicated in both row-major and column-major
 // order in order to be able to provide zero-allocation column slices.
 type dataSquare struct {
-	squareRow            [][][]byte // row-major
-	squareCol            [][][]byte // col-major
-	dataMutex            sync.Mutex
-	width                uint
-	shareSize            uint
-	rowRoots             [][]byte
-	colRoots             [][]byte
-	createTreeFn         TreeConstructorFn
-	parallelComputeOpNum int
+	squareRow    [][][]byte // row-major
+	squareCol    [][][]byte // col-major
+	dataMutex    sync.Mutex
+	width        uint
+	shareSize    uint
+	rowRoots     [][]byte
+	colRoots     [][]byte
+	createTreeFn TreeConstructorFn
+	parallelOps  int
 }
 
 // newDataSquare populates the data square from the supplied data and treeCreator.
@@ -202,7 +202,7 @@ func (ds *dataSquare) resetRoots() {
 }
 
 func (ds *dataSquare) setParallelOps(ops int) {
-	ds.parallelComputeOpNum = ops
+	ds.parallelOps = ops
 }
 
 func (ds *dataSquare) computeRoots() error {
@@ -210,10 +210,10 @@ func (ds *dataSquare) computeRoots() error {
 
 	rowRoots := make([][]byte, ds.width)
 	colRoots := make([][]byte, ds.width)
-	if ds.parallelComputeOpNum != 0 {
+	if ds.parallelOps != 0 {
 		// this can be used in conjunction with reusing of nmts, we can reuse only fixed amount of nmts
 		// essentially having fixed allocations there when storing/computing hashes
-		g.SetLimit(ds.parallelComputeOpNum)
+		g.SetLimit(ds.parallelOps)
 	}
 	for i := uint(0); i < ds.width; i++ {
 		i := i // https://go.dev/doc/faq#closures_and_goroutines
@@ -267,8 +267,6 @@ func (ds *dataSquare) getRowRoot(rowIdx uint) ([]byte, error) {
 	}
 
 	tree := ds.createTreeFn(Row, rowIdx)
-	defer tree.Release()
-
 	row := ds.row(rowIdx)
 	if !isComplete(row) {
 		return nil, errors.New("can not compute root of incomplete row")
@@ -280,7 +278,7 @@ func (ds *dataSquare) getRowRoot(rowIdx uint) ([]byte, error) {
 		}
 	}
 
-	return tree.FastRoot()
+	return tree.Root()
 }
 
 // getColRoots returns the Merkle roots of all the columns in the square.
@@ -304,8 +302,6 @@ func (ds *dataSquare) getColRoot(colIdx uint) ([]byte, error) {
 	}
 
 	tree := ds.createTreeFn(Col, colIdx)
-	defer tree.Release()
-
 	col := ds.col(colIdx)
 	if !isComplete(col) {
 		return nil, errors.New("can not compute root of incomplete column")
@@ -317,7 +313,7 @@ func (ds *dataSquare) getColRoot(colIdx uint) ([]byte, error) {
 		}
 	}
 
-	return tree.FastRoot()
+	return tree.Root()
 }
 
 // GetCell returns a copy of a specific cell.

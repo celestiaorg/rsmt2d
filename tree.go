@@ -10,6 +10,11 @@ import (
 // inside of rsmt2d.
 type TreeConstructorFn = func(axis Axis, index uint) Tree
 
+type BufferedTreeConstructor interface {
+	NewConstructor() TreeConstructorFn
+	BufferSize() int
+}
+
 // SquareIndex contains all information needed to identify the cell that is being
 // pushed
 type SquareIndex struct {
@@ -20,8 +25,6 @@ type SquareIndex struct {
 type Tree interface {
 	Push(data []byte) error
 	Root() ([]byte, error)
-	FastRoot() ([]byte, error)
-	Release()
 }
 
 var _ Tree = &DefaultTree{}
@@ -30,10 +33,6 @@ type DefaultTree struct {
 	*merkletree.Tree
 	leaves [][]byte
 	root   []byte
-}
-
-// Release implements Tree.
-func (d *DefaultTree) Release() {
 }
 
 func NewDefaultTree(_ Axis, _ uint) Tree {
@@ -50,16 +49,6 @@ func (d *DefaultTree) Push(data []byte) error {
 }
 
 func (d *DefaultTree) Root() ([]byte, error) {
-	if d.root == nil {
-		for _, l := range d.leaves {
-			d.Tree.Push(l)
-		}
-		d.root = d.Tree.Root()
-	}
-	return d.root, nil
-}
-
-func (d *DefaultTree) FastRoot() ([]byte, error) {
 	if d.root == nil {
 		for _, l := range d.leaves {
 			d.Tree.Push(l)

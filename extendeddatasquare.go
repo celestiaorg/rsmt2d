@@ -52,17 +52,6 @@ func ComputeExtendedDataSquare(
 	codec Codec,
 	treeCreatorFn TreeConstructorFn,
 ) (*ExtendedDataSquare, error) {
-	return ComputeExtendedDataSquareLimitParallelOps(data, codec, treeCreatorFn, 0)
-}
-
-// ComputeExtendedDataSquareLimitParallelOps computes the extended data square for some shares
-// of original data.
-func ComputeExtendedDataSquareLimitParallelOps(
-	data [][]byte,
-	codec Codec,
-	treeCreatorFn TreeConstructorFn,
-	numParallelOps int,
-) (*ExtendedDataSquare, error) {
 	if len(data) > codec.MaxChunks() {
 		// TODO: export this error and rename chunk to share
 		return nil, errors.New("number of chunks exceeds the maximum")
@@ -78,8 +67,6 @@ func ComputeExtendedDataSquareLimitParallelOps(
 		return nil, err
 	}
 
-	ds.setParallelOps(numParallelOps)
-
 	eds := ExtendedDataSquare{dataSquare: ds, codec: codec}
 	err = eds.erasureExtendSquare(codec)
 	if err != nil {
@@ -87,6 +74,21 @@ func ComputeExtendedDataSquareLimitParallelOps(
 	}
 
 	return &eds, nil
+}
+
+// ComputeExtendedDataSquareWithBuffer computes the extended data square for some shares
+// of original data, it limits parallel operations and uses buffered nmts to avoid allocations when computing root
+func ComputeExtendedDataSquareWithBuffer(
+	data [][]byte,
+	codec Codec,
+	treeCreator BufferedTreeConstructor,
+) (*ExtendedDataSquare, error) {
+	eds, err := ComputeExtendedDataSquare(data, codec, treeCreator.NewConstructor())
+	if err != nil {
+		return nil, err
+	}
+	eds.setParallelOps(treeCreator.BufferSize())
+	return eds, nil
 }
 
 // ImportExtendedDataSquare imports an extended data square, represented as flattened shares of data.

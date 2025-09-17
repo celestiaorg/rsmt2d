@@ -577,14 +577,6 @@ func (d *errorTree) FastRoot() ([]byte, error) {
 func (d *errorTree) Release() {
 }
 
-type treeRootWrapper struct {
-	Tree
-}
-
-func (t *treeRootWrapper) FastRoot() ([]byte, error) {
-	return t.Root()
-}
-
 func TestRootVsFastRootAndReuse(t *testing.T) {
 	sizes := []struct {
 		name    string
@@ -603,14 +595,10 @@ func TestRootVsFastRootAndReuse(t *testing.T) {
 			factory := newTreeFactory(uint64(tc.odsSize), 4, nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
 			constructor := newErasuredNamespacedMerkleTreeConstructor(uint64(tc.odsSize), nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
 
-			rootWrapper := func(axis Axis, index uint) Tree {
-				return &treeRootWrapper{Tree: constructor(axis, index)}
-			}
-
 			squareFast, err := newDataSquare(data, factory.NewConstructor(), shareSize)
 			require.NoError(t, err)
 			squareFast.setParallelOps(4)
-			squareRoot, err := newDataSquare(data, rootWrapper, shareSize)
+			squareRoot, err := newDataSquare(data, constructor, shareSize)
 			require.NoError(t, err)
 
 			rowRootsFast, err := squareFast.getRowRoots()
