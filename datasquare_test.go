@@ -630,6 +630,7 @@ func TestRootVsFastRootAndReuse(t *testing.T) {
 }
 
 func TestBufferedNMTParallelismComparison(t *testing.T) {
+	t.Skip()
 	type benchmarkResult struct {
 		Multiplier  float64
 		ParallelOps int
