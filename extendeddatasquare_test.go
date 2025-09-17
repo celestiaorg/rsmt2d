@@ -9,6 +9,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/celestiaorg/nmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -497,6 +498,46 @@ func TestDeepCopy(t *testing.T) {
 	// modify the original and ensure the copy is not affected
 	original[0][0]++
 	require.NotEqual(t, original, copied)
+}
+
+func TestComputeExtendedDataSquareVsWithBuffer(t *testing.T) {
+	sizes := []struct {
+		name    string
+		odsSize int
+	}{
+		{"ods-32", 32},
+		{"ods-64", 64},
+		{"ods-128", 128},
+	}
+
+	for _, tc := range sizes {
+		t.Run(tc.name, func(t *testing.T) {
+			data := genRandSortedDS(tc.odsSize, shareSize, 8)
+			codec := NewLeoRSCodec()
+
+			factory := newTreeFactory(uint64(tc.odsSize), 4, nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
+			constructor := newErasuredNamespacedMerkleTreeConstructor(uint64(tc.odsSize), nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
+
+			edsStandard, err := ComputeExtendedDataSquare(data, codec, constructor)
+			require.NoError(t, err)
+
+			edsWithBuffer, err := ComputeExtendedDataSquareWithBuffer(data, codec, factory)
+			require.NoError(t, err)
+
+			rowRootsStandard, err := edsStandard.RowRoots()
+			require.NoError(t, err)
+			rowRootsWithBuffer, err := edsWithBuffer.RowRoots()
+			require.NoError(t, err)
+
+			colRootsStandard, err := edsStandard.ColRoots()
+			require.NoError(t, err)
+			colRootsWithBuffer, err := edsWithBuffer.ColRoots()
+			require.NoError(t, err)
+
+			require.Equal(t, rowRootsStandard, rowRootsWithBuffer)
+			require.Equal(t, colRootsStandard, colRootsWithBuffer)
+		})
+	}
 }
 
 func createExampleEds(t *testing.T, shareSize int) (eds *ExtendedDataSquare) {
