@@ -412,7 +412,7 @@ func BenchmarkEDSRootsWithDefaultTree(b *testing.B) {
 		b.Run(
 			fmt.Sprintf("%dx%dx%d ODS", i, i, int(square.shareSize)),
 			func(b *testing.B) {
-				for n := 0; n < b.N; n++ {
+				for b.Loop() {
 					square.resetRoots()
 					err := square.computeRoots()
 					assert.NoError(b, err)
@@ -461,7 +461,7 @@ func BenchmarkEDSRootsWithErasuredNMT(b *testing.B) {
 				int(square.shareSize),
 				odsSizeMiBytes, edsSizeMiBytes),
 			func(b *testing.B) {
-				for n := 0; n < b.N; n++ {
+				for b.Loop() {
 					square.resetRoots()
 					err := square.computeRoots()
 					assert.NoError(b, err)

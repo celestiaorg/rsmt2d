@@ -22,7 +22,7 @@ func BenchmarkEncoding(b *testing.B) {
 		b.Run(
 			fmt.Sprintf("%s 128 shares %d", codecName, shareSize),
 			func(b *testing.B) {
-				for n := 0; n < b.N; n++ {
+				for b.Loop() {
 					encodedData, err := codec.Encode(data)
 					if err != nil {
 						b.Error(err)
@@ -58,7 +58,7 @@ func BenchmarkDecoding(b *testing.B) {
 		b.Run(
 			fmt.Sprintf("%s 128 shares %d", codecName, shareSize),
 			func(b *testing.B) {
-				for n := 0; n < b.N; n++ {
+				for b.Loop() {
 					decodedData, err := codec.Decode(data)
 					if err != nil {
 						b.Error(err)

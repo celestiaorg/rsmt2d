@@ -290,7 +290,7 @@ func BenchmarkExtensionEncoding(b *testing.B) {
 			b.Run(
 				fmt.Sprintf("%s %dx%dx%d ODS", codecName, i, i, len(square[0])),
 				func(b *testing.B) {
-					for n := 0; n < b.N; n++ {
+					for b.Loop() {
 						eds, err := ComputeExtendedDataSquare(square, codec, NewDefaultTree)
 						if err != nil {
 							b.Error(err)
@@ -317,7 +317,7 @@ func BenchmarkExtensionWithRoots(b *testing.B) {
 			b.Run(
 				fmt.Sprintf("%s %dx%dx%d ODS", codecName, i, i, len(square[0])),
 				func(b *testing.B) {
-					for n := 0; n < b.N; n++ {
+					for b.Loop() {
 						eds, err := ComputeExtendedDataSquare(square, codec, NewDefaultTree)
 						if err != nil {
 							b.Error(err)
