@@ -292,7 +292,7 @@ func BenchmarkRepair(b *testing.B) {
 				len(square[0]),
 			),
 			func(b *testing.B) {
-				for n := 0; n < b.N; n++ {
+				for b.Loop() {
 					b.StopTimer()
 
 					flattened := eds.Flattened()
