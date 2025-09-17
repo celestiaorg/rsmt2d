@@ -655,7 +655,7 @@ func TestBufferedNMTParallelismComparison(t *testing.T) {
 	odsSizeMiBytes := odsSize * odsSize * shareSize / mebibyte
 	edsSizeMiBytes := 4 * odsSizeMiBytes
 
-	var results []benchmarkResult
+	results := make([]benchmarkResult, 0, len(cpuMultipliers))
 
 	fmt.Printf("\n=== Running Benchmarks for 512x512 Square (ODS: %d MB, EDS: %d MB) ===\n", odsSizeMiBytes, edsSizeMiBytes)
 	fmt.Printf("Each configuration: %d iterations\n\n", iterations)
