@@ -6,7 +6,10 @@ import (
 	"math"
 	"reflect"
 	"runtime"
+	"sort"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/celestiaorg/merkletree"
 	"github.com/celestiaorg/nmt"
@@ -623,6 +626,101 @@ func TestRootVsFastRootAndReuse(t *testing.T) {
 			require.Equal(t, rowRootsFast, rowRootsRoot)
 			require.Equal(t, colRootsFast, colRootsRoot)
 		})
+	}
+}
+
+func TestBufferedNMTParallelismComparison(t *testing.T) {
+	type benchmarkResult struct {
+		Multiplier  float64
+		ParallelOps int
+		Duration    time.Duration
+		Iterations  int
+	}
+
+	const (
+		mebibyte        = 1024 * 1024
+		shareSize       = 512
+		namespaceIDSize = 28
+		iterations      = 100 // Total iterations to run
+	)
+
+	cpuMultipliers := []float64{1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0}
+	squareSize := 512
+
+	odsSize := squareSize
+	edsSize := 2 * odsSize
+
+	ds := genRandSortedDS(edsSize, shareSize, namespaceIDSize)
+
+	odsSizeMiBytes := odsSize * odsSize * shareSize / mebibyte
+	edsSizeMiBytes := 4 * odsSizeMiBytes
+
+	var results []benchmarkResult
+
+	fmt.Printf("\n=== Running Benchmarks for 512x512 Square (ODS: %d MB, EDS: %d MB) ===\n", odsSizeMiBytes, edsSizeMiBytes)
+	fmt.Printf("Each configuration: %d iterations\n\n", iterations)
+
+	for _, multiplier := range cpuMultipliers {
+		parallelOps := int(float64(runtime.NumCPU()) * multiplier)
+
+		fmt.Printf("Testing CPU multiplier %.1fx (Parallel Ops: %d)...\n", multiplier, parallelOps)
+
+		factory := newTreeFactory(
+			uint64(squareSize),
+			parallelOps,
+			nmt.NamespaceIDSize(namespaceIDSize),
+			nmt.IgnoreMaxNamespace(true),
+			nmt.InitialCapacity(odsSize*2),
+		)
+
+		square, err := newDataSquare(ds, factory.NewConstructor(), shareSize)
+		require.NoError(t, err)
+		square.setParallelOps(parallelOps)
+
+		// Warm up
+		square.resetRoots()
+		err = square.computeRoots()
+		assert.NoError(t, err)
+
+		// Benchmark
+		start := time.Now()
+
+		for i := 0; i < iterations; i++ {
+			square.resetRoots()
+			err := square.computeRoots()
+			assert.NoError(t, err)
+		}
+
+		elapsed := time.Since(start)
+		avgDuration := elapsed / time.Duration(iterations)
+
+		results = append(results, benchmarkResult{
+			Multiplier:  multiplier,
+			ParallelOps: parallelOps,
+			Duration:    avgDuration,
+			Iterations:  iterations,
+		})
+
+		fmt.Printf("  Total: %.2f ms, Average: %.2f ms/op\n\n",
+			float64(elapsed.Nanoseconds())/1_000_000, float64(avgDuration.Nanoseconds())/1_000_000)
+	}
+
+	// Sort results by duration (fastest first)
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Duration < results[j].Duration
+	})
+
+	// Print sorted results
+	fmt.Println("\n=== RESULTS SORTED BY PERFORMANCE (FASTEST FIRST) ===")
+	fmt.Printf("\n%-5s %-10s %-12s %-15s\n",
+		"Rank", "CPU Mult", "Parallel", "Time (ms)")
+	fmt.Println(strings.Repeat("-", 45))
+
+	for i, r := range results {
+		msPerOp := float64(r.Duration.Nanoseconds()) / 1_000_000
+
+		fmt.Printf("%-5d %-10.1f %-12d %-15.2f\n",
+			i+1, r.Multiplier, r.ParallelOps, msPerOp)
 	}
 }
 
