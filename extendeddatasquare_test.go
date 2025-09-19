@@ -9,6 +9,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/celestiaorg/nmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -497,6 +498,106 @@ func TestDeepCopy(t *testing.T) {
 	// modify the original and ensure the copy is not affected
 	original[0][0]++
 	require.NotEqual(t, original, copied)
+}
+
+func TestComputeExtendedDataSquareVsWithBuffer(t *testing.T) {
+	codec := NewLeoRSCodec()
+
+	t.Run("error cases", func(t *testing.T) {
+		pool := newTreePool(2, 4, nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
+
+		t.Run("returns an error if shareSize is not a multiple of 64", func(t *testing.T) {
+			share := bytes.Repeat([]byte{1}, 65)
+			_, err := ComputeExtendedDataSquareWithBuffer([][]byte{share}, codec, pool)
+			require.Error(t, err)
+		})
+		t.Run("returns an error if number of shares is not a perfect square", func(t *testing.T) {
+			shares := make([][]byte, 3)
+			for i := range shares {
+				shares[i] = bytes.Repeat([]byte{byte(i + 1)}, shareSize)
+			}
+			_, err := ComputeExtendedDataSquareWithBuffer(shares, codec, pool)
+			require.Error(t, err)
+		})
+	})
+
+	sizes := []struct {
+		name    string
+		odsSize int
+	}{
+		{"ods-32", 32},
+		{"ods-64", 64},
+		{"ods-83", 83},
+		{"ods-127", 127},
+		{"ods-128", 128},
+		{"ods-256", 256},
+		{"ods-512", 512},
+		// uneven sizes
+		{"ods-35", 35},
+		{"ods-67", 67},
+	}
+
+	t.Run("same-size-pool", func(t *testing.T) {
+		for _, tc := range sizes {
+			t.Run(tc.name, func(t *testing.T) {
+				data := genRandSortedDS(tc.odsSize, shareSize, 8)
+
+				pool := newTreePool(uint(tc.odsSize), 4, nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
+				constructor := newErasuredNamespacedMerkleTreeConstructor(uint64(tc.odsSize), nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
+
+				edsStandard, err := ComputeExtendedDataSquare(data, codec, constructor)
+				require.NoError(t, err)
+
+				edsWithBuffer, err := ComputeExtendedDataSquareWithBuffer(data, codec, pool)
+				require.NoError(t, err)
+
+				rowRootsStandard, err := edsStandard.RowRoots()
+				require.NoError(t, err)
+				rowRootsWithBuffer, err := edsWithBuffer.RowRoots()
+				require.NoError(t, err)
+
+				colRootsStandard, err := edsStandard.ColRoots()
+				require.NoError(t, err)
+				colRootsWithBuffer, err := edsWithBuffer.ColRoots()
+				require.NoError(t, err)
+
+				require.Equal(t, rowRootsStandard, rowRootsWithBuffer)
+				require.Equal(t, colRootsStandard, colRootsWithBuffer)
+			})
+		}
+	})
+
+	t.Run("pool-reallocation", func(t *testing.T) {
+		// create a pool initialized with the smallest size
+		pool := newTreePool(32, 4, nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
+
+		for _, tc := range sizes {
+			t.Run(tc.name, func(t *testing.T) {
+				data := genRandSortedDS(tc.odsSize, shareSize, 8)
+
+				// use the same pool but with different square sizes to test reallocation
+				edsWithBuffer, err := ComputeExtendedDataSquareWithBuffer(data, codec, pool)
+				require.NoError(t, err)
+
+				constructor := newErasuredNamespacedMerkleTreeConstructor(uint64(tc.odsSize), nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
+				edsStandard, err := ComputeExtendedDataSquare(data, codec, constructor)
+				require.NoError(t, err)
+
+				rowRootsWithBuffer, err := edsWithBuffer.RowRoots()
+				require.NoError(t, err)
+				rowRootsStandard, err := edsStandard.RowRoots()
+				require.NoError(t, err)
+
+				colRootsWithBuffer, err := edsWithBuffer.ColRoots()
+				require.NoError(t, err)
+				colRootsStandard, err := edsStandard.ColRoots()
+				require.NoError(t, err)
+
+				require.Equal(t, rowRootsStandard, rowRootsWithBuffer, "row roots mismatch for ODS size %d with pool reallocation", tc.odsSize)
+				require.Equal(t, colRootsStandard, colRootsWithBuffer, "column roots mismatch for ODS size %d with pool reallocation", tc.odsSize)
+			})
+		}
+	})
 }
 
 func createExampleEds(t *testing.T, shareSize int) (eds *ExtendedDataSquare) {

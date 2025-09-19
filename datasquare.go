@@ -25,13 +25,20 @@ type dataSquare struct {
 	rowRoots     [][]byte
 	colRoots     [][]byte
 	createTreeFn TreeConstructorFn
+	// parallelOps number of parallel operations when computing root
+	parallelOps int
+}
+
+// getWidth returns the min width of the square which can fit the given data
+func getWidth(data [][]byte) int {
+	return int(math.Ceil(math.Sqrt(float64(len(data)))))
 }
 
 // newDataSquare populates the data square from the supplied data and treeCreator.
 // No root calculation is performed.
 // data may have nil values.
 func newDataSquare(data [][]byte, treeCreator TreeConstructorFn, shareSize uint) (*dataSquare, error) {
-	width := int(math.Ceil(math.Sqrt(float64(len(data)))))
+	width := getWidth(data)
 	if width*width != len(data) {
 		// TODO: export this error and modify chunks to shares
 		return nil, errors.New("number of chunks must be a square number")
@@ -200,12 +207,22 @@ func (ds *dataSquare) resetRoots() {
 	}
 }
 
+// setParallelOps sets the number of parallel operations when computing the root,
+// if the number is 0, the number of operations is not limited.
+func (ds *dataSquare) setParallelOps(ops int) {
+	ds.parallelOps = ops
+}
+
 func (ds *dataSquare) computeRoots() error {
 	var g errgroup.Group
 
 	rowRoots := make([][]byte, ds.width)
 	colRoots := make([][]byte, ds.width)
-
+	if ds.parallelOps != 0 {
+		// this can be used in conjunction with reusing of nmts, we can reuse only fixed amount of nmts
+		// essentially having fixed allocations there when storing/computing hashes
+		g.SetLimit(ds.parallelOps)
+	}
 	for i := uint(0); i < ds.width; i++ {
 		i := i // https://go.dev/doc/faq#closures_and_goroutines
 		g.Go(func() error {
