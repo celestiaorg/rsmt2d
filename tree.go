@@ -10,6 +10,11 @@ import (
 // inside of rsmt2d.
 type TreeConstructorFn = func(axis Axis, index uint) Tree
 
+type BufferedTreeConstructor interface {
+	NewConstructor(squareSize uint) TreeConstructorFn
+	TreeCount() int
+}
+
 // SquareIndex contains all information needed to identify the cell that is being
 // pushed
 type SquareIndex struct {

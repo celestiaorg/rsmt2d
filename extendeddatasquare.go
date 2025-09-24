@@ -76,6 +76,21 @@ func ComputeExtendedDataSquare(
 	return &eds, nil
 }
 
+// ComputeExtendedDataSquareWithBuffer computes the extended data square for some shares
+// of original data, it limits parallel operations and uses buffered nmts to avoid allocations when computing root.
+func ComputeExtendedDataSquareWithBuffer(
+	data [][]byte,
+	codec Codec,
+	treeCreator BufferedTreeConstructor,
+) (*ExtendedDataSquare, error) {
+	eds, err := ComputeExtendedDataSquare(data, codec, treeCreator.NewConstructor(uint(getWidth(data))))
+	if err != nil {
+		return nil, err
+	}
+	eds.setParallelOps(treeCreator.TreeCount())
+	return eds, nil
+}
+
 // ImportExtendedDataSquare imports an extended data square, represented as flattened shares of data.
 func ImportExtendedDataSquare(
 	data [][]byte,
