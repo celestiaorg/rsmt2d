@@ -3,7 +3,6 @@ package rsmt2d
 import (
 	"crypto/sha256"
 	"fmt"
-	"math"
 	"reflect"
 	"runtime"
 	"sort"
@@ -15,6 +14,11 @@ import (
 	"github.com/celestiaorg/nmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+)
+
+const (
+	defaultNamespaceIDSize = 29
+	mebibyte               = 1024 * 1024
 )
 
 func TestNewDataSquare(t *testing.T) {
@@ -428,29 +432,20 @@ func BenchmarkEDSRootsWithDefaultTree(b *testing.B) {
 }
 
 func BenchmarkEDSRootsWithErasuredNMT(b *testing.B) {
-	const mebibyte = 1024 * 1024            // bytes
-	ODSSizeByteUpperBound := 512 * mebibyte // converting 512 MiB to bytes
-	totalNumberOfShares := float64(ODSSizeByteUpperBound) / shareSize
-	// the closest power of 2 of the square root of
-	// the total number of shares
-	nearestPowerOf2ODSSize := math.Pow(2, math.Ceil(math.Log2(math.Sqrt(
-		totalNumberOfShares))))
-	namespaceIDSize := 29
+	maxSquareSize := 512
 
-	for squareSize := 32; squareSize <= int(nearestPowerOf2ODSSize); squareSize *= 2 {
-		// number of shares in the original data square's row/column
-		odsSize := squareSize
+	for odsSize := 32; odsSize <= maxSquareSize; odsSize *= 2 {
 		// number of shares in the extended data square's row/column
 		edsSize := 2 * odsSize
 		// generate an EDS with edsSize X edsSize dimensions in terms of shares.
 		// the generated EDS does not conform to celestia-app specs in terms
 		// of namespace version, also no erasure encoding takes place
 		// yet none of these should impact the benchmarking
-		ds := genRandSortedDS(edsSize, shareSize, namespaceIDSize)
+		ds := genRandSortedDS(edsSize, shareSize, defaultNamespaceIDSize)
 
 		// a tree constructor for erasured nmt
 		treeConstructor := newErasuredNamespacedMerkleTreeConstructor(uint64(edsSize),
-			nmt.NamespaceIDSize(namespaceIDSize), nmt.IgnoreMaxNamespace(true),
+			nmt.NamespaceIDSize(defaultNamespaceIDSize), nmt.IgnoreMaxNamespace(true),
 			nmt.InitialCapacity(odsSize*2))
 
 		square, err := newDataSquare(ds, treeConstructor, shareSize)
@@ -478,31 +473,22 @@ func BenchmarkEDSRootsWithErasuredNMT(b *testing.B) {
 }
 
 func BenchmarkEDSRootsWithBufferedErasuredNMT(b *testing.B) {
-	const mebibyte = 1024 * 1024            // bytes
-	ODSSizeByteUpperBound := 512 * mebibyte // converting 512 MiB to bytes
-	totalNumberOfShares := float64(ODSSizeByteUpperBound) / shareSize
-	// the closest power of 2 of the square root of
-	// the total number of shares
-	nearestPowerOf2ODSSize := math.Pow(2, math.Ceil(math.Log2(math.Sqrt(
-		totalNumberOfShares))))
-	namespaceIDSize := 8
+	maxSquareSize := 512
 
-	for squareSize := 32; squareSize <= int(nearestPowerOf2ODSSize); squareSize *= 2 {
-		// number of shares in the original data square's row/column
-		odsSize := squareSize
+	for odsSize := 32; odsSize <= maxSquareSize; odsSize *= 2 {
 		// number of shares in the extended data square's row/column
 		edsSize := 2 * odsSize
 		// generate an EDS with edsSize X edsSize dimensions in terms of shares.
 		// the generated EDS does not conform to celestia-app specs in terms
 		// of namespace version, also no erasure encoding takes place
 		// yet none of these should impact the benchmarking
-		ds := genRandSortedDS(edsSize, shareSize, namespaceIDSize)
+		ds := genRandSortedDS(edsSize, shareSize, defaultNamespaceIDSize)
 
 		// a tree constructor for erasured nmt
 		parallelOps := runtime.NumCPU() * 4
-		pool := newTreePool(uint(squareSize), parallelOps, nmt.NamespaceIDSize(namespaceIDSize), nmt.IgnoreMaxNamespace(true), nmt.InitialCapacity(odsSize*2))
+		pool := newTreePool(uint(odsSize), parallelOps, nmt.NamespaceIDSize(defaultNamespaceIDSize), nmt.IgnoreMaxNamespace(true), nmt.InitialCapacity(odsSize*2))
 
-		square, err := newDataSquare(ds, pool.NewConstructor(uint(squareSize)), shareSize)
+		square, err := newDataSquare(ds, pool.NewConstructor(uint(odsSize)), shareSize)
 		require.NoError(b, err)
 		square.setParallelOps(parallelOps)
 		// the total size of the ODS in MiB
@@ -573,6 +559,7 @@ func (d *errorTree) Root() ([]byte, error) {
 }
 
 func TestNmtVsBufferedNmtSameRoot(t *testing.T) {
+	namespaceIDSizeOption := nmt.NamespaceIDSize(defaultNamespaceIDSize)
 	sizes := []struct {
 		name    string
 		odsSize int
@@ -593,8 +580,8 @@ func TestNmtVsBufferedNmtSameRoot(t *testing.T) {
 				edsSize := tc.odsSize * 2
 				data := genRandSortedDS(edsSize, shareSize, 8)
 
-				pool := newTreePool(uint(tc.odsSize), 4, nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
-				constructor := newErasuredNamespacedMerkleTreeConstructor(uint64(tc.odsSize), nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
+				pool := newTreePool(uint(tc.odsSize), 4, namespaceIDSizeOption, nmt.IgnoreMaxNamespace(true))
+				constructor := newErasuredNamespacedMerkleTreeConstructor(uint64(tc.odsSize), namespaceIDSizeOption, nmt.IgnoreMaxNamespace(true))
 
 				squareFast, err := newDataSquare(data, pool.NewConstructor(uint(tc.odsSize)), shareSize)
 				require.NoError(t, err)
@@ -620,7 +607,7 @@ func TestNmtVsBufferedNmtSameRoot(t *testing.T) {
 
 	t.Run("pool-reallocation", func(t *testing.T) {
 		// create a pool initialized with the smallest size
-		pool := newTreePool(32, 4, nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
+		pool := newTreePool(32, 4, namespaceIDSizeOption, nmt.IgnoreMaxNamespace(true))
 
 		for _, tc := range sizes {
 			t.Run(tc.name, func(t *testing.T) {
@@ -632,7 +619,7 @@ func TestNmtVsBufferedNmtSameRoot(t *testing.T) {
 				require.NoError(t, err)
 				squarePooled.setParallelOps(4)
 
-				constructor := newErasuredNamespacedMerkleTreeConstructor(uint64(tc.odsSize), nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
+				constructor := newErasuredNamespacedMerkleTreeConstructor(uint64(tc.odsSize), namespaceIDSizeOption, nmt.IgnoreMaxNamespace(true))
 				squareRegular, err := newDataSquare(data, constructor, shareSize)
 				require.NoError(t, err)
 
@@ -663,10 +650,8 @@ func TestBufferedNMTParallelismComparison(t *testing.T) {
 	}
 
 	const (
-		mebibyte        = 1024 * 1024
-		shareSize       = 512
-		namespaceIDSize = 28
-		iterations      = 100 // Total iterations to run
+		mebibyte   = 1024 * 1024
+		iterations = 100
 	)
 
 	cpuMultipliers := []float64{1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0}
@@ -675,7 +660,7 @@ func TestBufferedNMTParallelismComparison(t *testing.T) {
 	odsSize := squareSize
 	edsSize := 2 * odsSize
 
-	ds := genRandSortedDS(edsSize, shareSize, namespaceIDSize)
+	ds := genRandSortedDS(edsSize, shareSize, defaultNamespaceIDSize)
 
 	odsSizeMiBytes := odsSize * odsSize * shareSize / mebibyte
 	edsSizeMiBytes := 4 * odsSizeMiBytes
@@ -693,7 +678,7 @@ func TestBufferedNMTParallelismComparison(t *testing.T) {
 		pool := newTreePool(
 			uint(squareSize),
 			parallelOps,
-			nmt.NamespaceIDSize(namespaceIDSize),
+			nmt.NamespaceIDSize(defaultNamespaceIDSize),
 			nmt.IgnoreMaxNamespace(true),
 			nmt.InitialCapacity(odsSize*2),
 		)

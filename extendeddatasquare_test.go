@@ -501,10 +501,13 @@ func TestDeepCopy(t *testing.T) {
 }
 
 func TestComputeExtendedDataSquareVsWithBuffer(t *testing.T) {
-	codec := NewLeoRSCodec()
+	var (
+		codec                 = NewLeoRSCodec()
+		namespaceIDSizeOption = nmt.NamespaceIDSize(defaultNamespaceIDSize)
+	)
 
 	t.Run("error cases", func(t *testing.T) {
-		pool := newTreePool(2, 4, nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
+		pool := newTreePool(2, 4, namespaceIDSizeOption, nmt.IgnoreMaxNamespace(true))
 
 		t.Run("returns an error if shareSize is not a multiple of 64", func(t *testing.T) {
 			share := bytes.Repeat([]byte{1}, 65)
@@ -542,8 +545,8 @@ func TestComputeExtendedDataSquareVsWithBuffer(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				data := genRandSortedDS(tc.odsSize, shareSize, 8)
 
-				pool := newTreePool(uint(tc.odsSize), 4, nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
-				constructor := newErasuredNamespacedMerkleTreeConstructor(uint64(tc.odsSize), nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
+				pool := newTreePool(uint(tc.odsSize), 4, namespaceIDSizeOption, nmt.IgnoreMaxNamespace(true))
+				constructor := newErasuredNamespacedMerkleTreeConstructor(uint64(tc.odsSize), namespaceIDSizeOption, nmt.IgnoreMaxNamespace(true))
 
 				edsStandard, err := ComputeExtendedDataSquare(data, codec, constructor)
 				require.NoError(t, err)
@@ -569,7 +572,7 @@ func TestComputeExtendedDataSquareVsWithBuffer(t *testing.T) {
 
 	t.Run("pool-reallocation", func(t *testing.T) {
 		// create a pool initialized with the smallest size
-		pool := newTreePool(32, 4, nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
+		pool := newTreePool(32, 4, namespaceIDSizeOption, nmt.IgnoreMaxNamespace(true))
 
 		for _, tc := range sizes {
 			t.Run(tc.name, func(t *testing.T) {
@@ -579,7 +582,7 @@ func TestComputeExtendedDataSquareVsWithBuffer(t *testing.T) {
 				edsWithBuffer, err := ComputeExtendedDataSquareWithBuffer(data, codec, pool)
 				require.NoError(t, err)
 
-				constructor := newErasuredNamespacedMerkleTreeConstructor(uint64(tc.odsSize), nmt.NamespaceIDSize(8), nmt.IgnoreMaxNamespace(true))
+				constructor := newErasuredNamespacedMerkleTreeConstructor(uint64(tc.odsSize), namespaceIDSizeOption, nmt.IgnoreMaxNamespace(true))
 				edsStandard, err := ComputeExtendedDataSquare(data, codec, constructor)
 				require.NoError(t, err)
 

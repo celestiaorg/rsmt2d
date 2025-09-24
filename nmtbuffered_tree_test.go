@@ -94,7 +94,7 @@ func newResizeableBufferTree(maxSquareSize uint, axisIndex uint, pool *treePool,
 	for _, setter := range options {
 		setter(opts)
 	}
-	options = append(options, nmt.IgnoreMaxNamespace(true), nmt.ReuseBuffer(true))
+	options = append(options, nmt.IgnoreMaxNamespace(true), nmt.ReuseBuffers(true))
 	tree := nmt.New(sha256.New(), options...)
 	namespaceSize := int(opts.NamespaceIDSize)
 	entrySize := shareSize + namespaceSize
