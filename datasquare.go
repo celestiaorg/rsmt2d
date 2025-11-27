@@ -6,6 +6,7 @@ import (
 	"math"
 	"sync"
 
+	"github.com/cometbft/cometbft/crypto/merkle"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -274,19 +275,12 @@ func (ds *dataSquare) getRowRoot(rowIdx uint) ([]byte, error) {
 		return ds.rowRoots[rowIdx], nil
 	}
 
-	tree := ds.createTreeFn(Row, rowIdx)
 	row := ds.row(rowIdx)
 	if !isComplete(row) {
 		return nil, errors.New("can not compute root of incomplete row")
 	}
-	for _, d := range row {
-		err := tree.Push(d)
-		if err != nil {
-			return nil, err
-		}
-	}
 
-	return tree.Root()
+	return merkle.ParallelHashFromByteSlices(row), nil
 }
 
 // getColRoots returns the Merkle roots of all the columns in the square.
@@ -309,19 +303,11 @@ func (ds *dataSquare) getColRoot(colIdx uint) ([]byte, error) {
 		return ds.colRoots[colIdx], nil
 	}
 
-	tree := ds.createTreeFn(Col, colIdx)
 	col := ds.col(colIdx)
 	if !isComplete(col) {
 		return nil, errors.New("can not compute root of incomplete column")
 	}
-	for _, d := range col {
-		err := tree.Push(d)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return tree.Root()
+	return merkle.ParallelHashFromByteSlices(col), nil
 }
 
 // GetCell returns a copy of a specific cell.
