@@ -9,7 +9,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// Axis represents which of a row or col.
+// Axis represents either a row or a column.
 type Axis int
 
 const (
@@ -33,7 +33,7 @@ func (a Axis) String() string {
 	}
 }
 
-// ErrUnrepairableDataSquare is thrown when there is insufficient shares to repair the square.
+// ErrUnrepairableDataSquare is thrown when there are insufficient shares to repair the square.
 var ErrUnrepairableDataSquare = errors.New("failed to solve data square")
 
 // ErrByzantineData is returned when a repaired row or column does not match the
@@ -67,8 +67,8 @@ func (e *ErrByzantineData) Error() string {
 // # Output
 //
 // The EDS is modified in-place. If repairing is successful, the EDS will be
-// complete. If repairing is unsuccessful, the EDS will be the most-repaired
-// prior to the Byzantine row or column being repaired, and the Byzantine row
+// complete. If repairing is unsuccessful, the EDS will be repaired as much as possible
+// before the Byzantine row or column is repaired, and the Byzantine row
 // or column prior to repair is returned in the error with missing shares as
 // nil.
 func (eds *ExtendedDataSquare) Repair(
@@ -95,7 +95,7 @@ func (eds *ExtendedDataSquare) solveCrossword(
 		// Track if a single iteration of this loop made progress
 		progressMade := false
 
-		// Loop through every row and column, attempt to rebuild each row or column if incomplete
+		// Loop through every row and column, attempting to rebuild each incomplete row or column
 		for i := 0; i < int(eds.width); i++ {
 			solvedRow, progressMadeRow, err := eds.solveCrosswordRow(i, rowRoots, colRoots)
 			if err != nil {
@@ -140,7 +140,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	shares := make([][]byte, eds.width)
 	copy(shares, eds.row(uint(rowIdx)))
 
-	// Attempt rebuild the row
+	// Attempt to rebuild the row
 	rebuiltShares, isDecoded, err := eds.rebuildShares(shares)
 	if err != nil {
 		return false, false, err
@@ -149,7 +149,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 		return false, false, nil
 	}
 
-	// Check that rebuilt shares matches appropriate root
+	// Check that rebuilt shares match the appropriate root
 	err = eds.verifyAgainstRowRoots(rowRoots, uint(rowIdx), rebuiltShares, noShareInsertion, nil)
 	if err != nil {
 		var byzErr *ErrByzantineData
@@ -160,7 +160,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 		return false, false, err
 	}
 
-	// Check that newly completed orthogonal vectors match their new merkle roots
+	// Check that newly completed orthogonal vectors match their new Merkle roots
 	for colIdx := 0; colIdx < int(eds.width); colIdx++ {
 		col := eds.col(uint(colIdx))
 		if col[rowIdx] != nil {
@@ -215,7 +215,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	shares := make([][]byte, eds.width)
 	copy(shares, eds.col(uint(colIdx)))
 
-	// Attempt rebuild
+	// Attempt to rebuild
 	rebuiltShares, isDecoded, err := eds.rebuildShares(shares)
 	if err != nil {
 		return false, false, err
@@ -224,7 +224,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 		return false, false, nil
 	}
 
-	// Check that rebuilt shares matches appropriate root
+	// Check that rebuilt shares match the appropriate root
 	err = eds.verifyAgainstColRoots(colRoots, uint(colIdx), rebuiltShares, noShareInsertion, nil)
 	if err != nil {
 		var byzErr *ErrByzantineData
@@ -235,7 +235,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 		return false, false, err
 	}
 
-	// Check that newly completed orthogonal vectors match their new merkle roots
+	// Check that newly completed orthogonal vectors match their new Merkle roots
 	for rowIdx := 0; rowIdx < int(eds.width); rowIdx++ {
 		row := eds.row(uint(rowIdx))
 		if row[colIdx] != nil {
@@ -273,7 +273,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 
 // rebuildShares attempts to rebuild a row or column of shares.
 // Returns
-// 1. An entire row or column of shares so original + parity shares.
+// 1. An entire row or column of shares containing original + parity shares.
 // 2. Whether the original shares could be decoded from the shares parameter.
 // 3. [Optional] an error.
 func (eds *ExtendedDataSquare) rebuildShares(
@@ -322,7 +322,7 @@ func (eds *ExtendedDataSquare) verifyAgainstRowRoots(
 // `shares` is a slice of the shares of the column index `c` of the `eds`.
 // `rebuiltIndex` is the index of the share that was rebuilt, if any.
 // `rebuiltShare` is the rebuilt share, if any.
-// Returns a ErrByzantineData error if the computed root does not match the expected root or if the root computation fails.
+// Returns an ErrByzantineData error if the computed root does not match the expected root or if the root computation fails.
 func (eds *ExtendedDataSquare) verifyAgainstColRoots(
 	colRoots [][]byte,
 	colIdx uint,
@@ -389,13 +389,13 @@ func (eds *ExtendedDataSquare) preRepairSanityCheck(
 		}
 
 		colIsComplete := noMissingData(eds.col(i), noShareInsertion)
-		// if there's no missing data in this col
+		// if there's no missing data in this column
 		if colIsComplete {
 			errs.Go(func() error {
 				// ensure that the roots are equal
 				colRoot, err := eds.getColRoot(i)
 				if err != nil {
-					// any error regarding the root calculation signifies an issue in the shares e.g., out of order shares
+					// any error regarding the root calculation signifies an issue in the shares, e.g., out-of-order shares
 					// therefore, it should be treated as byzantine data
 					return &ErrByzantineData{Col, i, eds.col(i)}
 				}
@@ -430,7 +430,7 @@ func noMissingData(input [][]byte, rebuiltIndex int) bool {
 	return true
 }
 
-// computeSharesRoot calculates the root of the shares for the specified axis (`i`th column or row).
+// computeSharesRoot calculates the root of the shares for the specified axis (`i`th row or column).
 func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, axis Axis, i uint) ([]byte, error) {
 	tree := eds.createTreeFn(axis, i)
 	for _, d := range shares {
@@ -471,7 +471,7 @@ func (eds *ExtendedDataSquare) verifyEncoding(data [][]byte, rebuiltIndex int, r
 	if rebuiltShare != nil && rebuiltIndex >= 0 {
 		data[rebuiltIndex] = rebuiltShare
 		defer func() {
-			// revert the change to the data slice after the verification
+			// revert the change to the data slice after verification
 			data[rebuiltIndex] = nil
 		}()
 	}
