@@ -260,6 +260,173 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 	}
 }
 
+// TestByzantineDataSharesMatchNamedAxis is a regression test for the wrong-axis
+// / nil-hole evidence bug. It corrupts a cell in an INCOMPLETE row/column so that
+// preRepairSanityCheck does not catch it and detection happens only after a
+// rebuild completes the orthogonal axis. It asserts that the shares attached to
+// ErrByzantineData belong to the axis the error names, have no nil at the
+// rebuilt position, and contain the corrupt share.
+func TestByzantineDataSharesMatchNamedAxis(t *testing.T) {
+	codec := NewLeoRSCodec()
+	corruptShare := bytes.Repeat([]byte{66}, shareSize)
+
+	// Build an honest 2x2 -> 4x4 EDS and capture the honest roots.
+	original := createTestEds(codec, shareSize)
+	rowRoots, err := original.getRowRoots()
+	require.NoError(t, err)
+	colRoots, err := original.getColRoots()
+	require.NoError(t, err)
+
+	// Construct a sparse square: corrupt (1,0) and nil out (0,0) and (1,2). This
+	// places the corrupt share in an incomplete row (row 1) and an incomplete
+	// column (column 0), so preRepairSanityCheck cannot catch it. Rebuilding
+	// honest row 0 completes column 0 (which holds the corrupt (1,0)), reaching
+	// the orthogonal verifyAgainstColRoots branch with a column error.
+	eds := createTestEds(codec, shareSize)
+	eds.setCell(1, 0, corruptShare)
+	eds.setCell(0, 0, nil)
+	eds.setCell(1, 2, nil)
+
+	// Drive solveCrosswordRow(0) directly so detection is deterministic and does
+	// not depend on row/col iteration order.
+	_, _, err = eds.solveCrosswordRow(0, rowRoots, colRoots)
+	require.Error(t, err)
+
+	var byzErr *ErrByzantineData
+	require.ErrorAs(t, err, &byzErr)
+
+	// The error must name the orthogonal column 0.
+	require.Equal(t, Col, byzErr.Axis)
+	require.Equal(t, uint(0), byzErr.Index)
+
+	// There must be no nil at the rebuilt position. The rebuilt share completed
+	// the column at row index 0.
+	require.NotNil(t, byzErr.Shares[0], "rebuilt position must not be nil")
+
+	// The attached shares must contain the corrupt share that triggered detection.
+	require.Contains(t, byzErr.Shares, corruptShare)
+
+	// The shares must be the shares of the NAMED axis (column 0), not the
+	// orthogonal row. Recompute the root over the attached shares; for a genuinely
+	// byzantine column this must NOT equal the honest column root, but it must be
+	// computable over a full (no-nil) column of the named axis. We assert the
+	// attached shares match the live column-0 cells everywhere except the rebuilt
+	// index, proving they are the column (not the rebuilt row buffer).
+	liveCol := eds.col(uint(byzErr.Index))
+	for i := range byzErr.Shares {
+		if i == 0 {
+			continue // rebuilt position
+		}
+		require.Equal(t, liveCol[i], byzErr.Shares[i], "attached shares are not the named axis")
+	}
+
+	// Recomputing the root over the attached named-axis shares should not match
+	// the honest column root (the column is byzantine), confirming axis/share
+	// alignment is semantically meaningful.
+	root, err := eds.computeSharesRoot(byzErr.Shares, byzErr.Axis, byzErr.Index)
+	require.NoError(t, err)
+	require.NotEqual(t, colRoots[byzErr.Index], root)
+}
+
+// TestByzantineDataSharesMatchNamedAxis_Col is the symmetric regression test for
+// solveCrosswordCol: the orthogonal branch must attach the row (named axis), with
+// the rebuilt share inserted and the corrupt share present.
+func TestByzantineDataSharesMatchNamedAxis_Col(t *testing.T) {
+	codec := NewLeoRSCodec()
+	corruptShare := bytes.Repeat([]byte{66}, shareSize)
+
+	original := createTestEds(codec, shareSize)
+	rowRoots, err := original.getRowRoots()
+	require.NoError(t, err)
+	colRoots, err := original.getColRoots()
+	require.NoError(t, err)
+
+	// Mirror of the row scenario: corrupt (0,1), nil out (0,0) and (2,1). The
+	// corrupt share sits in incomplete column 1 and incomplete row 0. Rebuilding
+	// honest column 0 completes row 0 (which holds the corrupt (0,1)), reaching
+	// the orthogonal verifyAgainstRowRoots branch.
+	eds := createTestEds(codec, shareSize)
+	eds.setCell(0, 1, corruptShare)
+	eds.setCell(0, 0, nil)
+	eds.setCell(2, 1, nil)
+
+	_, _, err = eds.solveCrosswordCol(0, rowRoots, colRoots)
+	require.Error(t, err)
+
+	var byzErr *ErrByzantineData
+	require.ErrorAs(t, err, &byzErr)
+
+	require.Equal(t, Row, byzErr.Axis)
+	require.Equal(t, uint(0), byzErr.Index)
+	require.NotNil(t, byzErr.Shares[0], "rebuilt position must not be nil")
+	require.Contains(t, byzErr.Shares, corruptShare)
+
+	liveRow := eds.row(uint(byzErr.Index))
+	for i := range byzErr.Shares {
+		if i == 0 {
+			continue // rebuilt position
+		}
+		require.Equal(t, liveRow[i], byzErr.Shares[i], "attached shares are not the named axis")
+	}
+
+	root, err := eds.computeSharesRoot(byzErr.Shares, byzErr.Axis, byzErr.Index)
+	require.NoError(t, err)
+	require.NotEqual(t, rowRoots[byzErr.Index], root)
+}
+
+// TestVerifyEncodingDoesNotMutateInput asserts that verifyEncoding never mutates
+// the caller-owned slice it is given (previously it wrote the rebuilt share and
+// deferred a reset to nil, leaving a nil hole in the caller's slice).
+func TestVerifyEncodingDoesNotMutateInput(t *testing.T) {
+	codec := NewLeoRSCodec()
+	eds := createTestEds(codec, shareSize)
+
+	// Take a complete, well-encoded column and keep a snapshot of its contents.
+	data := make([][]byte, eds.width)
+	copy(data, eds.col(0))
+	rebuiltIndex := 0
+	// Pass the share that already lives at rebuiltIndex as the "rebuilt" share.
+	// The previous implementation wrote it in, then deferred a reset to nil,
+	// leaving a nil hole in the caller-owned slice even on the success path.
+	rebuiltShare := data[rebuiltIndex]
+
+	before := make([][]byte, len(data))
+	copy(before, data)
+
+	err := eds.verifyEncoding(data, rebuiltIndex, rebuiltShare)
+	require.NoError(t, err, "well-encoded column should verify")
+
+	// The input slice must be unchanged afterwards; in particular the rebuilt
+	// position must not have been wiped to nil.
+	require.Equal(t, before, data, "verifyEncoding must not mutate its input slice")
+	require.NotNil(t, data[rebuiltIndex], "verifyEncoding must not nil out the input slice")
+}
+
+// TestVerifyEncodingDoesNotMutateInputOnError asserts the non-mutation invariant
+// also holds on the parity-mismatch error path, which is where the previous
+// deferred reset left a nil hole in fraud-proof material.
+func TestVerifyEncodingDoesNotMutateInputOnError(t *testing.T) {
+	codec := NewLeoRSCodec()
+	corruptShare := bytes.Repeat([]byte{66}, shareSize)
+	eds := createTestEds(codec, shareSize)
+
+	// Build a column that is complete but mis-encoded: corrupt a parity cell so
+	// the encoding check fails.
+	data := make([][]byte, eds.width)
+	copy(data, eds.col(0))
+	rebuiltIndex := 0
+	rebuiltShare := corruptShare // a non-nil share that breaks the encoding
+
+	before := make([][]byte, len(data))
+	copy(before, data)
+
+	err := eds.verifyEncoding(data, rebuiltIndex, rebuiltShare)
+	require.Error(t, err, "corrupt rebuilt share should fail encoding check")
+
+	require.Equal(t, before, data, "verifyEncoding must not mutate its input slice on error")
+	require.NotNil(t, data[rebuiltIndex], "verifyEncoding must not nil out the input slice on error")
+}
+
 func BenchmarkRepair(b *testing.B) {
 	// For different ODS sizes
 	for originalDataWidth := 4; originalDataWidth <= 512; originalDataWidth *= 2 {

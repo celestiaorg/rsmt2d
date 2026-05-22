@@ -139,6 +139,9 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	// Prepare shares
 	shares := make([][]byte, eds.width)
 	copy(shares, eds.row(uint(rowIdx)))
+	// Snapshot committed shares (nils preserved) before rebuildShares decodes in place.
+	committed := make([][]byte, eds.width)
+	copy(committed, shares)
 
 	// Attempt to rebuild the row
 	rebuiltShares, isDecoded, err := eds.rebuildShares(shares)
@@ -154,7 +157,7 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	if err != nil {
 		var byzErr *ErrByzantineData
 		if errors.As(err, &byzErr) {
-			byzErr.Shares = shares
+			byzErr.Shares = committed
 			return false, false, byzErr
 		}
 		return false, false, err
@@ -171,13 +174,15 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 			if err != nil {
 				var byzErr *ErrByzantineData
 				if errors.As(err, &byzErr) {
-					byzErr.Shares = shares
+					// Attach the shares of the axis the error names (the column),
+					// with the rebuilt share inserted so there is no nil hole.
+					byzErr.Shares = sharesWithRebuiltShare(col, rowIdx, rebuiltShares[colIdx])
 				}
 				return false, false, err
 			}
 
 			if eds.verifyEncoding(col, rowIdx, rebuiltShares[colIdx]) != nil {
-				return false, false, &ErrByzantineData{Col, uint(colIdx), col}
+				return false, false, &ErrByzantineData{Col, uint(colIdx), sharesWithRebuiltShare(col, rowIdx, rebuiltShares[colIdx])}
 			}
 		}
 	}
@@ -214,6 +219,9 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	// Prepare shares
 	shares := make([][]byte, eds.width)
 	copy(shares, eds.col(uint(colIdx)))
+	// Snapshot committed shares (nils preserved) before rebuildShares decodes in place.
+	committed := make([][]byte, eds.width)
+	copy(committed, shares)
 
 	// Attempt to rebuild
 	rebuiltShares, isDecoded, err := eds.rebuildShares(shares)
@@ -229,7 +237,7 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	if err != nil {
 		var byzErr *ErrByzantineData
 		if errors.As(err, &byzErr) {
-			byzErr.Shares = shares
+			byzErr.Shares = committed
 			return false, false, byzErr
 		}
 		return false, false, err
@@ -246,13 +254,15 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 			if err != nil {
 				var byzErr *ErrByzantineData
 				if errors.As(err, &byzErr) {
-					byzErr.Shares = shares
+					// Attach the shares of the axis the error names (the row),
+					// with the rebuilt share inserted so there is no nil hole.
+					byzErr.Shares = sharesWithRebuiltShare(row, colIdx, rebuiltShares[rowIdx])
 				}
 				return false, false, err
 			}
 
 			if eds.verifyEncoding(row, colIdx, rebuiltShares[rowIdx]) != nil {
-				return false, false, &ErrByzantineData{Row, uint(rowIdx), row}
+				return false, false, &ErrByzantineData{Row, uint(rowIdx), sharesWithRebuiltShare(row, colIdx, rebuiltShares[rowIdx])}
 			}
 		}
 	}
@@ -418,6 +428,16 @@ func (eds *ExtendedDataSquare) preRepairSanityCheck(
 	return errs.Wait()
 }
 
+// sharesWithRebuiltShare returns a copy of an axis's shares with the rebuilt
+// share inserted at rebuiltIndex, so ErrByzantineData carries the shares of the
+// axis the error actually names (not the other axis, and with no nil hole).
+func sharesWithRebuiltShare(axis [][]byte, rebuiltIndex int, rebuiltShare []byte) [][]byte {
+	out := make([][]byte, len(axis))
+	copy(out, axis)
+	out[rebuiltIndex] = rebuiltShare
+	return out
+}
+
 func noMissingData(input [][]byte, rebuiltIndex int) bool {
 	for index, d := range input {
 		if index == rebuiltIndex {
@@ -469,11 +489,13 @@ func (eds *ExtendedDataSquare) computeSharesRootWithRebuiltShare(shares [][]byte
 // verifyEncoding checks the Reed-Solomon encoding of the provided data.
 func (eds *ExtendedDataSquare) verifyEncoding(data [][]byte, rebuiltIndex int, rebuiltShare []byte) error {
 	if rebuiltShare != nil && rebuiltIndex >= 0 {
-		data[rebuiltIndex] = rebuiltShare
-		defer func() {
-			// revert the change to the data slice after verification
-			data[rebuiltIndex] = nil
-		}()
+		// Operate on a copy so the caller-owned slice is never mutated. Mutating it
+		// (and resetting via defer) left a nil hole in the shares the caller attaches
+		// to ErrByzantineData.
+		cp := make([][]byte, len(data))
+		copy(cp, data)
+		cp[rebuiltIndex] = rebuiltShare
+		data = cp
 	}
 
 	half := len(data) / 2
