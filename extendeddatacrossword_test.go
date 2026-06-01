@@ -302,6 +302,11 @@ func TestRepairVerifiesOrthogonalVectorsAgainstRoots(t *testing.T) {
 
 	var byzData *ErrByzantineData
 	require.ErrorAs(t, err, &byzData, "repair must detect the corruption as Byzantine data via the orthogonal-vector check")
+	// The corruption is caught when row 0's rebuild of (0, 2) completes column
+	// 2, so the Byzantine error must name column 2 specifically. Asserting the
+	// axis and index guards against the test passing due to an unrelated error.
+	require.Equal(t, Col, byzData.Axis, "Byzantine error must be on the column axis")
+	require.Equal(t, uint(2), byzData.Index, "Byzantine error must be on column index 2")
 }
 
 func BenchmarkRepair(b *testing.B) {
