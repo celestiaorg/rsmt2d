@@ -14,8 +14,10 @@ import (
 var ErrUnevenChunks = errors.New("non-nil shares not all of equal size")
 
 // dataSquare stores all data for an original data square (ODS) or extended
-// data square (EDS). Data is duplicated in both row-major and column-major
-// order in order to be able to provide zero-allocation column slices.
+// data square (EDS). Pointers to the shares are stored in both row-major
+// (squareRow) and column-major (squareCol) order. Both layouts reference the
+// same underlying share byte slices (the share bytes themselves are not
+// duplicated), which enables zero-allocation row and column slices.
 type dataSquare struct {
 	squareRow    [][][]byte // row-major
 	squareCol    [][][]byte // col-major
