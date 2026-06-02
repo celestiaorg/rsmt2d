@@ -260,6 +260,55 @@ func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 	}
 }
 
+// TestRepairVerifiesOrthogonalVectorsAgainstRoots is a regression test for
+// https://github.com/celestiaorg/rsmt2d/issues/118. It guards the fix from
+// PR #114 (originally reported as #113): when a row solve newly completes an
+// orthogonal column (or a column solve completes a row), that vector must be
+// verified against its committed Merkle root including the just-rebuilt share.
+// Before the fix this check was skipped because the EDS was only updated after
+// the check, so a square that violates its column/row roots passed repair
+// silently.
+//
+// The corruption below is only revealed when an orthogonal vector is completed
+// during a row/column solve, so detection depends on the fix: with the
+// orthogonal-vector check reverted, Repair returns no error.
+func TestRepairVerifiesOrthogonalVectorsAgainstRoots(t *testing.T) {
+	corruptShare := bytes.Repeat([]byte{66}, shareSize)
+	codec := NewLeoRSCodec()
+
+	eds := createTestEds(codec, shareSize)
+
+	// Capture the honest roots before corrupting the square.
+	rowRoots, err := eds.getRowRoots()
+	require.NoError(t, err)
+	colRoots, err := eds.getColRoots()
+	require.NoError(t, err)
+
+	// Delete two shares so no row or column is initially complete (this stops
+	// preRepairSanityCheck from short-circuiting) and corrupt (2, 2) so the
+	// corruption is only surfaced when an orthogonal vector is completed during
+	// a solve.
+	//
+	// O O _ O      _ = nil share
+	// O O O O      C = corrupted share
+	// _ O C O      O = original/parity share
+	// O O O O
+	eds.setCell(0, 2, nil)
+	eds.setCell(2, 0, nil)
+	eds.setCell(2, 2, corruptShare)
+
+	err = eds.Repair(rowRoots, colRoots)
+	require.Error(t, err, "repair must reject a square whose completed orthogonal vector violates its root")
+
+	var byzData *ErrByzantineData
+	require.ErrorAs(t, err, &byzData, "repair must detect the corruption as Byzantine data via the orthogonal-vector check")
+	// The corruption is caught when row 0's rebuild of (0, 2) completes column
+	// 2, so the Byzantine error must name column 2 specifically. Asserting the
+	// axis and index guards against the test passing due to an unrelated error.
+	require.Equal(t, Col, byzData.Axis, "Byzantine error must be on the column axis")
+	require.Equal(t, uint(2), byzData.Index, "Byzantine error must be on column index 2")
+}
+
 func BenchmarkRepair(b *testing.B) {
 	// For different ODS sizes
 	for originalDataWidth := 4; originalDataWidth <= 512; originalDataWidth *= 2 {
