@@ -221,7 +221,7 @@ func (ds *dataSquare) computeRoots() error {
 	rowRoots := make([][]byte, ds.width)
 	colRoots := make([][]byte, ds.width)
 	if ds.parallelOps != 0 {
-		// this can be used in conjunction with reusing of nmts, we can reuse only fixed amount of nmts
+		// this can be used in conjunction with reusing NMTs, we can reuse only a fixed number of NMTs
 		// essentially having fixed allocations there when storing/computing hashes
 		g.SetLimit(ds.parallelOps)
 	}
@@ -303,7 +303,7 @@ func (ds *dataSquare) getColRoots() ([][]byte, error) {
 	return ds.colRoots, nil
 }
 
-// getColRoot calculates and returns the root of the selected row. Note: unlike
+// getColRoot calculates and returns the root of the selected column. Note: unlike
 // the getColRoots method, getColRoot does not write to the built-in cache.
 // Returns an error if the column is incomplete (i.e. some shares are nil).
 func (ds *dataSquare) getColRoot(colIdx uint) ([]byte, error) {

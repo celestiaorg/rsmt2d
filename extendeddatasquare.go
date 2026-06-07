@@ -77,7 +77,7 @@ func ComputeExtendedDataSquare(
 }
 
 // ComputeExtendedDataSquareWithBuffer computes the extended data square for some shares
-// of original data, it limits parallel operations and uses buffered nmts to avoid allocations when computing root.
+// of original data. It limits parallel operations and uses buffered NMTs to avoid allocations when computing roots.
 func ComputeExtendedDataSquareWithBuffer(
 	data [][]byte,
 	codec Codec,
