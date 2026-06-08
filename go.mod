@@ -7,7 +7,7 @@ require (
 	github.com/celestiaorg/nmt v0.24.3
 	github.com/klauspost/reedsolomon v1.14.0
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/sync v0.20.0
+	golang.org/x/sync v0.21.0
 )
 
 require (
