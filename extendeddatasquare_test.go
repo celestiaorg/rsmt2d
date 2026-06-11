@@ -685,3 +685,107 @@ func TestImportExtendedDataSquareWithTree(t *testing.T) {
 		assert.Equal(t, NMTTreeName, imported.treeName)
 	})
 }
+
+// TestJSONRoundTripNMTTree is a regression test for
+// https://github.com/celestiaorg/rsmt2d/issues/275. An EDS computed with the
+// built-in NMT tree must produce identical row and column roots after a JSON
+// marshal/unmarshal round trip.
+func TestJSONRoundTripNMTTree(t *testing.T) {
+	const odsWidth = 4
+	data := genRandSortedDS(odsWidth, shareSize, defaultNamespaceIDSize)
+	original, err := ComputeExtendedDataSquareWithTree(data, NewLeoRSCodec(), NMTTreeName)
+	require.NoError(t, err)
+
+	edsBytes, err := json.Marshal(original)
+	require.NoError(t, err)
+
+	var got ExtendedDataSquare
+	require.NoError(t, json.Unmarshal(edsBytes, &got))
+	assert.Equal(t, NMTTreeName, got.treeName)
+
+	wantRowRoots, err := original.RowRoots()
+	require.NoError(t, err)
+	gotRowRoots, err := got.RowRoots()
+	require.NoError(t, err)
+	assert.Equal(t, wantRowRoots, gotRowRoots)
+
+	wantColRoots, err := original.ColRoots()
+	require.NoError(t, err)
+	gotColRoots, err := got.ColRoots()
+	require.NoError(t, err)
+	assert.Equal(t, wantColRoots, gotColRoots)
+}
+
+func TestUnmarshalJSONTreeField(t *testing.T) {
+	t.Run("JSON without a tree field falls back to the NMT tree", func(t *testing.T) {
+		// Mimic JSON produced by current celestia-node: an EDS built with the
+		// NMT constructor-fn API, which marshals without a tree field. The
+		// NMT fallback makes this pre-existing JSON round-trip with correct
+		// roots, with no downstream code change.
+		const odsWidth = 4
+		data := genRandSortedDS(odsWidth, shareSize, defaultNamespaceIDSize)
+		constructor := newErasuredNamespacedMerkleTreeConstructor(odsWidth,
+			nmt.NamespaceIDSize(defaultNamespaceIDSize))
+		original, err := ComputeExtendedDataSquare(data, NewLeoRSCodec(), constructor)
+		require.NoError(t, err)
+
+		edsBytes, err := json.Marshal(original)
+		require.NoError(t, err)
+		// EDSes built via the constructor-fn API have no tree name, so the
+		// tree field must be omitted for wire compatibility with old JSON.
+		assert.NotContains(t, string(edsBytes), `"tree"`)
+
+		var got ExtendedDataSquare
+		require.NoError(t, json.Unmarshal(edsBytes, &got))
+		assert.Equal(t, NMTTreeName, got.treeName)
+
+		wantRowRoots, err := original.RowRoots()
+		require.NoError(t, err)
+		gotRowRoots, err := got.RowRoots()
+		require.NoError(t, err)
+		assert.Equal(t, wantRowRoots, gotRowRoots)
+
+		wantColRoots, err := original.ColRoots()
+		require.NoError(t, err)
+		gotColRoots, err := got.ColRoots()
+		require.NoError(t, err)
+		assert.Equal(t, wantColRoots, gotColRoots)
+	})
+
+	t.Run("an explicit default-tree field round-trips the default tree", func(t *testing.T) {
+		original, err := ComputeExtendedDataSquareWithTree(
+			[][]byte{ones, twos, threes, fours}, NewLeoRSCodec(), DefaultTreeName)
+		require.NoError(t, err)
+
+		edsBytes, err := json.Marshal(original)
+		require.NoError(t, err)
+		assert.Contains(t, string(edsBytes), `"tree":"default-tree"`)
+
+		var got ExtendedDataSquare
+		require.NoError(t, json.Unmarshal(edsBytes, &got))
+		assert.Equal(t, DefaultTreeName, got.treeName)
+
+		wantRowRoots, err := original.RowRoots()
+		require.NoError(t, err)
+		gotRowRoots, err := got.RowRoots()
+		require.NoError(t, err)
+		assert.Equal(t, wantRowRoots, gotRowRoots)
+	})
+
+	t.Run("returns an error for an unsupported tree name", func(t *testing.T) {
+		original := createExampleEds(t, shareSize)
+		edsBytes, err := json.Marshal(original)
+		require.NoError(t, err)
+
+		var raw map[string]interface{}
+		require.NoError(t, json.Unmarshal(edsBytes, &raw))
+		raw["tree"] = "unknown-tree"
+		edsBytes, err = json.Marshal(raw)
+		require.NoError(t, err)
+
+		var got ExtendedDataSquare
+		err = json.Unmarshal(edsBytes, &got)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "unsupported tree name")
+	})
+}

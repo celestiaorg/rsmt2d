@@ -27,9 +27,14 @@ func (eds *ExtendedDataSquare) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
 		DataSquare [][]byte `json:"data_square"`
 		Codec      string   `json:"codec"`
+		// Tree is the built-in tree name. Omitted when the EDS was built
+		// from a raw TreeConstructorFn, for wire compatibility with JSON
+		// produced before the tree field existed.
+		Tree string `json:"tree,omitempty"`
 	}{
 		DataSquare: eds.dataSquare.Flattened(),
 		Codec:      eds.codec.Name(),
+		Tree:       eds.treeName,
 	})
 }
 
@@ -37,12 +42,22 @@ func (eds *ExtendedDataSquare) UnmarshalJSON(b []byte) error {
 	var aux struct {
 		DataSquare [][]byte `json:"data_square"`
 		Codec      string   `json:"codec"`
+		Tree       string   `json:"tree"`
 	}
 
 	if err := json.Unmarshal(b, &aux); err != nil {
 		return err
 	}
-	importedEds, err := ImportExtendedDataSquare(aux.DataSquare, codecs[aux.Codec], NewDefaultTree)
+
+	// JSON produced before the tree field existed, or from an EDS built via
+	// the constructor-fn API, carries no tree name. Fall back to the NMT
+	// tree: all production Celestia software serializes NMT-built squares,
+	// so this makes pre-existing JSON round-trip with correct roots.
+	if aux.Tree == "" {
+		aux.Tree = NMTTreeName
+	}
+
+	importedEds, err := ImportExtendedDataSquareWithTree(aux.DataSquare, codecs[aux.Codec], aux.Tree)
 	if err != nil {
 		return err
 	}
