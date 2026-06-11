@@ -77,6 +77,12 @@ func treeConstructorByName(treeName string, odsWidth uint) (TreeConstructorFn, e
 	case DefaultTreeName:
 		return NewDefaultTree, nil
 	case NMTTreeName:
+		// Fail fast: the erasured NMT panics at tree-construction time for a
+		// zero square size, and a zero odsWidth only arises from degenerate
+		// (e.g. empty) input data.
+		if odsWidth == 0 {
+			return nil, fmt.Errorf("odsWidth must be greater than zero for tree name %q", NMTTreeName)
+		}
 		return nmtTreeConstructor(odsWidth), nil
 	default:
 		return nil, fmt.Errorf("unsupported tree name %q (supported: %q, %q)", treeName, DefaultTreeName, NMTTreeName)

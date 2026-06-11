@@ -61,4 +61,10 @@ func TestTreeConstructorByName(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "unsupported tree name")
 	})
+
+	t.Run("returns an error for NMTTreeName with zero odsWidth", func(t *testing.T) {
+		_, err := treeConstructorByName(NMTTreeName, 0)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "odsWidth must be greater than zero")
+	})
 }
