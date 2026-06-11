@@ -788,4 +788,21 @@ func TestUnmarshalJSONTreeField(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "unsupported tree name")
 	})
+
+	t.Run("returns an error for an unsupported codec name", func(t *testing.T) {
+		original := createExampleEds(t, shareSize)
+		edsBytes, err := json.Marshal(original)
+		require.NoError(t, err)
+
+		var raw map[string]interface{}
+		require.NoError(t, json.Unmarshal(edsBytes, &raw))
+		raw["codec"] = "unknown-codec"
+		edsBytes, err = json.Marshal(raw)
+		require.NoError(t, err)
+
+		var got ExtendedDataSquare
+		err = json.Unmarshal(edsBytes, &got)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "unsupported codec name")
+	})
 }

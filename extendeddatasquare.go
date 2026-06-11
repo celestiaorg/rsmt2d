@@ -57,7 +57,12 @@ func (eds *ExtendedDataSquare) UnmarshalJSON(b []byte) error {
 		aux.Tree = NMTTreeName
 	}
 
-	importedEds, err := ImportExtendedDataSquareWithTree(aux.DataSquare, codecs[aux.Codec], aux.Tree)
+	codec, ok := codecs[aux.Codec]
+	if !ok {
+		return fmt.Errorf("unsupported codec name %q", aux.Codec)
+	}
+
+	importedEds, err := ImportExtendedDataSquareWithTree(aux.DataSquare, codec, aux.Tree)
 	if err != nil {
 		return err
 	}
