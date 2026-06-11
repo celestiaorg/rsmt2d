@@ -29,6 +29,9 @@ func TestTreeConstructorByName(t *testing.T) {
 
 	t.Run("returns the erasured NMT for NMTTreeName", func(t *testing.T) {
 		const odsWidth = 2
+		// The production constant and the test constant must agree for the
+		// root comparison below to be meaningful.
+		require.EqualValues(t, celestiaNamespaceSize, defaultNamespaceIDSize)
 		share := bytes.Repeat([]byte{1}, shareSize)
 
 		constructorFn, err := treeConstructorByName(NMTTreeName, odsWidth)

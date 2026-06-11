@@ -16,6 +16,11 @@ type ExtendedDataSquare struct {
 	*dataSquare
 	codec             Codec
 	originalDataWidth uint
+	// treeName is the built-in tree name this EDS was created with (see
+	// DefaultTreeName, NMTTreeName). Empty if the EDS was created from a raw
+	// TreeConstructorFn, in which case JSON serialization falls back to the
+	// default tree.
+	treeName string
 }
 
 func (eds *ExtendedDataSquare) MarshalJSON() ([]byte, error) {
@@ -76,6 +81,28 @@ func ComputeExtendedDataSquare(
 	return &eds, nil
 }
 
+// ComputeExtendedDataSquareWithTree computes the extended data square for
+// some shares of original data using the built-in tree named treeName (see
+// DefaultTreeName, NMTTreeName). Unlike ComputeExtendedDataSquare, the
+// resulting EDS records the tree name so the tree type survives JSON
+// marshalling and unmarshalling.
+func ComputeExtendedDataSquareWithTree(
+	data [][]byte,
+	codec Codec,
+	treeName string,
+) (*ExtendedDataSquare, error) {
+	treeConstructorFn, err := treeConstructorByName(treeName, uint(getWidth(data)))
+	if err != nil {
+		return nil, err
+	}
+	eds, err := ComputeExtendedDataSquare(data, codec, treeConstructorFn)
+	if err != nil {
+		return nil, err
+	}
+	eds.treeName = treeName
+	return eds, nil
+}
+
 // ComputeExtendedDataSquareWithBuffer computes the extended data square for some shares
 // of original data, it limits parallel operations and uses buffered nmts to avoid allocations when computing root.
 func ComputeExtendedDataSquareWithBuffer(
@@ -121,6 +148,29 @@ func ImportExtendedDataSquare(
 	eds.originalDataWidth = eds.width / 2
 
 	return &eds, nil
+}
+
+// ImportExtendedDataSquareWithTree imports an extended data square,
+// represented as flattened shares of data, using the built-in tree named
+// treeName (see DefaultTreeName, NMTTreeName). Unlike
+// ImportExtendedDataSquare, the resulting EDS records the tree name so the
+// tree type survives JSON marshalling and unmarshalling.
+func ImportExtendedDataSquareWithTree(
+	data [][]byte,
+	codec Codec,
+	treeName string,
+) (*ExtendedDataSquare, error) {
+	// data is an extended (2x) square, so the original width is half.
+	treeConstructorFn, err := treeConstructorByName(treeName, uint(getWidth(data))/2)
+	if err != nil {
+		return nil, err
+	}
+	eds, err := ImportExtendedDataSquare(data, codec, treeConstructorFn)
+	if err != nil {
+		return nil, err
+	}
+	eds.treeName = treeName
+	return eds, nil
 }
 
 // NewExtendedDataSquare returns a new extended data square with a width of
@@ -244,7 +294,11 @@ func (eds *ExtendedDataSquare) erasureExtendCol(codec Codec, colIdx uint) error 
 
 func (eds *ExtendedDataSquare) deepCopy(codec Codec) (ExtendedDataSquare, error) {
 	imported, err := ImportExtendedDataSquare(eds.Flattened(), codec, eds.createTreeFn)
-	return *imported, err
+	if err != nil {
+		return ExtendedDataSquare{}, err
+	}
+	imported.treeName = eds.treeName
+	return *imported, nil
 }
 
 // Col returns a column slice.

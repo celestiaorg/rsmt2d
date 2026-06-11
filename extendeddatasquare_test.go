@@ -617,3 +617,71 @@ func createExampleEds(t *testing.T, shareSize int) (eds *ExtendedDataSquare) {
 	require.NoError(t, err)
 	return eds
 }
+
+func TestComputeExtendedDataSquareWithTree(t *testing.T) {
+	t.Run("returns an error for an unsupported tree name", func(t *testing.T) {
+		_, err := ComputeExtendedDataSquareWithTree([][]byte{ones}, NewLeoRSCodec(), "unknown-tree")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "unsupported tree name")
+	})
+
+	t.Run("matches the constructor-fn API for the NMT tree", func(t *testing.T) {
+		const odsWidth = 4
+		data := genRandSortedDS(odsWidth, shareSize, defaultNamespaceIDSize)
+
+		viaName, err := ComputeExtendedDataSquareWithTree(data, NewLeoRSCodec(), NMTTreeName)
+		require.NoError(t, err)
+
+		constructor := newErasuredNamespacedMerkleTreeConstructor(odsWidth,
+			nmt.NamespaceIDSize(defaultNamespaceIDSize))
+		viaFn, err := ComputeExtendedDataSquare(data, NewLeoRSCodec(), constructor)
+		require.NoError(t, err)
+
+		wantRowRoots, err := viaFn.RowRoots()
+		require.NoError(t, err)
+		gotRowRoots, err := viaName.RowRoots()
+		require.NoError(t, err)
+		assert.Equal(t, wantRowRoots, gotRowRoots)
+
+		wantColRoots, err := viaFn.ColRoots()
+		require.NoError(t, err)
+		gotColRoots, err := viaName.ColRoots()
+		require.NoError(t, err)
+		assert.Equal(t, wantColRoots, gotColRoots)
+
+		assert.Equal(t, NMTTreeName, viaName.treeName)
+	})
+}
+
+func TestImportExtendedDataSquareWithTree(t *testing.T) {
+	t.Run("returns an error for an unsupported tree name", func(t *testing.T) {
+		eds := createExampleEds(t, shareSize)
+		_, err := ImportExtendedDataSquareWithTree(eds.Flattened(), NewLeoRSCodec(), "unknown-tree")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "unsupported tree name")
+	})
+
+	t.Run("reimports an NMT EDS with identical roots", func(t *testing.T) {
+		const odsWidth = 4
+		data := genRandSortedDS(odsWidth, shareSize, defaultNamespaceIDSize)
+		original, err := ComputeExtendedDataSquareWithTree(data, NewLeoRSCodec(), NMTTreeName)
+		require.NoError(t, err)
+
+		imported, err := ImportExtendedDataSquareWithTree(original.Flattened(), NewLeoRSCodec(), NMTTreeName)
+		require.NoError(t, err)
+
+		wantRowRoots, err := original.RowRoots()
+		require.NoError(t, err)
+		gotRowRoots, err := imported.RowRoots()
+		require.NoError(t, err)
+		assert.Equal(t, wantRowRoots, gotRowRoots)
+
+		wantColRoots, err := original.ColRoots()
+		require.NoError(t, err)
+		gotColRoots, err := imported.ColRoots()
+		require.NoError(t, err)
+		assert.Equal(t, wantColRoots, gotColRoots)
+
+		assert.Equal(t, NMTTreeName, imported.treeName)
+	})
+}
