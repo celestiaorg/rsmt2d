@@ -76,6 +76,32 @@ func main() {
 }
 ```
 
+## Trees and JSON serialization
+
+rsmt2d has two built-in Merkle trees:
+
+- `rsmt2d.NMTTreeName` (`"nmt"`): Celestia's erasured namespaced Merkle tree
+  (sha256, namespace size 29, `ignoreMaxNamespace=true`), root-compatible
+  with celestia-app's `wrapper.ErasuredNamespacedMerkleTree`. This is the
+  default tree for JSON deserialization.
+- `rsmt2d.DefaultTreeName` (`"default-tree"`): a plain sha256 Merkle tree,
+  retained as a test fixture and for legacy compatibility.
+
+`ExtendedDataSquare.MarshalJSON` records the tree name and `UnmarshalJSON`
+uses it to reconstruct the same tree, so row and column roots survive a JSON
+round trip. Build squares with the `WithTree` constructors to record the
+tree name explicitly:
+
+```go
+eds, err := rsmt2d.ComputeExtendedDataSquareWithTree(data, codec, rsmt2d.NMTTreeName)
+```
+
+Squares built from a raw `TreeConstructorFn` (via `ComputeExtendedDataSquare`
+or `ImportExtendedDataSquare`) carry no tree name and marshal without a
+`tree` field. JSON without a `tree` field — including all JSON produced by
+older versions of this library — is deserialized with the NMT tree, since
+every square serialized by production Celestia software is NMT-built.
+
 ## Contributing
 
 1. [Install Go](https://go.dev/doc/install) 1.24+
