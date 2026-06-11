@@ -45,7 +45,7 @@ type erasuredNamespacedMerkleTree struct {
 
 // nmtTree is an interface that wraps the methods of the underlying
 // NamespaceMerkleTree that are used by erasuredNamespacedMerkleTree. This
-// interface is mainly used for testing. It is not recommended to use this
+// interface exists to keep erasuredNamespacedMerkleTree testable. It is not recommended to use this
 // interface by implementing a different implementation.
 type nmtTree interface {
 	Root() ([]byte, error)
@@ -143,4 +143,20 @@ func (w *erasuredNamespacedMerkleTree) incrementShareIndex() {
 // in the original data square.
 func (w *erasuredNamespacedMerkleTree) isQuadrantZero() bool {
 	return w.shareIndex < w.squareSize && w.axisIndex < w.squareSize
+}
+
+// celestiaNamespaceSize is the size of a namespace in bytes used by Celestia.
+// It is intentionally hardcoded (duplicating go-square's share.NamespaceSize)
+// because rsmt2d's built-in NMT tree is purpose-built for Celestia and
+// importing go-square here would risk a dependency cycle.
+const celestiaNamespaceSize = 29
+
+// nmtTreeConstructor returns the TreeConstructorFn for Celestia's erasured
+// namespaced Merkle tree, for a square whose original (unextended) width is
+// odsWidth. The underlying NMT uses sha256, a namespace size of
+// celestiaNamespaceSize, and ignoreMaxNamespace=true, matching celestia-app's
+// wrapper.ErasuredNamespacedMerkleTree.
+func nmtTreeConstructor(odsWidth uint) TreeConstructorFn {
+	return newErasuredNamespacedMerkleTreeConstructor(uint64(odsWidth),
+		nmt.NamespaceIDSize(celestiaNamespaceSize))
 }

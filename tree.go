@@ -2,6 +2,7 @@ package rsmt2d
 
 import (
 	"crypto/sha256"
+	"fmt"
 
 	"github.com/celestiaorg/merkletree"
 )
@@ -56,4 +57,28 @@ func (d *DefaultTree) Root() ([]byte, error) {
 		d.root = d.Tree.Root()
 	}
 	return d.root, nil
+}
+
+const (
+	// DefaultTreeName is the tree name of the default tree, a plain sha256
+	// Merkle tree.
+	DefaultTreeName = "default-tree"
+	// NMTTreeName is the tree name of Celestia's erasured namespaced Merkle
+	// tree.
+	NMTTreeName = "nmt"
+)
+
+// treeConstructorByName returns the TreeConstructorFn for one of the built-in
+// tree names. odsWidth is the width of the original (unextended) data square;
+// it is required by trees whose shape depends on the square size and ignored
+// by the others.
+func treeConstructorByName(treeName string, odsWidth uint) (TreeConstructorFn, error) {
+	switch treeName {
+	case DefaultTreeName:
+		return NewDefaultTree, nil
+	case NMTTreeName:
+		return nmtTreeConstructor(odsWidth), nil
+	default:
+		return nil, fmt.Errorf("unsupported tree name %q (supported: %q, %q)", treeName, DefaultTreeName, NMTTreeName)
+	}
 }
