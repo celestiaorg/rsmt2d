@@ -16,25 +16,15 @@ type ExtendedDataSquare struct {
 	*dataSquare
 	codec             Codec
 	originalDataWidth uint
-	// treeName is the built-in tree name this EDS was created with (see
-	// DefaultTreeName, NMTTreeName). Empty if the EDS was created from a raw
-	// TreeConstructorFn, in which case JSON serialization falls back to the
-	// default tree.
-	treeName string
 }
 
 func (eds *ExtendedDataSquare) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
 		DataSquare [][]byte `json:"data_square"`
 		Codec      string   `json:"codec"`
-		// Tree is the built-in tree name. Omitted when the EDS was built
-		// from a raw TreeConstructorFn, for wire compatibility with JSON
-		// produced before the tree field existed.
-		Tree string `json:"tree,omitempty"`
 	}{
 		DataSquare: eds.dataSquare.Flattened(),
 		Codec:      eds.codec.Name(),
-		Tree:       eds.treeName,
 	})
 }
 
@@ -42,19 +32,10 @@ func (eds *ExtendedDataSquare) UnmarshalJSON(b []byte) error {
 	var aux struct {
 		DataSquare [][]byte `json:"data_square"`
 		Codec      string   `json:"codec"`
-		Tree       string   `json:"tree"`
 	}
 
 	if err := json.Unmarshal(b, &aux); err != nil {
 		return err
-	}
-
-	// JSON produced before the tree field existed, or from an EDS built via
-	// the constructor-fn API, carries no tree name. Fall back to the NMT
-	// tree: all production Celestia software serializes NMT-built squares,
-	// so this makes pre-existing JSON round-trip with correct roots.
-	if aux.Tree == "" {
-		aux.Tree = NMTTreeName
 	}
 
 	codec, ok := codecs[aux.Codec]
@@ -62,7 +43,20 @@ func (eds *ExtendedDataSquare) UnmarshalJSON(b []byte) error {
 		return fmt.Errorf("unsupported codec name %q", aux.Codec)
 	}
 
-	importedEds, err := ImportExtendedDataSquareWithTree(aux.DataSquare, codec, aux.Tree)
+	// All extended data squares serialized by production Celestia software
+	// are built with the erasured namespaced Merkle tree, so reconstruct with
+	// it. Reconstructing with any other tree would produce row and column
+	// roots that do not match the original square's roots
+	// (https://github.com/celestiaorg/rsmt2d/issues/275).
+	//
+	// aux.DataSquare is an extended (2x) square, so the original width is
+	// half.
+	odsWidth := uint(getWidth(aux.DataSquare)) / 2
+	if odsWidth == 0 {
+		return errors.New("data square must not be empty")
+	}
+
+	importedEds, err := ImportExtendedDataSquare(aux.DataSquare, codec, nmtTreeConstructor(odsWidth))
 	if err != nil {
 		return err
 	}
@@ -99,28 +93,6 @@ func ComputeExtendedDataSquare(
 	}
 
 	return &eds, nil
-}
-
-// ComputeExtendedDataSquareWithTree computes the extended data square for
-// some shares of original data using the built-in tree named treeName (see
-// DefaultTreeName, NMTTreeName). Unlike ComputeExtendedDataSquare, the
-// resulting EDS records the tree name so the tree type survives JSON
-// marshalling and unmarshalling.
-func ComputeExtendedDataSquareWithTree(
-	data [][]byte,
-	codec Codec,
-	treeName string,
-) (*ExtendedDataSquare, error) {
-	treeConstructorFn, err := treeConstructorByName(treeName, uint(getWidth(data)))
-	if err != nil {
-		return nil, err
-	}
-	eds, err := ComputeExtendedDataSquare(data, codec, treeConstructorFn)
-	if err != nil {
-		return nil, err
-	}
-	eds.treeName = treeName
-	return eds, nil
 }
 
 // ComputeExtendedDataSquareWithBuffer computes the extended data square for some shares
@@ -168,29 +140,6 @@ func ImportExtendedDataSquare(
 	eds.originalDataWidth = eds.width / 2
 
 	return &eds, nil
-}
-
-// ImportExtendedDataSquareWithTree imports an extended data square,
-// represented as flattened shares of data, using the built-in tree named
-// treeName (see DefaultTreeName, NMTTreeName). Unlike
-// ImportExtendedDataSquare, the resulting EDS records the tree name so the
-// tree type survives JSON marshalling and unmarshalling.
-func ImportExtendedDataSquareWithTree(
-	data [][]byte,
-	codec Codec,
-	treeName string,
-) (*ExtendedDataSquare, error) {
-	// data is an extended (2x) square, so the original width is half.
-	treeConstructorFn, err := treeConstructorByName(treeName, uint(getWidth(data))/2)
-	if err != nil {
-		return nil, err
-	}
-	eds, err := ImportExtendedDataSquare(data, codec, treeConstructorFn)
-	if err != nil {
-		return nil, err
-	}
-	eds.treeName = treeName
-	return eds, nil
 }
 
 // NewExtendedDataSquare returns a new extended data square with a width of
@@ -317,7 +266,6 @@ func (eds *ExtendedDataSquare) deepCopy(codec Codec) (ExtendedDataSquare, error)
 	if err != nil {
 		return ExtendedDataSquare{}, err
 	}
-	imported.treeName = eds.treeName
 	return *imported, nil
 }
 
