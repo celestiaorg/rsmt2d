@@ -309,6 +309,101 @@ func TestRepairVerifiesOrthogonalVectorsAgainstRoots(t *testing.T) {
 	require.Equal(t, uint(2), byzData.Index, "Byzantine error must be on column index 2")
 }
 
+// TestErrByzantineDataSharesMatchOrthogonalAxis is a regression test for
+// GHSA-jfh3-xj5q-rm8x. When Repair detects byzantine data on an orthogonal axis
+// (e.g. a column completed during a row solve), ErrByzantineData.Shares must
+// carry the shares of the axis named by the error (Axis/Index), not the shares
+// of the axis currently being solved. Previously the solver attached the
+// in-progress row's shares to a column-axis error, so a downstream consumer
+// building a bad-encoding fraud proof would point at the wrong vector and the
+// proof would be unverifiable.
+func TestErrByzantineDataSharesMatchOrthogonalAxis(t *testing.T) {
+	corruptShare := bytes.Repeat([]byte{66}, shareSize)
+	codec := NewLeoRSCodec()
+
+	eds := createTestEds(codec, shareSize)
+	rowRoots, err := eds.getRowRoots()
+	require.NoError(t, err)
+	colRoots, err := eds.getColRoots()
+	require.NoError(t, err)
+
+	// Same corruption as TestRepairVerifiesOrthogonalVectorsAgainstRoots: the
+	// byzantine cell (2, 2) is only surfaced when row 0's rebuild of (0, 2)
+	// completes column 2, so the error names column 2 (orthogonal to the row
+	// solve in progress).
+	//
+	// O O _ O      _ = nil share
+	// O O O O      C = corrupted share
+	// _ O C O      O = original/parity share
+	// O O O O
+	eds.setCell(0, 2, nil)
+	eds.setCell(2, 0, nil)
+	eds.setCell(2, 2, corruptShare)
+
+	err = eds.Repair(rowRoots, colRoots)
+	var byzData *ErrByzantineData
+	require.ErrorAs(t, err, &byzData)
+	require.Equal(t, Col, byzData.Axis, "Byzantine error must be on the column axis")
+	require.Equal(t, uint(2), byzData.Index, "Byzantine error must be on column index 2")
+
+	// The shares attached to the error must be column 2's shares. Column 2
+	// contains the corrupt cell at (2, 2); row 0 (the axis being solved) does
+	// not. Before the fix Shares was set to row 0, so this assertion fails.
+	require.Equal(t, int(eds.Width()), len(byzData.Shares))
+	assert.Contains(t, byzData.Shares, corruptShare,
+		"Shares must contain the corrupt cell that lives on the byzantine (column) axis")
+	// The share at the rebuilt index (row 0 of column 2) was missing prior to
+	// repair and must remain nil, as the ErrByzantineData doc comment promises.
+	assert.Nil(t, byzData.Shares[0],
+		"missing share at the rebuilt index must remain nil")
+}
+
+// TestErrByzantineDataSharesPreserveNils is a regression test for
+// GHSA-jfh3-xj5q-rm8x. The ErrByzantineData doc comment promises that missing
+// shares are nil, but LeoRSCodec.Decode reconstructs missing shares in place.
+// The solver previously attached that mutated buffer to the error, so the nil
+// placeholders a fraud-proof consumer relies on were silently filled with
+// reconstructed (uncommitted) shares. Repair must instead return a snapshot of
+// the byzantine row/column prior to repair, with missing shares as nil.
+func TestErrByzantineDataSharesPreserveNils(t *testing.T) {
+	corruptShare := bytes.Repeat([]byte{66}, shareSize)
+	codec := NewLeoRSCodec()
+
+	eds := createTestEds(codec, shareSize)
+	rowRoots, err := eds.getRowRoots()
+	require.NoError(t, err)
+	colRoots, err := eds.getColRoots()
+	require.NoError(t, err)
+
+	// Corrupt (0, 0) and remove (0, 2), (0, 3), and (3, 0). No row or column is
+	// complete pre-repair, so preRepairSanityCheck does not short-circuit. When
+	// solveCrosswordRow rebuilds row 0 from the corrupt (0, 0) and honest (0, 1),
+	// the rebuilt row fails its own row root, producing a Row-axis byzantine
+	// error whose Shares must preserve the two nils at (0, 2) and (0, 3).
+	//
+	// C O _ _      _ = nil share
+	// O O O O      C = corrupted share
+	// O O O O      O = original/parity share
+	// _ O O O
+	eds.setCell(0, 0, corruptShare)
+	eds.setCell(0, 2, nil)
+	eds.setCell(0, 3, nil)
+	eds.setCell(3, 0, nil)
+
+	err = eds.Repair(rowRoots, colRoots)
+	var byzData *ErrByzantineData
+	require.ErrorAs(t, err, &byzData)
+	require.Equal(t, Row, byzData.Axis, "Byzantine error must be on the row axis")
+	require.Equal(t, uint(0), byzData.Index, "Byzantine error must be on row index 0")
+
+	require.Equal(t, int(eds.Width()), len(byzData.Shares))
+	assert.Contains(t, byzData.Shares, corruptShare)
+	// Positions 2 and 3 of row 0 were missing prior to repair. Before the fix,
+	// Decode filled them in place, so they were non-nil.
+	assert.Nil(t, byzData.Shares[2], "missing share at (0, 2) must remain nil")
+	assert.Nil(t, byzData.Shares[3], "missing share at (0, 3) must remain nil")
+}
+
 func BenchmarkRepair(b *testing.B) {
 	// For different ODS sizes
 	for originalDataWidth := 4; originalDataWidth <= 512; originalDataWidth *= 2 {

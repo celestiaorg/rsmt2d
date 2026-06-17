@@ -154,7 +154,10 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 	if err != nil {
 		var byzErr *ErrByzantineData
 		if errors.As(err, &byzErr) {
-			byzErr.Shares = shares
+			// The byzantine row is the one being solved. Snapshot it from the
+			// EDS (not the codec's in-place output, which has filled the missing
+			// shares) so the error preserves the original nil placeholders.
+			byzErr.Shares = eds.Row(uint(rowIdx))
 			return false, false, byzErr
 		}
 		return false, false, err
@@ -171,13 +174,15 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 			if err != nil {
 				var byzErr *ErrByzantineData
 				if errors.As(err, &byzErr) {
-					byzErr.Shares = shares
+					// The byzantine axis is the orthogonal column, so attach the
+					// column's shares (not the row being solved).
+					byzErr.Shares = deepCopy(col)
 				}
 				return false, false, err
 			}
 
 			if eds.verifyEncoding(col, rowIdx, rebuiltShares[colIdx]) != nil {
-				return false, false, &ErrByzantineData{Col, uint(colIdx), col}
+				return false, false, &ErrByzantineData{Col, uint(colIdx), deepCopy(col)}
 			}
 		}
 	}
@@ -229,7 +234,10 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 	if err != nil {
 		var byzErr *ErrByzantineData
 		if errors.As(err, &byzErr) {
-			byzErr.Shares = shares
+			// The byzantine column is the one being solved. Snapshot it from the
+			// EDS (not the codec's in-place output, which has filled the missing
+			// shares) so the error preserves the original nil placeholders.
+			byzErr.Shares = eds.Col(uint(colIdx))
 			return false, false, byzErr
 		}
 		return false, false, err
@@ -246,13 +254,15 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 			if err != nil {
 				var byzErr *ErrByzantineData
 				if errors.As(err, &byzErr) {
-					byzErr.Shares = shares
+					// The byzantine axis is the orthogonal row, so attach the
+					// row's shares (not the column being solved).
+					byzErr.Shares = deepCopy(row)
 				}
 				return false, false, err
 			}
 
 			if eds.verifyEncoding(row, colIdx, rebuiltShares[rowIdx]) != nil {
-				return false, false, &ErrByzantineData{Row, uint(rowIdx), row}
+				return false, false, &ErrByzantineData{Row, uint(rowIdx), deepCopy(row)}
 			}
 		}
 	}

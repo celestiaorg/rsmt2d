@@ -44,6 +44,10 @@ func (l *LeoRSCodec) Encode(data [][]byte) ([][]byte, error) {
 	return shares[dataLen:], nil
 }
 
+// Decode reconstructs missing shares from the provided data. Missing shares
+// must be nil. The returned slice is the same slice as data: Reconstruct fills
+// the nil entries in place, so callers that need to retain the original
+// (nil-preserving) input must copy it before calling Decode.
 func (l *LeoRSCodec) Decode(data [][]byte) ([][]byte, error) {
 	half := len(data) / 2
 	enc, err := l.loadOrInitEncoder(half)
