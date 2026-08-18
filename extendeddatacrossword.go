@@ -163,6 +163,13 @@ func (eds *ExtendedDataSquare) solveCrosswordRow(
 		return false, false, err
 	}
 
+	// Matching the row root only proves the rebuilt shares equal the committed
+	// bytes, not that they form a valid RS codeword. Re-encoding-check them so
+	// badly-encoded data yields an ErrByzantineData (and thus a fraud proof).
+	if eds.verifyEncoding(rebuiltShares, noShareInsertion, nil) != nil {
+		return false, false, &ErrByzantineData{Row, uint(rowIdx), eds.Row(uint(rowIdx))}
+	}
+
 	// Check that newly completed orthogonal vectors match their new Merkle roots
 	for colIdx := 0; colIdx < int(eds.width); colIdx++ {
 		col := eds.col(uint(colIdx))
@@ -241,6 +248,13 @@ func (eds *ExtendedDataSquare) solveCrosswordCol(
 			return false, false, byzErr
 		}
 		return false, false, err
+	}
+
+	// Matching the column root only proves the rebuilt shares equal the committed
+	// bytes, not that they form a valid RS codeword. Re-encoding-check them so
+	// badly-encoded data yields an ErrByzantineData (and thus a fraud proof).
+	if eds.verifyEncoding(rebuiltShares, noShareInsertion, nil) != nil {
+		return false, false, &ErrByzantineData{Col, uint(colIdx), eds.Col(uint(colIdx))}
 	}
 
 	// Check that newly completed orthogonal vectors match their new Merkle roots
