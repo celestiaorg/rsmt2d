@@ -604,6 +604,7 @@ func TestComputeExtendedDataSquareVsWithBuffer(t *testing.T) {
 }
 
 func createExampleEds(t *testing.T, shareSize int) (eds *ExtendedDataSquare) {
+	t.Helper()
 	ones := bytes.Repeat([]byte{1}, shareSize)
 	twos := bytes.Repeat([]byte{2}, shareSize)
 	threes := bytes.Repeat([]byte{3}, shareSize)

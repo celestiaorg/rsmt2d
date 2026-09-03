@@ -786,6 +786,7 @@ func prettyPrintEds(eds *ExtendedDataSquare) {
 // The first namespaceSize bytes of each share are treated as its namespace.
 // Roots of the extended data square are computed using namespace merkle trees.
 func createTestEdsWithNMT(t *testing.T, codec Codec, shareSize, namespaceSize int, sharesValue ...int) *ExtendedDataSquare {
+	t.Helper()
 	// the first namespaceSize bytes of each share are the namespace
 	assert.True(t, shareSize > namespaceSize)
 
