@@ -1,7 +1,7 @@
 github.com/celestiaorg/merkletree v0.0.0-20210714075610-a84dc3ddbbe4 h1:CJdIpo8n5MFP2MwK0gSRcOVlDlFdQJO1p+FqdxYzmvc=
 github.com/celestiaorg/merkletree v0.0.0-20210714075610-a84dc3ddbbe4/go.mod h1:fzuHnhzj1pUygGz+1ZkB3uQbEUL4htqCGJ4Qs2LwMZA=
-github.com/celestiaorg/nmt v0.24.4 h1:OaVxwW/5Si0PqUuUMfUj1bFKJAX1NynZkpxfusO7SfU=
-github.com/celestiaorg/nmt v0.24.4/go.mod h1:z1xKcFCOPcBW5gi80fyXuILU1q1mtCOWZ8vnJ5QJsEw=
+github.com/celestiaorg/nmt v0.24.5 h1:B98yOeR5OZc/aNXYcSBZHurI1/7UX3pL/L5eBev+fTw=
+github.com/celestiaorg/nmt v0.24.5/go.mod h1:z1xKcFCOPcBW5gi80fyXuILU1q1mtCOWZ8vnJ5QJsEw=
 github.com/gogo/protobuf v1.3.2 h1:Ov1cvc58UF3b5XjBnZv7+opcTcQFZebYjWzi34vdm4Q=
 github.com/gogo/protobuf v1.3.2/go.mod h1:P1XiOD3dCwIKUDQYPy72D8LYyHL2YPYrpS2s69NZV8Q=
 github.com/kisielk/errcheck v1.5.0/go.mod h1:pFxgyoBC7bSaBwPgfKdkLd5X25qrDl4LWUI2bnpBCr8=
