@@ -19,7 +19,6 @@ jobs:
     permissions:
       contents: read
       id-token: write
-      code-quality: write
     strategy:
       fail-fast: false
       matrix:
@@ -51,13 +50,3 @@ jobs:
           files: ./coverage.txt
           use_oidc: true
         if: env.GIT_DIFF
-      - name: Convert coverage to Cobertura
-        run: go run github.com/boumenot/gocover-cobertura@v1.5.0 < coverage.txt > coverage.xml
-        if: env.GIT_DIFF && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-      - name: Upload coverage to GitHub Code Quality
-        uses: actions/upload-code-coverage@v1
-        with:
-          file: coverage.xml
-          language: Go
-          label: unit-tests-${{ matrix.goarch }}
-        if: env.GIT_DIFF && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
