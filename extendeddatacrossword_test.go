@@ -182,6 +182,96 @@ func TestCannotRepairSquareWithBadRoots(t *testing.T) {
 	}
 }
 
+func TestRepairInvalidRootsLength(t *testing.T) {
+	codec := NewLeoRSCodec()
+	original := createTestEds(codec, shareSize)
+
+	rowRoots, err := original.RowRoots()
+	require.NoError(t, err)
+
+	colRoots, err := original.ColRoots()
+	require.NoError(t, err)
+
+	width := int(original.Width())
+	tests := []struct {
+		name     string
+		rowRoots [][]byte
+		colRoots [][]byte
+	}{
+		{name: "short rowRoots", rowRoots: rowRoots[:width-1], colRoots: colRoots},
+		{name: "short colRoots", rowRoots: rowRoots, colRoots: colRoots[:width-1]},
+		{name: "empty rowRoots", rowRoots: [][]byte{}, colRoots: colRoots},
+		{name: "empty colRoots", rowRoots: rowRoots, colRoots: [][]byte{}},
+		{name: "nil rowRoots", rowRoots: nil, colRoots: colRoots},
+		{name: "nil colRoots", rowRoots: rowRoots, colRoots: nil},
+		{name: "long rowRoots", rowRoots: append(append([][]byte{}, rowRoots...), rowRoots[0]), colRoots: colRoots},
+		{name: "long colRoots", rowRoots: rowRoots, colRoots: append(append([][]byte{}, colRoots...), colRoots[0])},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			eds := importEdsWithMissingShare(t, original)
+			err := eds.Repair(tc.rowRoots, tc.colRoots)
+			require.ErrorIs(t, err, ErrInvalidRootsLength)
+		})
+	}
+}
+
+// importEdsWithMissingShare returns a copy of original with the first share
+// erased so that Repair has work to do.
+func importEdsWithMissingShare(t *testing.T, original *ExtendedDataSquare) *ExtendedDataSquare {
+	flattened := original.Flattened()
+	flattened[0] = nil
+	eds, err := ImportExtendedDataSquare(flattened, original.codec, NewDefaultTree)
+	require.NoError(t, err)
+	return eds
+}
+
+// FuzzRepairRootsLength varies the lengths of rowRoots and colRoots passed to
+// Repair and asserts that a mismatch with the square width returns
+// ErrInvalidRootsLength rather than panicking.
+func FuzzRepairRootsLength(f *testing.F) {
+	codec := NewLeoRSCodec()
+	original := createTestEds(codec, shareSize)
+
+	rowRoots, err := original.RowRoots()
+	if err != nil {
+		f.Fatal(err)
+	}
+	colRoots, err := original.ColRoots()
+	if err != nil {
+		f.Fatal(err)
+	}
+	width := uint8(original.Width())
+
+	f.Add(uint8(0), width)
+	f.Add(width, uint8(0))
+	f.Add(width-1, width)
+	f.Add(width, width-1)
+	f.Add(width+1, width)
+	f.Add(width, width+1)
+	f.Add(width, width)
+
+	f.Fuzz(func(t *testing.T, rowLen, colLen uint8) {
+		rows := make([][]byte, rowLen)
+		for i := range rows {
+			rows[i] = rowRoots[i%len(rowRoots)]
+		}
+		cols := make([][]byte, colLen)
+		for i := range cols {
+			cols[i] = colRoots[i%len(colRoots)]
+		}
+
+		eds := importEdsWithMissingShare(t, original)
+		err := eds.Repair(rows, cols)
+		if int(rowLen) != int(width) || int(colLen) != int(width) {
+			require.ErrorIs(t, err, ErrInvalidRootsLength)
+			return
+		}
+		require.NoError(t, err)
+	})
+}
+
 func TestCorruptedEdsReturnsErrByzantineData(t *testing.T) {
 	corruptShare := bytes.Repeat([]byte{66}, shareSize)
 
