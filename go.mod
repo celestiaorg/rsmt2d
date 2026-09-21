@@ -1,13 +1,13 @@
 module github.com/celestiaorg/rsmt2d
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/celestiaorg/merkletree v0.0.0-20210714075610-a84dc3ddbbe4
-	github.com/celestiaorg/nmt v0.24.3
+	github.com/celestiaorg/nmt v0.24.5
 	github.com/klauspost/reedsolomon v1.14.2
 	github.com/stretchr/testify v1.12.1
-	golang.org/x/sync v0.22.0
+	golang.org/x/sync v0.23.0
 )
 
 require (
