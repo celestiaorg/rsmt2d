@@ -1,0 +1,17 @@
+# Codecov configuration.
+#
+# The project status compares total coverage against the base commit. Several
+# tests pick which share to corrupt with unseeded math/rand, so which repair
+# branches run varies between otherwise identical CI runs by close to 1%.
+# The threshold keeps the project check from failing on that noise while still
+# flagging a real regression. The patch check stays strict: new or changed
+# lines in a PR must be covered.
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+    patch:
+      default:
+        target: auto
