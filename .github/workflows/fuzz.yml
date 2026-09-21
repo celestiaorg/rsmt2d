@@ -1,0 +1,39 @@
+# fuzz runs each native Go fuzz target for a short, fixed budget on every PR.
+# The seed corpus of every target already runs as part of `go test` in the
+# Tests workflow; this job additionally lets the coverage-guided fuzzer explore
+# new inputs. Run `make fuzz FUZZTIME=10m` locally for a longer campaign.
+name: fuzz
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - release/**
+
+env:
+  GO_VERSION: '1.25'
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - FuzzRepair
+          - FuzzRepairCorrupted
+          - FuzzComputeAndImportExtendedDataSquare
+          - FuzzUnmarshalJSON
+          - FuzzLeoRSCodec
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: fuzz ${{ matrix.target }}
+        run: go test -run '^$' -fuzz "^${{ matrix.target }}$" -fuzztime 60s .
