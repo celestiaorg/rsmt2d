@@ -515,6 +515,21 @@ func BenchmarkEDSRootsWithBufferedErasuredNMT(b *testing.B) {
 	}
 }
 
+// computeRowProof builds the Merkle tree for row rowIdx of ds using the
+// square's tree constructor and returns a Merkle inclusion proof for the share
+// at column colIdx within that row. It returns:
+//
+//   - merkleRoot: the Merkle root of the row.
+//   - proof: the proof set for the share. Its first element is the share data
+//     itself, followed by the sibling hashes needed to reconstruct the row
+//     root, ordered from the leaf up to the root.
+//   - proofIndex: the index of the share within the row (equal to colIdx).
+//   - numLeaves: the number of leaves in the row's tree (equal to ds.width).
+//   - err: a non-nil error if any share in the row could not be pushed onto
+//     the tree.
+//
+// The dataSquare must have been constructed with NewDefaultTree because the
+// proof is generated via the underlying merkletree.Tree.
 func computeRowProof(ds *dataSquare, rowIdx uint, colIdx uint) ([]byte, [][]byte, uint, uint, error) {
 	tree := ds.createTreeFn(Row, rowIdx)
 	data := ds.row(rowIdx)
