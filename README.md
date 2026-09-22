@@ -93,6 +93,9 @@ make test
 # Run benchmarks
 make bench
 
+# Run each fuzz target for 30s (override with FUZZTIME=5m)
+make fuzz
+
 # Run linter
 make lint
 ```

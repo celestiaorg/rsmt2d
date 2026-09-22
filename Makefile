@@ -16,6 +16,16 @@ test:
 	@go test ./...
 .PHONY: test
 
+## fuzz: Run each fuzz target for FUZZTIME (default 30s).
+FUZZTIME ?= 30s
+fuzz:
+	@echo "--> Running fuzz tests for $(FUZZTIME) each"
+	@for target in $$(go test -list '^Fuzz' . | grep '^Fuzz'); do \
+		echo "--> $$target"; \
+		go test -run '^$$' -fuzz "^$$target$$" -fuzztime $(FUZZTIME) . || exit 1; \
+	done
+.PHONY: fuzz
+
 ## bench: Run benchmarks.
 bench:
 	@echo "--> Running benchmarks"

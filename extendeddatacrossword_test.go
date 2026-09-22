@@ -601,14 +601,6 @@ func TestCorruptedEdsReturnsErrByzantineData_UnorderedShares(t *testing.T) {
 	}
 }
 
-func TestFuzzRandByzantine(t *testing.T) {
-	// This test is slow and should be skipped during normal testing
-	t.Skip()
-	for i := 0; i < 10000; i++ {
-		TestErrRandByzantine(t)
-	}
-}
-
 func TestErrRandByzantine(t *testing.T) {
 	codec := NewLeoRSCodec()
 	original, corrupted, idx := randCorruptedEDS(t, codec, 8)
