@@ -7,9 +7,6 @@ on:
       - main
       - release/**
 
-env:
-  GO_VERSION: '1.26'
-
 permissions:
   contents: read
 
@@ -25,10 +22,10 @@ jobs:
         goarch: ["amd64"]
     timeout-minutes: 5
     steps:
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
-          go-version: ${{ env.GO_VERSION }}
-      - uses: actions/checkout@v7
+          go-version-file: go.mod
       - uses: technote-space/get-diff-action@f27caffdd0fb9b13f4fc191c016bb4e0632844af # v6
         with:
           PATTERNS: |
