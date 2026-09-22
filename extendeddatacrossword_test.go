@@ -137,29 +137,42 @@ func TestValidFraudProof(t *testing.T) {
 	err = corrupted.Repair(rowRoots, colRoots)
 	errors.As(err, &byzData)
 
+	// preRepairSanityCheck verifies complete rows and columns concurrently, so
+	// whichever goroutine observes the corrupt (0, 0) first determines whether
+	// the byzantine axis is Row or Col. Both are valid outcomes.
+	require.NotNil(t, byzData, "Repair must return an ErrByzantineData")
+	require.Equal(t, uint(0), byzData.Index, "corrupt cell (0, 0) is on row 0 and column 0")
+
 	// Construct the fraud proof
-	fraudProof := PseudoFraudProof{0, byzData.Index, byzData.Shares}
+	fraudProof := PseudoFraudProof{int(byzData.Axis), byzData.Index, byzData.Shares}
 	// Verify the fraud proof
 	// TODO in a real fraud proof, also verify Merkle proof for each non-nil share.
 	rebuiltShares, err := codec.Decode(fraudProof.Shares)
-	if err != nil {
-		t.Errorf("could not decode fraud proof shares; got: %v", err)
-	}
+	require.NoError(t, err, "could not decode fraud proof shares")
 	root, err := corrupted.computeSharesRoot(rebuiltShares, byzData.Axis, fraudProof.Index)
-	assert.NoError(t, err)
-	rowRoot, err := corrupted.getRowRoot(fraudProof.Index)
-	assert.NoError(t, err)
-	if bytes.Equal(root, rowRoot) {
-		// If the roots match, then the fraud proof should be for invalid erasure coding.
-		parityShares, err := codec.Encode(rebuiltShares[0:corrupted.originalDataWidth])
-		if err != nil {
-			t.Errorf("could not encode fraud proof shares; %v", fraudProof)
-		}
-		startIndex := len(rebuiltShares) - int(corrupted.originalDataWidth)
-		if bytes.Equal(flattenShares(parityShares), flattenShares(rebuiltShares[startIndex:])) {
-			t.Errorf("invalid fraud proof %v", fraudProof)
-		}
+	require.NoError(t, err)
+
+	// Compare against the committed root for the axis the error names. Before
+	// this was always the row root, so on Col runs the roots never matched and
+	// the erasure-coding check below was silently skipped.
+	var committedRoot []byte
+	switch byzData.Axis {
+	case Row:
+		committedRoot, err = corrupted.getRowRoot(fraudProof.Index)
+	case Col:
+		committedRoot, err = corrupted.getColRoot(fraudProof.Index)
 	}
+	require.NoError(t, err)
+	require.True(t, bytes.Equal(root, committedRoot),
+		"the shares in the fraud proof must recompute to the committed %s root", byzData.Axis)
+
+	// The roots match, so the fraud proof must be for invalid erasure coding:
+	// re-encoding the original half must not reproduce the committed parity.
+	parityShares, err := codec.Encode(rebuiltShares[0:corrupted.originalDataWidth])
+	require.NoError(t, err, "could not encode fraud proof shares; %v", fraudProof)
+	startIndex := len(rebuiltShares) - int(corrupted.originalDataWidth)
+	require.False(t, bytes.Equal(flattenShares(parityShares), flattenShares(rebuiltShares[startIndex:])),
+		"invalid fraud proof %v", fraudProof)
 }
 
 func TestCannotRepairSquareWithBadRoots(t *testing.T) {
@@ -492,6 +505,46 @@ func TestErrByzantineDataSharesPreserveNils(t *testing.T) {
 	// Decode filled them in place, so they were non-nil.
 	assert.Nil(t, byzData.Shares[2], "missing share at (0, 2) must remain nil")
 	assert.Nil(t, byzData.Shares[3], "missing share at (0, 3) must remain nil")
+}
+
+func TestErrByzantineDataOnColumnSolve(t *testing.T) {
+	corruptShare := bytes.Repeat([]byte{66}, shareSize)
+	codec := NewLeoRSCodec()
+
+	eds := createTestEds(codec, shareSize)
+	rowRoots, err := eds.getRowRoots()
+	require.NoError(t, err)
+	colRoots, err := eds.getColRoots()
+	require.NoError(t, err)
+
+	// Transpose of TestErrByzantineDataSharesPreserveNils. Corrupt (0, 0),
+	// remove the rest of row 0, and remove (2, 0). No row or column is complete
+	// pre-repair, so preRepairSanityCheck does not short-circuit. Row 0 has a
+	// single share and cannot be decoded, so solveCrosswordRow(0) makes no
+	// progress. solveCrosswordCol(0) then rebuilds column 0 from the corrupt
+	// (0, 0) and honest (1, 0), (3, 0); the rebuilt column fails its own column
+	// root, producing a Col-axis byzantine error whose Shares must preserve the
+	// nil at (2, 0).
+	//
+	// C _ _ _      _ = nil share
+	// O O O O      C = corrupted share
+	// _ O O O      O = original/parity share
+	// O O O O
+	eds.setCell(0, 0, corruptShare)
+	eds.setCell(0, 1, nil)
+	eds.setCell(0, 2, nil)
+	eds.setCell(0, 3, nil)
+	eds.setCell(2, 0, nil)
+
+	err = eds.Repair(rowRoots, colRoots)
+	var byzData *ErrByzantineData
+	require.ErrorAs(t, err, &byzData)
+	require.Equal(t, Col, byzData.Axis, "Byzantine error must be on the column axis")
+	require.Equal(t, uint(0), byzData.Index, "Byzantine error must be on column index 0")
+
+	require.Equal(t, int(eds.Width()), len(byzData.Shares))
+	assert.Contains(t, byzData.Shares, corruptShare)
+	assert.Nil(t, byzData.Shares[2], "missing share at (2, 0) must remain nil")
 }
 
 func BenchmarkRepair(b *testing.B) {

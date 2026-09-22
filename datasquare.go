@@ -55,12 +55,6 @@ func newDataSquare(data [][]byte, treeCreator TreeConstructorFn, shareSize uint)
 	squareRow := make([][][]byte, width)
 	for rowIdx := 0; rowIdx < width; rowIdx++ {
 		squareRow[rowIdx] = data[rowIdx*width : rowIdx*width+width]
-
-		for colIdx := 0; colIdx < width; colIdx++ {
-			if squareRow[rowIdx][colIdx] != nil && len(squareRow[rowIdx][colIdx]) != int(shareSize) {
-				return nil, ErrUnevenChunks
-			}
-		}
 	}
 
 	squareCol := make([][][]byte, width)
