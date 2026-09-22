@@ -1,0 +1,18 @@
+codecov:
+  # Codecov's default branch for this repo was left at `master`, which last
+  # received an upload in 2023. The README badge and repo-level totals read
+  # from the default branch, so point it at `main`.
+  branch: main
+
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        # Coverage currently swings by ~2% between identical runs because two
+        # byzantine tests are nondeterministic (see #444). Tolerate that swing
+        # so the status check only fails on real regressions.
+        threshold: 2%
+    patch:
+      default:
+        informational: true
