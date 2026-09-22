@@ -36,6 +36,10 @@ func (a Axis) String() string {
 // ErrUnrepairableDataSquare is thrown when there are insufficient shares to repair the square.
 var ErrUnrepairableDataSquare = errors.New("failed to solve data square")
 
+// ErrInvalidRootsLength is returned by Repair when the number of row roots or
+// column roots does not equal the width of the extended data square.
+var ErrInvalidRootsLength = errors.New("number of roots does not equal the square width")
+
 // ErrByzantineData is returned when a repaired row or column does not match the
 // expected row or column Merkle root. It is also returned when the parity data
 // from a row or a column is not equal to the encoded original data.
@@ -62,7 +66,9 @@ func (e *ErrByzantineData) Error() string {
 // and column. rowRoots and colRoots are used to verify that a repaired row or
 // column is correct. Prior to the repair process, if a row or column is already
 // complete but the Merkle root for the row or column doesn't match the expected
-// root, an error is returned. Missing shares in the EDS must be nil.
+// root, an error is returned. Missing shares in the EDS must be nil. If the
+// length of rowRoots or colRoots does not equal the width of the EDS,
+// ErrInvalidRootsLength is returned.
 //
 // # Output
 //
@@ -75,6 +81,13 @@ func (eds *ExtendedDataSquare) Repair(
 	rowRoots [][]byte,
 	colRoots [][]byte,
 ) error {
+	if uint(len(rowRoots)) != eds.width {
+		return fmt.Errorf("%w: got %d row roots, expected %d", ErrInvalidRootsLength, len(rowRoots), eds.width)
+	}
+	if uint(len(colRoots)) != eds.width {
+		return fmt.Errorf("%w: got %d column roots, expected %d", ErrInvalidRootsLength, len(colRoots), eds.width)
+	}
+
 	err := eds.preRepairSanityCheck(rowRoots, colRoots)
 	if err != nil {
 		return err

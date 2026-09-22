@@ -50,15 +50,19 @@ func TestInvalidDataSquareCreation(t *testing.T) {
 		name      string
 		cells     [][]byte
 		shareSize uint
+		wantErr   error // nil means any error is acceptable
 	}{
-		{"InconsistentShareNumber", [][]byte{{1, 2}, {3, 4}, {5, 6}}, 2},
-		{"UnequalShareSize", [][]byte{{1, 2}, {3, 4}, {5, 6}, {7}}, 2},
+		{"InconsistentShareNumber", [][]byte{{1, 2}, {3, 4}, {5, 6}}, 2, nil},
+		{"UnequalShareSizeFirstShare", [][]byte{{1}, {3, 4}, {5, 6}, {7, 8}}, 2, ErrUnevenChunks},
+		{"UnequalShareSizeLastShare", [][]byte{{1, 2}, {3, 4}, {5, 6}, {7}}, 2, ErrUnevenChunks},
+		{"UnequalShareSizeWithNils", [][]byte{nil, {3, 4}, nil, {7, 8, 9}}, 2, ErrUnevenChunks},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			_, err := newDataSquare(test.cells, NewDefaultTree, test.shareSize)
-			if err == nil {
-				t.Errorf("newDataSquare failed; shares accepted with %v", test.name)
+			require.Error(t, err, "newDataSquare failed; shares accepted with %v", test.name)
+			if test.wantErr != nil {
+				require.ErrorIs(t, err, test.wantErr)
 			}
 		})
 	}
