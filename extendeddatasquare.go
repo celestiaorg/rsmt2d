@@ -39,7 +39,7 @@ func (eds *ExtendedDataSquare) UnmarshalJSON(b []byte) error {
 	}
 	codec, ok := codecs[aux.Codec]
 	if !ok {
-		return fmt.Errorf("unregistered codec %q", aux.Codec)
+		return fmt.Errorf("unknown codec %q", aux.Codec)
 	}
 	importedEds, err := ImportExtendedDataSquare(aux.DataSquare, codec, NewDefaultTree)
 	if err != nil {
