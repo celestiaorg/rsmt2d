@@ -47,6 +47,7 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 			colRoots, err := eds.ColRoots()
 			assert.NoError(t, err)
 
+			original := eds.Flattened()
 			flattened := eds.Flattened()
 
 			// Delete some shares, just enough so that repairing is possible.
@@ -71,6 +72,13 @@ func TestEdsRepairRoundtripSimple(t *testing.T) {
 				// See extendeddatacrossword_test.go
 				t.Errorf("RepairExtendedDataSquare failed: %v", err)
 			}
+			require.Equal(t, original, eds.Flattened())
+			repairedRows, err := eds.RowRoots()
+			require.NoError(t, err)
+			require.Equal(t, rowRoots, repairedRows)
+			repairedCols, err := eds.ColRoots()
+			require.NoError(t, err)
+			require.Equal(t, colRoots, repairedCols)
 		})
 	}
 }
@@ -109,6 +117,7 @@ func TestEdsRepairTwice(t *testing.T) {
 			colRoots, err := eds.ColRoots()
 			assert.NoError(t, err)
 
+			original := eds.Flattened()
 			flattened := eds.Flattened()
 
 			// Delete some shares, just enough so that repairing is possible, then remove one more.
@@ -152,6 +161,13 @@ func TestEdsRepairTwice(t *testing.T) {
 				// Should now pass, since sufficient data.
 				t.Errorf("RepairExtendedDataSquare failed: %v", err)
 			}
+			require.Equal(t, original, eds.Flattened())
+			repairedRows, err := eds.RowRoots()
+			require.NoError(t, err)
+			require.Equal(t, rowRoots, repairedRows)
+			repairedCols, err := eds.ColRoots()
+			require.NoError(t, err)
+			require.Equal(t, colRoots, repairedCols)
 		})
 	}
 }
