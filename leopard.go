@@ -48,6 +48,9 @@ func (l *LeoRSCodec) Encode(data [][]byte) ([][]byte, error) {
 // must be nil. The returned slice is the same slice as data: Reconstruct fills
 // the nil entries in place, so callers that need to retain the original
 // (nil-preserving) input must copy it before calling Decode.
+//
+// Leopard does not detect or correct corrupted shares; see
+// https://github.com/klauspost/reedsolomon#leopard-gf16.
 func (l *LeoRSCodec) Decode(data [][]byte) ([][]byte, error) {
 	half := len(data) / 2
 	enc, err := l.loadOrInitEncoder(half)

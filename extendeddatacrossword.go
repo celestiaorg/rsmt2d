@@ -70,6 +70,10 @@ func (e *ErrByzantineData) Error() string {
 // length of rowRoots or colRoots does not equal the width of the EDS,
 // ErrInvalidRootsLength is returned.
 //
+// The codec only reconstructs missing shares; it cannot detect corrupted
+// shares. Corruption is instead detected by verifying rows and columns against
+// rowRoots and colRoots, and is reported as ErrByzantineData.
+//
 // # Output
 //
 // The EDS is modified in-place. If repairing is successful, the EDS will be
