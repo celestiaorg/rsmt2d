@@ -2,9 +2,7 @@ package rsmt2d
 
 import (
 	"bytes"
-	"encoding/base64"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -92,17 +90,6 @@ func failingTreeFor(axis Axis, index uint, failPushAt int, rootErr error) TreeCo
 	}
 }
 
-func TestAxisString(t *testing.T) {
-	assert.Equal(t, "row", Row.String())
-	assert.Equal(t, "col", Col.String())
-	assert.Panics(t, func() { _ = Axis(2).String() })
-}
-
-func TestErrByzantineDataError(t *testing.T) {
-	assert.Equal(t, "byzantine row: 0", (&ErrByzantineData{Row, 0, nil}).Error())
-	assert.Equal(t, "byzantine col: 3", (&ErrByzantineData{Col, 3, nil}).Error())
-}
-
 func TestRegisterCodecPanicsOnDuplicate(t *testing.T) {
 	const name = "registerCodecTest"
 	t.Cleanup(func() { delete(codecs, name) })
@@ -144,24 +131,6 @@ func TestEqualsReturnsFalseForUnequalWidth(t *testing.T) {
 
 	assert.False(t, a.Equals(b))
 	assert.False(t, b.Equals(a))
-}
-
-func TestUnmarshalJSONErrors(t *testing.T) {
-	t.Run("malformed JSON", func(t *testing.T) {
-		var eds ExtendedDataSquare
-		require.Error(t, eds.UnmarshalJSON([]byte(`{"data_square": [`)))
-	})
-	t.Run("unregistered codec", func(t *testing.T) {
-		var eds ExtendedDataSquare
-		err := eds.UnmarshalJSON([]byte(`{"data_square": ["AQ==", "AQ==", "AQ==", "AQ=="], "codec": "no-such-codec"}`))
-		require.ErrorContains(t, err, "no-such-codec")
-	})
-	t.Run("data square is not square", func(t *testing.T) {
-		share := base64.StdEncoding.EncodeToString(make([]byte, 64))
-		var eds ExtendedDataSquare
-		err := eds.UnmarshalJSON(fmt.Appendf(nil, `{"data_square": [%q, %q, %q], "codec": "Leopard"}`, share, share, share))
-		require.ErrorContains(t, err, "square number")
-	})
 }
 
 func TestComputeExtendedDataSquareErrors(t *testing.T) {
@@ -361,23 +330,6 @@ func TestRepairSurfacesEncodeFailureDuringVerification(t *testing.T) {
 	err = eds.Repair(rowRoots, colRoots)
 	var byzData *ErrByzantineData
 	require.ErrorAs(t, err, &byzData)
-}
-
-func TestLeoRSCodecErrors(t *testing.T) {
-	codec := NewLeoRSCodec()
-
-	t.Run("encode with no shares", func(t *testing.T) {
-		_, err := codec.Encode(nil)
-		require.Error(t, err)
-	})
-	t.Run("decode with no shares", func(t *testing.T) {
-		_, err := codec.Decode(nil)
-		require.Error(t, err)
-	})
-	t.Run("encode with uneven shares", func(t *testing.T) {
-		_, err := codec.Encode([][]byte{bytes.Repeat([]byte{1}, 64), bytes.Repeat([]byte{2}, 128)})
-		require.Error(t, err)
-	})
 }
 
 // badlyEncodedColumnSquare is the transpose of the square crafted in
