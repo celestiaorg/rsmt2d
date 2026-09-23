@@ -17,6 +17,11 @@ type Codec interface {
 	Encode(data [][]byte) ([][]byte, error)
 	// Decode decodes sparse original + parity data, automatically extracting share size.
 	// Missing shares must be nil. Returns original + parity data.
+	//
+	// Decode is erasure-only: it reconstructs missing (nil) shares but cannot
+	// detect or correct corrupted shares. A corrupted input share silently
+	// yields incorrect output, so callers must verify shares independently
+	// (e.g. against Merkle roots, as Repair does).
 	Decode(data [][]byte) ([][]byte, error)
 	// MaxChunks returns the max number of chunks this codec supports in a 2D
 	// original data square. Chunk is a synonym of share.
