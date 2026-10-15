@@ -346,8 +346,7 @@ func (eds *ExtendedDataSquare) Equals(other *ExtendedDataSquare) bool {
 	return true
 }
 
-// Roots returns a byte slice with this eds's RowRoots and ColRoots
-// concatenated.
+// Roots returns the row roots followed by the column roots.
 func (eds *ExtendedDataSquare) Roots() (roots [][]byte, err error) {
 	rowRoots, err := eds.RowRoots()
 	if err != nil {

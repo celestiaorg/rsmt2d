@@ -71,8 +71,9 @@ func (e *ErrByzantineData) Error() string {
 // ErrInvalidRootsLength is returned.
 //
 // The codec only reconstructs missing shares; it cannot detect corrupted
-// shares. Corruption is instead detected by verifying rows and columns against
-// rowRoots and colRoots, and is reported as ErrByzantineData.
+// shares. Repair detects corruption by checking row and column roots and
+// verifying that their parity shares match a fresh encoding. It is reported as
+// ErrByzantineData.
 //
 // # Output
 //
