@@ -78,6 +78,14 @@ func main() {
 
 ## Contributing
 
+PR titles follow [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) and must start the subject with `[high]`, `[medium]`, or `[low]` to indicate the review thoroughness needed. For example: `fix!: [high] correct repair of byzantine rows` or `docs: [low] clarify codec usage`. Include the same tag in the PR description and explain why you chose it.
+
+- `[high]`: Deep review for consensus, security, or other changes with significant risk, e.g. erasure coding/codecs, extended data square construction, repair, or root computation.
+- `[medium]`: Standard review for code changes with limited impact and well-understood behavior.
+- `[low]`: Focused review for straightforward docs, tests, or tooling changes with low risk.
+
+Choose the higher level when unsure. A small diff can still need deep review. CI checks the title format; reviewers should confirm the chosen level. Dependabot defaults to `[high]` for Go dependencies and `[medium]` for GitHub Actions.
+
 1. [Install Go](https://go.dev/doc/install) 1.24+
 1. [Install golangci-lint](https://golangci-lint.run/usage/install/)
 
