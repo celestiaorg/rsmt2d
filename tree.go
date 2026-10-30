@@ -21,16 +21,22 @@ type SquareIndex struct {
 	Axis, Cell uint
 }
 
-// Tree wraps Merkle tree implementations to work with rsmt2d
+// Tree wraps Merkle tree implementations to work with rsmt2d.
+//
+// rsmt2d calls Root exactly once on every Tree returned by a TreeConstructorFn,
+// including after a Push returns an error, in which case the result of Root is
+// discarded. Implementations that hold pooled resources (e.g. a tree obtained
+// from a BufferedTreeConstructor) should release them in Root and must not
+// release them when Push fails.
 type Tree interface {
 	Push(data []byte) error
 	Root() ([]byte, error)
 }
 
 // releaseTree must be called on a tree whose root will not be computed, e.g.
-// because a Push failed. Tree has no explicit release method, so pooled
-// implementations return themselves to their pool in Root. Without this call
-// such a tree would be leaked and a bounded pool could eventually block forever.
+// because a Push failed, to uphold the Tree contract that Root is called once
+// per tree. Without this call a pooled tree would be leaked and a bounded pool
+// could eventually block forever.
 func releaseTree(tree Tree) {
 	_, _ = tree.Root()
 }
