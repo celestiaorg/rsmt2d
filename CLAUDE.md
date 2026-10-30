@@ -5,6 +5,7 @@
 - Title format: `type(scope)!: [level] subject` (conventional commit; subject starts with exactly one of `[high]`, `[medium]`, `[low]`). See [README.md#contributing](README.md#contributing).
 - `[high]`: consensus-critical code (erasure coding/codecs, extended data square construction, repair, root computation), security, or other significant risk. `[medium]`: limited-impact code changes. `[low]`: docs, tests, or tooling.
 - Use the higher level when unsure. Include the tag in the description with a brief reason, e.g. `Review level: [low] — documentation only.`
+- When you open a PR, assign it to the engineer you are working for (their GitHub login, e.g. from the GitHub `get_me` tool).
 
 ## Security PRs
 
