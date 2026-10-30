@@ -477,6 +477,7 @@ func (eds *ExtendedDataSquare) computeSharesRoot(shares [][]byte, axis Axis, i u
 	for _, d := range shares {
 		err := tree.Push(d)
 		if err != nil {
+			releaseTree(tree)
 			return nil, err
 		}
 	}
@@ -489,18 +490,21 @@ func (eds *ExtendedDataSquare) computeSharesRootWithRebuiltShare(shares [][]byte
 	for _, d := range shares[:rebuiltIndex] {
 		err := tree.Push(d)
 		if err != nil {
+			releaseTree(tree)
 			return nil, err
 		}
 	}
 
 	err := tree.Push(rebuiltShare)
 	if err != nil {
+		releaseTree(tree)
 		return nil, err
 	}
 
 	for _, d := range shares[rebuiltIndex+1:] {
 		err := tree.Push(d)
 		if err != nil {
+			releaseTree(tree)
 			return nil, err
 		}
 	}

@@ -27,6 +27,14 @@ type Tree interface {
 	Root() ([]byte, error)
 }
 
+// releaseTree must be called on a tree whose root will not be computed, e.g.
+// because a Push failed. Tree has no explicit release method, so pooled
+// implementations return themselves to their pool in Root. Without this call
+// such a tree would be leaked and a bounded pool could eventually block forever.
+func releaseTree(tree Tree) {
+	_, _ = tree.Root()
+}
+
 var _ Tree = &DefaultTree{}
 
 type DefaultTree struct {

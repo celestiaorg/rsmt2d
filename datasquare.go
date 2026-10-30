@@ -270,14 +270,15 @@ func (ds *dataSquare) getRowRoot(rowIdx uint) ([]byte, error) {
 		return ds.rowRoots[rowIdx], nil
 	}
 
-	tree := ds.createTreeFn(Row, rowIdx)
 	row := ds.row(rowIdx)
 	if !isComplete(row) {
 		return nil, errors.New("can not compute root of incomplete row")
 	}
+	tree := ds.createTreeFn(Row, rowIdx)
 	for _, d := range row {
 		err := tree.Push(d)
 		if err != nil {
+			releaseTree(tree)
 			return nil, err
 		}
 	}
@@ -305,14 +306,15 @@ func (ds *dataSquare) getColRoot(colIdx uint) ([]byte, error) {
 		return ds.colRoots[colIdx], nil
 	}
 
-	tree := ds.createTreeFn(Col, colIdx)
 	col := ds.col(colIdx)
 	if !isComplete(col) {
 		return nil, errors.New("can not compute root of incomplete column")
 	}
+	tree := ds.createTreeFn(Col, colIdx)
 	for _, d := range col {
 		err := tree.Push(d)
 		if err != nil {
+			releaseTree(tree)
 			return nil, err
 		}
 	}
