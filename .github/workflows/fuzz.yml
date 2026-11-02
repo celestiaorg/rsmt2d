@@ -1,7 +1,12 @@
-# fuzz runs each native Go fuzz target for a short, fixed budget on every PR.
-# The seed corpus of every target already runs as part of `go test` in the
-# Tests workflow; this job additionally lets the coverage-guided fuzzer explore
-# new inputs. Run `make fuzz FUZZTIME=10m` locally for a longer campaign.
+# fuzz runs each native Go fuzz target for a short, fixed budget on every PR
+# and push, and for ten minutes nightly. The seed corpus of every target
+# already runs as part of `go test` in the Tests workflow; this job
+# additionally lets the coverage-guided fuzzer explore new inputs. Run
+# `make fuzz FUZZTIME=10m` locally for a longer campaign.
+#
+# A crashing input can describe an exploitable bug, and this repository's logs
+# are public. Outside pull requests the job therefore prints only PASS or FAIL,
+# and on main files a Linear issue holding the output and the crashing input.
 name: fuzz
 
 on:
@@ -10,6 +15,9 @@ on:
     branches:
       - main
       - release/**
+  schedule:
+    - cron: '41 4 * * *'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,20 +25,56 @@ permissions:
 jobs:
   fuzz:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        target:
-          - FuzzRepair
-          - FuzzRepairCorrupted
-          - FuzzComputeAndImportExtendedDataSquare
-          - FuzzUnmarshalJSON
-          - FuzzLeoRSCodec
+        # priority sets the Linear priority of the issue filed on failure:
+        # 1 = Urgent, 2 = High.
+        include:
+          - {target: FuzzRepair, priority: 1}
+          - {target: FuzzRepairCorrupted, priority: 1}
+          - {target: FuzzRepairRootsLength, priority: 1}
+          - {target: FuzzComputeAndImportExtendedDataSquare, priority: 1}
+          - {target: FuzzUnmarshalJSON, priority: 2}
+          - {target: FuzzLeoRSCodec, priority: 1}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: fuzz ${{ matrix.target }}
-        run: go test -run '^$' -fuzz "^${{ matrix.target }}$" -fuzztime 60s .
+        env:
+          FUZZ_TARGET: ${{ matrix.target }}
+          FUZZ_PRIORITY: ${{ matrix.priority }}
+          FUZZTIME: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '10m' || '60s' }}
+          # Pull requests keep the output in the log so authors can debug.
+          FUZZ_LOG_DIR: ${{ github.event_name != 'pull_request' && format('{0}/fuzz', runner.temp) || '' }}
+        run: |
+          args=(-run '^$' -fuzz "^${FUZZ_TARGET}\$" -fuzztime "$FUZZTIME" .)
+          if [ -z "$FUZZ_LOG_DIR" ]; then
+            go test "${args[@]}"
+            exit
+          fi
+          mkdir -p "$FUZZ_LOG_DIR"
+          : >"$FUZZ_LOG_DIR/failed.txt"
+          log="$FUZZ_LOG_DIR/$FUZZ_TARGET.log"
+          # go test exits 0 with "no fuzz tests to fuzz" when the target is missing.
+          if go test "${args[@]}" >"$log" 2>&1 && ! grep -q 'no fuzz tests to fuzz' "$log"; then
+            echo "PASS $FUZZ_TARGET"
+          else
+            echo "FAIL $FUZZ_TARGET (output withheld; see the Linear issue)"
+            echo "$FUZZ_PRIORITY . $FUZZ_TARGET" >>"$FUZZ_LOG_DIR/failed.txt"
+            exit 1
+          fi
+      - name: File Linear issue for failing target
+        if: ${{ failure() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          LINEAR_TEAM_KEY: PROTOCO
+          LINEAR_ASSIGNEE_ID: ${{ vars.FUZZ_LINEAR_ASSIGNEE_ID || 'e9929f5b-e156-4046-95df-aeea6faa9a58' }}
+          FUZZ_LOG_DIR: ${{ runner.temp }}/fuzz
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT_SHA: ${{ github.sha }}
+          TITLE_PREFIX: rsmt2d fuzz failure
+        run: python3 .github/scripts/report-fuzz-failures.py
