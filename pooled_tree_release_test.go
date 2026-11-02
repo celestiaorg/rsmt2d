@@ -82,6 +82,14 @@ func TestPooledTreeReleasedOnError(t *testing.T) {
 				return err
 			},
 		},
+		{
+			name: "computeSharesRootWithRebuiltShare out of order leading share",
+			rootErr: func(pool *treePool) error {
+				eds := &ExtendedDataSquare{dataSquare: &dataSquare{createTreeFn: pool.NewConstructor(2)}}
+				_, err := eds.computeSharesRootWithRebuiltShare([][]byte{share(2), share(1), nil}, Row, 0, 2, share(3))
+				return err
+			},
+		},
 	}
 
 	for _, tc := range testCases {
