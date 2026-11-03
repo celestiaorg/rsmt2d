@@ -68,7 +68,8 @@ jobs:
             exit 1
           fi
       - name: File Linear issue for failing target
-        if: ${{ failure() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+        # Every run that withholds output must report it, or the crash is lost.
+        if: ${{ failure() && github.event_name != 'pull_request' }}
         env:
           LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
           LINEAR_TEAM_KEY: PROTOCO

@@ -114,7 +114,7 @@ make lint
 [fuzz workflow](.github/workflows/fuzz.yml) runs every target for 60s on pull
 requests and pushes, and for 10m nightly. A crashing input can describe an
 exploitable bug, so outside pull requests the workflow prints only `PASS` or
-`FAIL`. On `main`, a failing target files a PROTOCO Linear issue (or comments on
+`FAIL`. Outside pull requests, a failing target files a PROTOCO Linear issue (or comments on
 the open one) with the output and the complete crashing corpus file. This needs
 the `LINEAR_API_KEY` repository secret. To reproduce, save that file as
 `testdata/fuzz/<target>/<name>` and run `go test -run '^<target>$' .`. Keep crash
