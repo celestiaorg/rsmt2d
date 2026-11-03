@@ -108,6 +108,18 @@ make fuzz
 make lint
 ```
 
+## Fuzzing
+
+`make fuzz` runs each native Go fuzz target for `FUZZTIME` (default 30s). The
+[fuzz workflow](.github/workflows/fuzz.yml) runs every target for 60s on pull
+requests and pushes, and for 10m nightly. A crashing input can describe an
+exploitable bug, so outside pull requests the workflow prints only `PASS` or
+`FAIL`. Outside pull requests, a failing target files a PROTOCO Linear issue (or comments on
+the open one) with the output and the complete crashing corpus file. This needs
+the `LINEAR_API_KEY` repository secret. To reproduce, save that file as
+`testdata/fuzz/<target>/<name>` and run `go test -run '^<target>$' .`. Keep crash
+details out of public PRs and issues.
+
 ## Audits
 
 [Informal Systems](https://informal.systems/) audited rsmt2d [v0.9.0](https://github.com/celestiaorg/rsmt2d/releases/tag/v0.9.0) in Q2 of 2023. See [informal-systems.pdf](./audit/informal-systems.pdf).
