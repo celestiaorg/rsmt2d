@@ -43,6 +43,23 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
+      # The fuzzer keeps the inputs it generates under $GOCACHE/fuzz. Restore
+      # the corpus saved by earlier runs so each campaign starts where the
+      # last one stopped. Pull requests restore it but never save, so only
+      # nightly, manual and main/release push runs grow it. The cache logs
+      # print only the key and size, never corpus contents.
+      - name: locate fuzz corpus
+        id: corpus
+        env:
+          FUZZ_TARGET: ${{ matrix.target }}
+        run: echo "dir=$(go env GOCACHE)/fuzz/$(go list -m)/${FUZZ_TARGET}" >>"$GITHUB_OUTPUT"
+      - name: restore fuzz corpus
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.corpus.outputs.dir }}
+          key: fuzz-corpus-${{ matrix.target }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            fuzz-corpus-${{ matrix.target }}-
       - name: fuzz ${{ matrix.target }}
         env:
           FUZZ_TARGET: ${{ matrix.target }}
@@ -67,6 +84,16 @@ jobs:
             echo "$FUZZ_PRIORITY . $FUZZ_TARGET" >>"$FUZZ_LOG_DIR/failed.txt"
             exit 1
           fi
+      - name: save fuzz corpus
+        # Also save after a failure: the corpus is still valid, and the
+        # crashing input itself is written to testdata/fuzz, not the cache.
+        if: ${{ always() && github.event_name != 'pull_request' }}
+        # A cache problem must not trip the failure() reporting step below.
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.corpus.outputs.dir }}
+          key: fuzz-corpus-${{ matrix.target }}-${{ github.run_id }}-${{ github.run_attempt }}
       - name: File Linear issue for failing target
         # Every run that withholds output must report it, or the crash is lost.
         if: ${{ failure() && github.event_name != 'pull_request' }}

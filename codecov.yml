@@ -9,10 +9,11 @@ coverage:
     project:
       default:
         target: auto
-        # Coverage currently swings by ~2% between identical runs because two
-        # byzantine tests are nondeterministic (see #444). Tolerate that swing
-        # so the status check only fails on real regressions.
-        threshold: 2%
+        # Coverage used to swing by ~2% between identical runs because two
+        # byzantine tests were nondeterministic (#444). Those tests now use
+        # fixed inputs and seeds, so identical runs produce identical
+        # coverage. Keep a small threshold for rounding and harmless drift.
+        threshold: 0.5%
     patch:
       default:
         informational: true

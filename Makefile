@@ -10,6 +10,13 @@ lint:
 	@golangci-lint run
 .PHONY: lint
 
+## lint-gocognit: Flag cognitive complexity above 30 in files changed since BASE (default origin/main).
+BASE ?= origin/main
+lint-gocognit:
+	@echo "--> Running gocognit on changes since $(BASE)"
+	@golangci-lint run --config .golangci-gocognit.yml --new-from-merge-base "$(BASE)" --whole-files
+.PHONY: lint-gocognit
+
 ## test: Run unit tests.
 test:
 	@echo "--> Running unit tests"
@@ -31,3 +38,23 @@ bench:
 	@echo "--> Running benchmarks"
 	@go test -benchmem -bench=.
 .PHONY: bench
+
+## mutation: Run gremlins mutation testing on the root package. Set
+## MUTATION_FILE=codecs.go to mutate only that file; the full test suite still
+## runs against every mutant. Results are written to MUTATION_OUTPUT.
+GREMLINS_VERSION ?= v0.6.0
+GREMLINS ?= go run github.com/go-gremlins/gremlins/cmd/gremlins@$(GREMLINS_VERSION)
+MUTATION_FILE ?=
+MUTATION_OUTPUT ?= gremlins.json
+mutation:
+	@echo "--> Running gremlins mutation testing on $(or $(MUTATION_FILE),all files)"
+	@set --; \
+	if [ -n "$(MUTATION_FILE)" ]; then \
+		[ -f "$(MUTATION_FILE)" ] || { echo "MUTATION_FILE=$(MUTATION_FILE) not found"; exit 1; }; \
+		for f in *.go; do \
+			case "$$f" in *_test.go|"$(MUTATION_FILE)") continue ;; esac; \
+			set -- "$$@" -E "(^|/)$$(printf '%s' "$$f" | sed 's/\./\\./g')\$$"; \
+		done; \
+	fi; \
+	$(GREMLINS) unleash "$$@" -o "$(MUTATION_OUTPUT)" .
+.PHONY: mutation

@@ -2,7 +2,6 @@ package rsmt2d
 
 import (
 	"bytes"
-	crand "crypto/rand"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -115,64 +114,67 @@ func TestRepairExtendedDataSquare(t *testing.T) {
 
 func TestValidFraudProof(t *testing.T) {
 	codec := NewLeoRSCodec()
-
 	corruptShare := bytes.Repeat([]byte{66}, shareSize)
 
-	original := createTestEds(codec, shareSize)
-
-	var byzData *ErrByzantineData
-	corrupted, err := original.deepCopy(codec)
-	if err != nil {
-		t.Fatalf("unexpected err while copying original data: %v, codec: :%s", err, codec.Name())
-	}
-	corrupted.setCell(0, 0, corruptShare)
-	assert.NoError(t, err)
-
-	rowRoots, err := corrupted.getRowRoots()
-	assert.NoError(t, err)
-
-	colRoots, err := corrupted.getColRoots()
-	assert.NoError(t, err)
-
-	err = corrupted.Repair(rowRoots, colRoots)
-	errors.As(err, &byzData)
-
 	// preRepairSanityCheck verifies complete rows and columns concurrently, so
-	// whichever goroutine observes the corrupt (0, 0) first determines whether
-	// the byzantine axis is Row or Col. Both are valid outcomes.
-	require.NotNil(t, byzData, "Repair must return an ErrByzantineData")
-	require.Equal(t, uint(0), byzData.Index, "corrupt cell (0, 0) is on row 0 and column 0")
-
-	// Construct the fraud proof
-	fraudProof := PseudoFraudProof{int(byzData.Axis), byzData.Index, byzData.Shares}
-	// Verify the fraud proof
-	// TODO in a real fraud proof, also verify Merkle proof for each non-nil share.
-	rebuiltShares, err := codec.Decode(fraudProof.Shares)
-	require.NoError(t, err, "could not decode fraud proof shares")
-	root, err := corrupted.computeSharesRoot(rebuiltShares, byzData.Axis, fraudProof.Index)
-	require.NoError(t, err)
-
-	// Compare against the committed root for the axis the error names. Before
-	// this was always the row root, so on Col runs the roots never matched and
-	// the erasure-coding check below was silently skipped.
-	var committedRoot []byte
-	switch byzData.Axis {
-	case Row:
-		committedRoot, err = corrupted.getRowRoot(fraudProof.Index)
-	case Col:
-		committedRoot, err = corrupted.getColRoot(fraudProof.Index)
+	// when the corrupt cell sits on a complete row and a complete column,
+	// goroutine scheduling decides which axis is reported. Each case removes
+	// one share so that only the axis under test is complete through (0, 0),
+	// which makes the reported axis deterministic and exercises the fraud
+	// proof for both axes on every run.
+	tests := []struct {
+		name     string
+		axis     Axis
+		removeAt [2]uint // a share that makes the other axis incomplete
+	}{
+		{name: "row", axis: Row, removeAt: [2]uint{1, 0}},
+		{name: "col", axis: Col, removeAt: [2]uint{0, 1}},
 	}
-	require.NoError(t, err)
-	require.True(t, bytes.Equal(root, committedRoot),
-		"the shares in the fraud proof must recompute to the committed %s root", byzData.Axis)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			original := createTestEds(codec, shareSize)
+			corrupted, err := original.deepCopy(codec)
+			require.NoError(t, err)
+			corrupted.setCell(0, 0, corruptShare)
 
-	// The roots match, so the fraud proof must be for invalid erasure coding:
-	// re-encoding the original half must not reproduce the committed parity.
-	parityShares, err := codec.Encode(rebuiltShares[0:corrupted.originalDataWidth])
-	require.NoError(t, err, "could not encode fraud proof shares; %v", fraudProof)
-	startIndex := len(rebuiltShares) - int(corrupted.originalDataWidth)
-	require.False(t, bytes.Equal(flattenShares(parityShares), flattenShares(rebuiltShares[startIndex:])),
-		"invalid fraud proof %v", fraudProof)
+			rowRoots, err := corrupted.getRowRoots()
+			require.NoError(t, err)
+			colRoots, err := corrupted.getColRoots()
+			require.NoError(t, err)
+
+			corrupted.setCell(tt.removeAt[0], tt.removeAt[1], nil)
+
+			err = corrupted.Repair(rowRoots, colRoots)
+			var byzData *ErrByzantineData
+			require.ErrorAs(t, err, &byzData)
+			require.Equal(t, tt.axis, byzData.Axis)
+			require.Equal(t, uint(0), byzData.Index, "corrupt cell (0, 0) is on row 0 and column 0")
+
+			// Construct the fraud proof
+			fraudProof := PseudoFraudProof{int(byzData.Axis), byzData.Index, byzData.Shares}
+			// Verify the fraud proof
+			// TODO in a real fraud proof, also verify Merkle proof for each non-nil share.
+			rebuiltShares, err := codec.Decode(fraudProof.Shares)
+			require.NoError(t, err, "could not decode fraud proof shares")
+			root, err := corrupted.computeSharesRoot(rebuiltShares, byzData.Axis, fraudProof.Index)
+			require.NoError(t, err)
+
+			committedRoot := rowRoots[fraudProof.Index]
+			if byzData.Axis == Col {
+				committedRoot = colRoots[fraudProof.Index]
+			}
+			require.True(t, bytes.Equal(root, committedRoot),
+				"the shares in the fraud proof must recompute to the committed %s root", byzData.Axis)
+
+			// The roots match, so the fraud proof must be for invalid erasure coding:
+			// re-encoding the original half must not reproduce the committed parity.
+			parityShares, err := codec.Encode(rebuiltShares[0:corrupted.originalDataWidth])
+			require.NoError(t, err, "could not encode fraud proof shares; %v", fraudProof)
+			startIndex := len(rebuiltShares) - int(corrupted.originalDataWidth)
+			require.False(t, bytes.Equal(flattenShares(parityShares), flattenShares(rebuiltShares[startIndex:])),
+				"invalid fraud proof %v", fraudProof)
+		})
+	}
 }
 
 func TestCannotRepairSquareWithBadRoots(t *testing.T) {
@@ -744,49 +746,81 @@ func TestCorruptedEdsReturnsErrByzantineData_UnorderedShares(t *testing.T) {
 	}
 }
 
+// TestErrRandByzantine corrupts one share, then samples shares in a pseudo
+// random order and repairs after each sample until Repair reports byzantine
+// data, checking that the error names the corrupted row or column. The
+// corrupted share and the sampling order come from a fixed seed per case, so
+// every run exercises the same paths. The cases corrupt a share in each
+// quadrant of the extended square and pick seeds whose sampling order detects
+// the corruption on the row axis and on the column axis. A corrupt share in
+// the original data is always caught by the row solver, which runs first.
 func TestErrRandByzantine(t *testing.T) {
-	codec := NewLeoRSCodec()
-	original, corrupted, idx := randCorruptedEDS(t, codec, 8)
-	require.False(t, original.Equals(corrupted), "corrupted eds is equal to original eds")
-
-	newEds, err := repairNewFromCorrupted(codec, corrupted, idx)
-	if err != nil && newEds != nil {
-		// visual check of the new eds
-		prettyPrintEds(newEds)
-		fmt.Println("new eds is original", original.Equals(newEds))
-		fmt.Println("new eds is corrupted", corrupted.Equals(newEds))
+	const size = 8
+	width := 2 * size
+	tests := []struct {
+		name     string
+		x, y     int
+		seed     int64
+		wantAxis Axis
+	}{
+		{name: "original data", x: 1, y: 2, seed: 1, wantAxis: Row},
+		{name: "row parity, row axis", x: 3, y: width - 2, seed: 3, wantAxis: Row},
+		{name: "row parity, col axis", x: 3, y: width - 2, seed: 1, wantAxis: Col},
+		{name: "col parity, row axis", x: width - 3, y: 4, seed: 2, wantAxis: Row},
+		{name: "col parity, col axis", x: width - 3, y: 4, seed: 1, wantAxis: Col},
+		{name: "parity of parity, row axis", x: width - 1, y: width - 1, seed: 2, wantAxis: Row},
+		{name: "parity of parity, col axis", x: width - 1, y: width - 1, seed: 1, wantAxis: Col},
 	}
-	require.NoError(t, err, "failure to reconstruct the extended data square")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			codec := NewLeoRSCodec()
+			rng := rand.New(rand.NewSource(tt.seed))
+			idx := tt.x*width + tt.y
+			original, corrupted := corruptedEDS(t, codec, rng, size, idx)
+			require.False(t, original.Equals(corrupted), "corrupted eds is equal to original eds")
+
+			newEds, axis, err := repairNewFromCorrupted(codec, rng, corrupted, idx)
+			if err != nil && newEds != nil {
+				// visual check of the new eds
+				prettyPrintEds(newEds)
+				fmt.Println("new eds is original", original.Equals(newEds))
+				fmt.Println("new eds is corrupted", corrupted.Equals(newEds))
+			}
+			require.NoError(t, err, "failure to reconstruct the extended data square")
+			require.Equal(t, tt.wantAxis, axis, "byzantine data detected on an unexpected axis")
+		})
+	}
 }
 
-func randCorruptedEDS(t require.TestingT, codec Codec, size int) (original, corrupted *ExtendedDataSquare, idx int) {
-	ds := genRandDS(size, shareSize)
+// corruptedEDS extends a square of pseudo random shares drawn from rng and
+// replaces the share at flattened index idx with another pseudo random share
+// that keeps the original namespace.
+func corruptedEDS(t require.TestingT, codec Codec, rng *rand.Rand, size, idx int) (original, corrupted *ExtendedDataSquare) {
+	ds := make([][]byte, size*size)
+	for i := range ds {
+		ds[i] = make([]byte, shareSize)
+		_, _ = rng.Read(ds[i])
+	}
 	original, err := ComputeExtendedDataSquare(ds, codec, NewDefaultTree)
 	require.NoError(t, err)
 
-	// create random share
-	randShare := make([]byte, shareSize)
-	_, _ = crand.Read(randShare)
+	corruptShare := make([]byte, shareSize)
+	_, _ = rng.Read(corruptShare)
 
-	// choose a random share to corrupt
 	shares := original.Flattened()
-	idx = rand.Intn(len(shares))
-
 	// copy namespace to avoid namespace ordering issues
-	copy(randShare, shares[idx][:nmt.DefaultNamespaceIDLen])
-
-	// corrupt the share
-	shares[idx] = randShare
+	copy(corruptShare, shares[idx][:nmt.DefaultNamespaceIDLen])
+	shares[idx] = corruptShare
 
 	corrupted, err = ImportExtendedDataSquare(
 		shares,
 		codec,
 		NewDefaultTree)
 	require.NoError(t, err)
-	return original, corrupted, idx
+	return original, corrupted
 }
 
-func repairNewFromCorrupted(codec Codec, corrupted *ExtendedDataSquare, corruptedIdx int) (*ExtendedDataSquare, error) {
+func repairNewFromCorrupted(codec Codec, rng *rand.Rand, corrupted *ExtendedDataSquare, corruptedIdx int) (*ExtendedDataSquare, Axis, error) {
 	samples := make([][]bool, corrupted.Width())
 	for i := range samples {
 		samples[i] = make([]bool, corrupted.Width())
@@ -799,7 +833,7 @@ func repairNewFromCorrupted(codec Codec, corrupted *ExtendedDataSquare, corrupte
 		shareSize,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failure to create extended data square: %w", err)
+		return nil, 0, fmt.Errorf("failure to create extended data square: %w", err)
 	}
 
 	// set corrupted share first
@@ -807,24 +841,24 @@ func repairNewFromCorrupted(codec Codec, corrupted *ExtendedDataSquare, corrupte
 	share := corrupted.GetCell(uint(corruptedX), uint(corruptedY))
 	err = square.SetCell(uint(corruptedX), uint(corruptedY), share)
 	if err != nil {
-		return nil, fmt.Errorf("failure to set corrupted share: %w", err)
+		return nil, 0, fmt.Errorf("failure to set corrupted share: %w", err)
 	}
 
 	rowRoots, err := corrupted.RowRoots()
 	if err != nil {
-		return nil, fmt.Errorf("failure to get row roots: %w", err)
+		return nil, 0, fmt.Errorf("failure to get row roots: %w", err)
 	}
 	colRoots, err := corrupted.ColRoots()
 	if err != nil {
-		return nil, fmt.Errorf("failure to get column roots: %w", err)
+		return nil, 0, fmt.Errorf("failure to get column roots: %w", err)
 	}
 
 	// loop until repaired or byzantine error
 	for {
-		repaired, err := fillRandomCellAndRepair(corrupted, square, rowRoots, colRoots, samples)
+		repaired, err := fillRandomCellAndRepair(rng, corrupted, square, rowRoots, colRoots, samples)
 		if repaired {
 			prettyPrintSamples(samples, corruptedIdx)
-			return square, errors.New("no byzantine error")
+			return square, 0, errors.New("no byzantine error")
 		}
 		var errByz *ErrByzantineData
 		if errors.As(err, &errByz) {
@@ -832,18 +866,19 @@ func repairNewFromCorrupted(codec Codec, corrupted *ExtendedDataSquare, corrupte
 			if err != nil {
 				prettyPrintSamples(samples, corruptedIdx)
 			}
-			return square, err
+			return square, errByz.Axis, err
 		}
 	}
 }
 
 func fillRandomCellAndRepair(
+	rng *rand.Rand,
 	eds, square *ExtendedDataSquare,
 	rowRoots, colRoots [][]byte,
 	samples [][]bool,
 ) (repaired bool, err error) {
 	// select random share
-	x, y := rand.Intn(int(eds.Width())), rand.Intn(int(eds.Width()))
+	x, y := rng.Intn(int(eds.Width())), rng.Intn(int(eds.Width()))
 
 	// skip if share is already set
 	if square.GetCell(uint(x), uint(y)) != nil {
