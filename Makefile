@@ -10,11 +10,11 @@ lint:
 	@golangci-lint run
 .PHONY: lint
 
-## lint-gocognit: Flag cognitive complexity above 30 in code changed since BASE (default origin/main).
+## lint-gocognit: Flag cognitive complexity above 30 in files changed since BASE (default origin/main).
 BASE ?= origin/main
 lint-gocognit:
 	@echo "--> Running gocognit on changes since $(BASE)"
-	@golangci-lint run --config .golangci-gocognit.yml --new-from-merge-base "$(BASE)"
+	@golangci-lint run --config .golangci-gocognit.yml --new-from-merge-base "$(BASE)" --whole-files
 .PHONY: lint-gocognit
 
 ## test: Run unit tests.

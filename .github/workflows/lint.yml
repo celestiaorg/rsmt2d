@@ -26,9 +26,12 @@ jobs:
           args: --timeout 10m
           github-token: ${{ secrets.github_token }}
 
-  # gocognit flags cognitive complexity above 30, but only in new or changed
-  # code. It is a separate invocation with its own config so the job above
-  # keeps reporting exactly what .golangci.yml enables.
+  # gocognit flags cognitive complexity above 30 in files the PR changes.
+  # --whole-files is needed because gocognit reports at a function's
+  # declaration line, which a body-only edit leaves unchanged; no existing
+  # function is above 30, so this flags nothing pre-existing. It is a separate
+  # invocation with its own config so the job above keeps reporting exactly
+  # what .golangci.yml enables.
   gocognit:
     name: gocognit (new code)
     runs-on: ubuntu-latest
@@ -44,6 +47,6 @@ jobs:
           go-version-file: go.mod
       - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
-          args: --timeout 10m --config .golangci-gocognit.yml
+          args: --timeout 10m --config .golangci-gocognit.yml --whole-files
           only-new-issues: true
           github-token: ${{ secrets.github_token }}
