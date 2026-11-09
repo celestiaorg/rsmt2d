@@ -1,0 +1,20 @@
+# Cognitive complexity check for new and changed code only. It runs as its own
+# golangci-lint invocation (the gocognit job in .github/workflows/lint.yml,
+# with only-new-issues) so that it never changes what the main .golangci.yml
+# reports. Run `make lint-gocognit` locally to check your branch against main.
+version: "2"
+run:
+  modules-download-mode: readonly
+linters:
+  default: none
+  enable:
+    - gocognit
+  settings:
+    gocognit:
+      min-complexity: 30
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

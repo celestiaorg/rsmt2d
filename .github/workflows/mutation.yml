@@ -1,0 +1,109 @@
+# mutation runs gremlins mutation testing nightly on the root package (codecs,
+# repair, EDS construction and root computation). It is informational only: a
+# low score never fails the run, and it never runs on pull requests.
+#
+# Every mutant runs the full test suite, so the package is split into one job
+# per source file. Each job writes its score to the job summary and uploads the
+# gremlins JSON report as an artifact. Run `make mutation MUTATION_FILE=x.go`
+# locally to reproduce one job.
+name: mutation
+
+on:
+  schedule:
+    - cron: '23 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GREMLINS_VERSION: v0.6.0
+
+jobs:
+  files:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      files: ${{ steps.list.outputs.files }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: list
+        name: list source files
+        run: |
+          files=$(ls *.go | grep -v '_test\.go$' | python3 -c 'import json, sys; print(json.dumps(sys.stdin.read().split()))')
+          echo "files=$files" >>"$GITHUB_OUTPUT"
+
+  gremlins:
+    name: gremlins (${{ matrix.file }})
+    needs: files
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        file: ${{ fromJSON(needs.files.outputs.files) }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: install gremlins
+        run: go install "github.com/go-gremlins/gremlins/cmd/gremlins@${GREMLINS_VERSION}"
+      - name: run gremlins on ${{ matrix.file }}
+        env:
+          MUTATION_FILE: ${{ matrix.file }}
+          MUTATION_OUTPUT: ${{ runner.temp }}/gremlins.json
+        # timeout leaves time to publish the summary before the job limit.
+        run: |
+          status=0
+          timeout 140m make mutation GREMLINS=gremlins \
+            MUTATION_FILE="$MUTATION_FILE" MUTATION_OUTPUT="$MUTATION_OUTPUT" || status=$?
+          echo "gremlins exited with status $status"
+      - name: summarize
+        if: ${{ always() }}
+        env:
+          MUTATION_FILE: ${{ matrix.file }}
+          MUTATION_OUTPUT: ${{ runner.temp }}/gremlins.json
+        run: |
+          python3 - <<'EOF' >>"$GITHUB_STEP_SUMMARY"
+          import json, os
+
+          name = os.environ["MUTATION_FILE"]
+          print(f"### gremlins: `{name}`\n")
+          try:
+              with open(os.environ["MUTATION_OUTPUT"]) as f:
+                  report = json.load(f)
+          except (OSError, ValueError) as e:
+              print(f"No report was produced (timed out or failed): {e}")
+              raise SystemExit(0)
+
+          print("| efficacy | mutant coverage | total | killed | lived | not covered | timed out | not viable |")
+          print("|---|---|---|---|---|---|---|---|")
+          mutations = [m for f in report.get("files") or [] for m in f.get("mutations") or []]
+          timed_out = sum(1 for m in mutations if m.get("status") == "TIMED OUT")
+          print(
+              f"| {report.get('test_efficacy', 0):.2f}% | {report.get('mutations_coverage', 0):.2f}% "
+              f"| {report.get('mutants_total', 0)} | {report.get('mutants_killed', 0)} "
+              f"| {report.get('mutants_lived', 0)} | {report.get('mutants_not_covered', 0)} "
+              f"| {timed_out} | {report.get('mutants_not_viable', 0)} |"
+          )
+
+          survivors = [
+              (f["file_name"], m)
+              for f in report.get("files") or []
+              for m in f.get("mutations") or []
+              if m.get("status") in ("LIVED", "NOT COVERED")
+          ]
+          if survivors:
+              print("\n<details><summary>Surviving mutants</summary>\n")
+              for file_name, m in sorted(survivors, key=lambda s: (s[0], s[1]["line"], s[1]["column"])):
+                  print(f"- `{file_name}:{m['line']}:{m['column']}` {m['type']} ({m['status']})")
+              print("\n</details>")
+          EOF
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ always() }}
+        with:
+          name: gremlins-${{ matrix.file }}
+          path: ${{ runner.temp }}/gremlins.json
+          if-no-files-found: ignore
+          retention-days: 30
