@@ -367,6 +367,9 @@ func (eds *ExtendedDataSquare) Roots() (roots [][]byte, err error) {
 // validateEdsWidth returns an error if edsWidth is not a valid width for an
 // extended data square.
 func validateEdsWidth(edsWidth uint) error {
+	if edsWidth == 0 {
+		return fmt.Errorf("extended data square width must be greater than zero")
+	}
 	if edsWidth%2 != 0 {
 		return fmt.Errorf("extended data square width %v must be even", edsWidth)
 	}
