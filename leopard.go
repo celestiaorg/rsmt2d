@@ -95,8 +95,8 @@ func (l *LeoRSCodec) Name() string {
 func (l *LeoRSCodec) ValidateChunkSize(shareSize int) error {
 	// See https://github.com/catid/leopard/blob/22ddc7804998d31c8f1a2617ee720e063b1fa6cd/README.md?plain=1#L27
 	// See https://github.com/klauspost/reedsolomon/blob/fd3e6910a7e457563469172968f456ad9b7696b6/README.md?plain=1#L403
-	if shareSize%64 != 0 {
-		return fmt.Errorf("shareSize %v must be a multiple of 64 bytes", shareSize)
+	if shareSize <= 0 || shareSize%64 != 0 {
+		return fmt.Errorf("shareSize %v must be a positive multiple of 64 bytes", shareSize)
 	}
 	return nil
 }

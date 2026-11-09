@@ -53,6 +53,13 @@ type ErrByzantineData struct {
 	// from the extended data square). In other words, it contains shares whose
 	// individual inclusion is guaranteed to be provable by the full node (i.e.
 	// shares usable in a bad encoding fraud proof). Missing shares are nil.
+	//
+	// A share may have been sampled or decoded along either axis, so each
+	// share is committed to by its row root or its column root, but not
+	// necessarily by the root of the axis named by Axis and Index. Consumers
+	// must prove each share against whichever of the two roots commits to it.
+	// If the row and column roots disagree at a coordinate, the square is
+	// byzantine regardless of which axis is reported.
 	Shares [][]byte
 }
 
@@ -399,6 +406,11 @@ func (eds *ExtendedDataSquare) preRepairSanityCheck(
 	colRoots [][]byte,
 ) error {
 	errs, _ := errgroup.WithContext(context.Background())
+	if eds.parallelOps != 0 {
+		// Bound concurrency so that buffered (non thread-safe) trees provided
+		// via a tree pool are not used by more goroutines than they support.
+		errs.SetLimit(eds.parallelOps)
+	}
 
 	for i := uint(0); i < eds.width; i++ {
 		i := i
@@ -412,18 +424,18 @@ func (eds *ExtendedDataSquare) preRepairSanityCheck(
 				if err != nil {
 					// any error regarding the root calculation signifies an issue in the shares e.g., out of order shares
 					// therefore, it should be treated as byzantine data
-					return &ErrByzantineData{Row, i, eds.row(i)}
+					return &ErrByzantineData{Row, i, eds.Row(i)}
 				}
 				if !bytes.Equal(rowRoots[i], rowRoot) {
 					// if the roots are not equal, then the data is byzantine
-					return &ErrByzantineData{Row, i, eds.row(i)}
+					return &ErrByzantineData{Row, i, eds.Row(i)}
 				}
 				return nil
 			})
 			errs.Go(func() error {
 				err := eds.verifyEncoding(eds.row(i), noShareInsertion, nil)
 				if err != nil {
-					return &ErrByzantineData{Row, i, eds.row(i)}
+					return &ErrByzantineData{Row, i, eds.Row(i)}
 				}
 				return nil
 			})
@@ -438,18 +450,18 @@ func (eds *ExtendedDataSquare) preRepairSanityCheck(
 				if err != nil {
 					// any error regarding the root calculation signifies an issue in the shares, e.g., out-of-order shares
 					// therefore, it should be treated as byzantine data
-					return &ErrByzantineData{Col, i, eds.col(i)}
+					return &ErrByzantineData{Col, i, eds.Col(i)}
 				}
 				if !bytes.Equal(colRoots[i], colRoot) {
 					// if the roots are not equal, then the data is byzantine
-					return &ErrByzantineData{Col, i, eds.col(i)}
+					return &ErrByzantineData{Col, i, eds.Col(i)}
 				}
 				return nil
 			})
 			errs.Go(func() error {
 				err := eds.verifyEncoding(eds.col(i), noShareInsertion, nil)
 				if err != nil {
-					return &ErrByzantineData{Col, i, eds.col(i)}
+					return &ErrByzantineData{Col, i, eds.Col(i)}
 				}
 				return nil
 			})
