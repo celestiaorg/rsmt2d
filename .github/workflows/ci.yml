@@ -11,11 +11,11 @@ permissions:
   contents: read
 
 jobs:
+  # test runs on the Go version in go.mod, the lowest that importers may use.
   test:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -36,9 +36,34 @@ jobs:
       - name: build
         run: GOOS=linux GOARCH=${{ matrix.goarch }} go build
         if: env.GIT_DIFF
-      - name: test & coverage report creation
+      - name: test
         run: |
-          GOARCH=${{ matrix.goarch }} go test ./... -mod=readonly -timeout 8m -race -coverprofile=coverage.txt -covermode=atomic
+          GOARCH=${{ matrix.goarch }} go test ./... -mod=readonly -timeout 8m -race
+        if: env.GIT_DIFF
+
+  # test-latest-go runs the tests on the newest supported Go release and
+  # uploads coverage. Coverage comes from this job only: Go releases split code
+  # into coverage blocks differently, so mixing them moves the percentage.
+  test-latest-go:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.27.x'
+      - uses: technote-space/get-diff-action@f27caffdd0fb9b13f4fc191c016bb4e0632844af # v6
+        with:
+          PATTERNS: |
+            **/**.go
+            go.mod
+            go.sum
+            .github/workflows/ci.yml
+      - name: test & coverage report creation
+        run: go test ./... -mod=readonly -timeout 8m -race -coverprofile=coverage.txt -covermode=atomic
         if: env.GIT_DIFF
       - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
