@@ -40,9 +40,17 @@ jobs:
           - {target: FuzzLeoRSCodec, priority: 1}
     steps:
       - uses: actions/checkout@v7
+      # Deliberately ahead of the go.mod version. Under Go 1.26 a fuzz target
+      # that runs to the end of its -fuzztime budget fails with "context
+      # deadline exceeded" instead of passing: when the budget expires the
+      # coordinator reads the parent context's error before the worker context
+      # has been cancelled, so the shutdown is not recognised as an expected
+      # cancellation (https://go.dev/issue/75804). Go 1.27 widened that check.
+      # go.mod stays on 1.26 so that modules still on Go 1.26 can import
+      # rsmt2d.
       - uses: actions/setup-go@v7
         with:
-          go-version-file: go.mod
+          go-version: '1.27'
       # The fuzzer keeps the inputs it generates under $GOCACHE/fuzz. Restore
       # the corpus saved by earlier runs so each campaign starts where the
       # last one stopped. Pull requests restore it but never save, so only

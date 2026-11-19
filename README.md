@@ -76,6 +76,18 @@ func main() {
 }
 ```
 
+## Go version
+
+This repository follows the Go version policy for Celestia libraries. Agents and contributors should keep it when they change `go.mod` or CI.
+
+- **`go.mod`** requires `1.N.0`, where `1.N` is the oldest Go release that is still [supported](https://go.dev/doc/devel/release#policy) (today `go 1.26.0`). Do not raise it further unless a dependency needs it, and do not add a `toolchain` line. A library's `go` directive is the minimum for every module that imports it, so a higher value forces celestia-app, celestia-core and celestia-node to upgrade Go.
+- **CI** runs the tests on both supported Go releases (today 1.26 and 1.27). The job on the `go.mod` version catches code that needs a newer release.
+- **Coverage** is uploaded from the newest Go release only. Go releases split code into coverage blocks differently, so mixing them moves the percentage without any change in tests.
+- **Fuzzing** runs on the newest Go release. Under Go 1.26, a fuzz target that reaches the end of its `-fuzztime` budget fails with "context deadline exceeded" ([golang/go#75804](https://go.dev/issue/75804)).
+- **When Go releases a new major version**, raise `go.mod` to the new oldest supported release (`1.N+1.0`) and move the CI versions up by one.
+
+Applications (celestia-app, celestia-core, celestia-node) follow a different rule: they pin `go.mod`, CI and Docker images to one exact patch release of Go.
+
 ## Contributing
 
 PR titles follow [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) and must start the subject with `[high]`, `[medium]`, or `[low]` to indicate the review thoroughness needed. For example: `fix!: [high] correct repair of byzantine rows` or `docs: [low] clarify codec usage`. Include the same tag in the PR description and explain why you chose it.
