@@ -198,12 +198,12 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 
 		// Encode Q0 and populate Q1 with erasure data
 		errs.Go(func() error {
-			return eds.erasureExtendRowArena(codec, i, arena, i)
+			return eds.erasureExtendRow(codec, i, arena, i)
 		})
 
 		// Encode Q0 and populate Q2 with erasure data
 		errs.Go(func() error {
-			return eds.erasureExtendColArena(codec, i, arena, k+i)
+			return eds.erasureExtendCol(codec, i, arena, k+i)
 		})
 	}
 
@@ -229,7 +229,7 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 
 		// Encode Q2 and populate Q3 with erasure data
 		errs.Go(func() error {
-			return eds.erasureExtendRowArena(codec, i, arena, k+i)
+			return eds.erasureExtendRow(codec, i, arena, k+i)
 		})
 	}
 
@@ -272,15 +272,7 @@ func (eds *ExtendedDataSquare) encode(codec Codec, data [][]byte, arena *parityA
 	return codec.Encode(data)
 }
 
-func (eds *ExtendedDataSquare) erasureExtendRow(codec Codec, rowIdx uint) error {
-	return eds.erasureExtendRowArena(codec, rowIdx, nil, 0)
-}
-
-func (eds *ExtendedDataSquare) erasureExtendCol(codec Codec, colIdx uint) error {
-	return eds.erasureExtendColArena(codec, colIdx, nil, 0)
-}
-
-func (eds *ExtendedDataSquare) erasureExtendRowArena(codec Codec, rowIdx uint, arena *parityArena, task uint) error {
+func (eds *ExtendedDataSquare) erasureExtendRow(codec Codec, rowIdx uint, arena *parityArena, task uint) error {
 	parityShares, err := eds.encode(codec, eds.rowSlice(rowIdx, 0, eds.originalDataWidth), arena, task)
 	if err != nil {
 		return err
@@ -288,7 +280,7 @@ func (eds *ExtendedDataSquare) erasureExtendRowArena(codec Codec, rowIdx uint, a
 	return eds.setRowSlice(rowIdx, eds.originalDataWidth, parityShares)
 }
 
-func (eds *ExtendedDataSquare) erasureExtendColArena(codec Codec, colIdx uint, arena *parityArena, task uint) error {
+func (eds *ExtendedDataSquare) erasureExtendCol(codec Codec, colIdx uint, arena *parityArena, task uint) error {
 	parityShares, err := eds.encode(codec, eds.colSlice(0, colIdx, eds.originalDataWidth), arena, task)
 	if err != nil {
 		return err
