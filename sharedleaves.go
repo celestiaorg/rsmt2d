@@ -51,7 +51,7 @@ func (ds *dataSquare) computeRootsSharedLeaves(rc SharedLeafRootComputer) error 
 	hs := rc.LeafHashSize()
 	buf := make([]byte, int(w*w)*hs)
 	leaf := func(r, c uint) []byte {
-		off := (int(r*w + c)) * hs
+		off := int(r*w+c) * hs
 		return buf[off : off+hs : off+hs]
 	}
 
