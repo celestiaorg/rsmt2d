@@ -44,6 +44,21 @@ func (l *LeoRSCodec) Encode(data [][]byte) ([][]byte, error) {
 	return shares[dataLen:], nil
 }
 
+// encodeInto is like Encode but writes the parity shares into the caller
+// provided, pre-allocated parity slices (len(parity) == len(data), each of
+// share size). It avoids one allocation per parity share.
+func (l *LeoRSCodec) encodeInto(data, parity [][]byte) error {
+	dataLen := len(data)
+	enc, err := l.loadOrInitEncoder(dataLen)
+	if err != nil {
+		return err
+	}
+	shares := make([][]byte, dataLen*2)
+	copy(shares, data)
+	copy(shares[dataLen:], parity)
+	return enc.Encode(shares)
+}
+
 // Decode reconstructs missing shares from the provided data. Missing shares
 // must be nil. The returned slice is the same slice as data: Reconstruct fills
 // the nil entries in place, so callers that need to retain the original
