@@ -162,3 +162,61 @@ func BenchmarkRootsSharedLeaves(b *testing.B) {
 		})
 	}
 }
+
+type failingSharedLeaves struct {
+	rfcSharedLeaves
+	failLeaf, failRoot bool
+}
+
+var errTestSharedLeaves = fmt.Errorf("test shared leaves failure")
+
+func (f failingSharedLeaves) AppendLeafHash(dst []byte, r, c uint, share []byte) ([]byte, error) {
+	if f.failLeaf {
+		return nil, errTestSharedLeaves
+	}
+	return f.rfcSharedLeaves.AppendLeafHash(dst, r, c, share)
+}
+
+func (f failingSharedLeaves) RootFromLeafHashes(axis Axis, i uint, hashes [][]byte) ([]byte, error) {
+	if f.failRoot {
+		return nil, errTestSharedLeaves
+	}
+	return f.rfcSharedLeaves.RootFromLeafHashes(axis, i, hashes)
+}
+
+func TestComputeRootsSharedLeavesErrors(t *testing.T) {
+	shares := randomShares(t, 4*4, 64)
+
+	_, err := ComputeExtendedDataSquareSharedLeaves(shares[:3], NewLeoRSCodec(), newRFCTree, rfcSharedLeaves{})
+	require.Error(t, err, "non-square input must be rejected")
+
+	for _, rc := range []SharedLeafRootComputer{
+		failingSharedLeaves{failLeaf: true},
+		failingSharedLeaves{failRoot: true},
+	} {
+		eds, err := ComputeExtendedDataSquareSharedLeaves(shares, NewLeoRSCodec(), newRFCTree, rc)
+		require.NoError(t, err)
+		_, err = eds.RowRoots()
+		require.ErrorIs(t, err, errTestSharedLeaves)
+	}
+
+	eds, err := ComputeExtendedDataSquareSharedLeaves(shares, NewLeoRSCodec(), newRFCTree, rfcSharedLeaves{})
+	require.NoError(t, err)
+	eds.squareRow[1][2] = nil
+	require.ErrorIs(t, eds.computeRootsSharedLeaves(rfcSharedLeaves{}), errIncompleteSquare)
+}
+
+type failingIntoCodec struct{ *LeoRSCodec }
+
+func (failingIntoCodec) encodeInto(_, _ [][]byte) error { return errTestSharedLeaves }
+
+func TestEncodeIntoErrors(t *testing.T) {
+	shares := randomShares(t, 2*2, 64)
+	eds, err := ComputeExtendedDataSquare(shares, NewLeoRSCodec(), NewDefaultTree)
+	require.NoError(t, err)
+	arena := &parityArena{buf: make([]byte, 3*2*2*64), k: 2, shareSize: 64}
+	_, err = eds.encode(failingIntoCodec{NewLeoRSCodec()}, shares[:2], arena, 0)
+	require.ErrorIs(t, err, errTestSharedLeaves)
+
+	require.Error(t, NewLeoRSCodec().encodeInto(nil, nil), "empty input must be rejected")
+}
