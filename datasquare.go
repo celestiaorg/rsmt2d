@@ -29,7 +29,11 @@ type dataSquare struct {
 	createTreeFn TreeConstructorFn
 	// parallelOps number of parallel operations when computing root
 	parallelOps int
+	// sharedLeafRC, if set, computes all roots hashing each cell only once.
+	sharedLeafRC SharedLeafRootComputer
 }
+
+var errIncompleteSquare = errors.New("can not compute roots of incomplete square")
 
 // getWidth returns the min width of the square which can fit the given data
 func getWidth(data [][]byte) int {
@@ -210,6 +214,9 @@ func (ds *dataSquare) setParallelOps(ops int) {
 }
 
 func (ds *dataSquare) computeRoots() error {
+	if ds.sharedLeafRC != nil {
+		return ds.computeRootsSharedLeaves(ds.sharedLeafRC)
+	}
 	var g errgroup.Group
 
 	rowRoots := make([][]byte, ds.width)
