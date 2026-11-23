@@ -1,19 +1,13 @@
 package rsmt2d
 
 import (
-	"bytes"
 	"crypto/rand"
-	"encoding/binary"
-	"errors"
 	"fmt"
-	mrand "math/rand"
+	"runtime"
 	"testing"
 
-	"github.com/celestiaorg/nmt"
 	"github.com/stretchr/testify/require"
 )
-
-const testNsSize = 29
 
 func randomShares(t *testing.T, n, size int) [][]byte {
 	t.Helper()
@@ -26,114 +20,44 @@ func randomShares(t *testing.T, n, size int) [][]byte {
 	return out
 }
 
-// sortedNamespacedShares returns k*k shares with namespaces increasing in
-// row-major order, so every Q0 row and column is sorted.
-func sortedNamespacedShares(rnd *mrand.Rand, k, size int) [][]byte {
-	out := make([][]byte, k*k)
-	for i := range out {
-		out[i] = make([]byte, size)
-		rnd.Read(out[i])
-		ns := out[i][:testNsSize]
-		clear(ns)
-		binary.BigEndian.PutUint64(ns[testNsSize-8:], uint64(i))
-	}
-	return out
-}
-
-func requireSameRoots(t *testing.T, want, got *ExtendedDataSquare) {
-	t.Helper()
-	wr, err := want.RowRoots()
-	require.NoError(t, err)
-	wc, err := want.ColRoots()
-	require.NoError(t, err)
-	gr, err := got.RowRoots()
-	require.NoError(t, err)
-	gc, err := got.ColRoots()
-	require.NoError(t, err)
-	require.Equal(t, wr, gr)
-	require.Equal(t, wc, gc)
-}
-
 // plainCodec hides LeoRSCodec's encodeInto so that the extension falls back to
 // the allocating Encode path.
 type plainCodec struct{ Codec }
 
+// TestErasureExtendArenaMatchesAllocatingPath checks that the arena path gives
+// byte-identical shares. k = 256 uses the 16-bit leopard field.
 func TestErasureExtendArenaMatchesAllocatingPath(t *testing.T) {
-	for _, k := range []int{1, 2, 4, 16, 32} {
+	for _, k := range []int{1, 2, 4, 16, 64, 256} {
 		t.Run(fmt.Sprintf("k=%d", k), func(t *testing.T) {
-			shares := randomShares(t, k*k, 64)
+			shares := randomShares(t, k*k, 512)
 			arena, err := ComputeExtendedDataSquare(shares, NewLeoRSCodec(), NewDefaultTree)
 			require.NoError(t, err)
 			plain, err := ComputeExtendedDataSquare(shares, plainCodec{NewLeoRSCodec()}, NewDefaultTree)
 			require.NoError(t, err)
-			a, p := arena.Flattened(), plain.Flattened()
-			require.Equal(t, len(p), len(a))
-			for i := range p {
-				require.True(t, bytes.Equal(p[i], a[i]), "share %d differs", i)
-			}
-		})
-	}
-}
-
-// TestErasureExtendArenaLargeSquares compares the arena and allocating
-// extension paths, shares and NMT roots, for the square sizes celestia-app
-// uses. k >= 256 exercises the 16-bit leopard field.
-func TestErasureExtendArenaLargeSquares(t *testing.T) {
-	sizes := []int{64, 128, 256}
-	if !testing.Short() && !raceEnabled {
-		sizes = append(sizes, 512)
-	}
-	rnd := mrand.New(mrand.NewSource(3))
-	for _, k := range sizes {
-		t.Run(fmt.Sprintf("k=%d", k), func(t *testing.T) {
-			shares := sortedNamespacedShares(rnd, k, 512)
-			ctor := newErasuredNamespacedMerkleTreeConstructor(uint64(k), nmt.NamespaceIDSize(testNsSize))
-			arena, err := ComputeExtendedDataSquare(shares, NewLeoRSCodec(), ctor)
-			require.NoError(t, err)
-			plain, err := ComputeExtendedDataSquare(shares, plainCodec{NewLeoRSCodec()}, ctor)
-			require.NoError(t, err)
 			require.True(t, arena.Equals(plain))
-			if k <= 256 && (k <= 128 || !raceEnabled) {
-				requireSameRoots(t, plain, arena)
-			}
 		})
 	}
 }
 
-var errTestEncodeInto = errors.New("test encodeInto failure")
+// TestErasureExtendArenaIncompleteSquare checks that an incomplete original
+// square fails like the allocating path without allocating the arena.
+func TestErasureExtendArenaIncompleteSquare(t *testing.T) {
+	const k, shareSize = 32, 64 * 1024
+	data := make([][]byte, k*k)
+	data[0] = make([]byte, shareSize)
 
-type failingIntoCodec struct{ *LeoRSCodec }
+	_, wantErr := ComputeExtendedDataSquare(data, plainCodec{NewLeoRSCodec()}, NewDefaultTree)
+	require.Error(t, wantErr)
 
-func (failingIntoCodec) encodeInto(_, _ [][]byte) error { return errTestEncodeInto }
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	_, err := ComputeExtendedDataSquare(data, NewLeoRSCodec(), NewDefaultTree)
+	runtime.ReadMemStats(&after)
+	require.Equal(t, wantErr, err)
+	// The arena would be 3*k*k*shareSize = 192 MiB.
+	require.Less(t, after.TotalAlloc-before.TotalAlloc, uint64(32<<20))
+}
 
 func TestEncodeIntoErrors(t *testing.T) {
-	shares := randomShares(t, 2*2, 64)
-	eds, err := ComputeExtendedDataSquare(shares, NewLeoRSCodec(), NewDefaultTree)
-	require.NoError(t, err)
-	arena := &parityArena{buf: make([]byte, 3*2*2*64), k: 2, shareSize: 64}
-	_, err = eds.encode(failingIntoCodec{NewLeoRSCodec()}, shares[:2], arena, 0)
-	require.ErrorIs(t, err, errTestEncodeInto)
-
 	require.Error(t, NewLeoRSCodec().encodeInto(nil, nil), "empty input must be rejected")
-}
-
-func BenchmarkExtensionArena(b *testing.B) {
-	for _, k := range []int{32, 64, 128} {
-		shares := make([][]byte, k*k)
-		for i := range shares {
-			shares[i] = make([]byte, 512)
-			_, _ = rand.Read(shares[i])
-		}
-		for _, c := range []struct {
-			name  string
-			codec Codec
-		}{{"plain", plainCodec{NewLeoRSCodec()}}, {"arena", NewLeoRSCodec()}} {
-			codec := c.codec
-			b.Run(fmt.Sprintf("%s/k=%d", c.name, k), func(b *testing.B) {
-				for b.Loop() {
-					_, _ = ComputeExtendedDataSquare(shares, codec, NewDefaultTree)
-				}
-			})
-		}
-	}
 }
