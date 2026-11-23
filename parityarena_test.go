@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"runtime"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -60,4 +61,25 @@ func TestErasureExtendArenaIncompleteSquare(t *testing.T) {
 
 func TestEncodeIntoErrors(t *testing.T) {
 	require.Error(t, NewLeoRSCodec().encodeInto(nil, nil), "empty input must be rejected")
+}
+
+// wrappedCodec embeds *LeoRSCodec and overrides Encode.
+type wrappedCodec struct {
+	*LeoRSCodec
+	calls *atomic.Int64
+}
+
+func (w wrappedCodec) Encode(data [][]byte) ([][]byte, error) {
+	w.calls.Add(1)
+	return w.LeoRSCodec.Encode(data)
+}
+
+// TestErasureExtendUsesOverriddenEncode checks that the arena is only used for
+// *LeoRSCodec itself, not for types that embed it and override Encode.
+func TestErasureExtendUsesOverriddenEncode(t *testing.T) {
+	const k = 4
+	codec := wrappedCodec{LeoRSCodec: NewLeoRSCodec(), calls: new(atomic.Int64)}
+	_, err := ComputeExtendedDataSquare(randomShares(t, k*k, 512), codec, NewDefaultTree)
+	require.NoError(t, err)
+	require.EqualValues(t, 3*k, codec.calls.Load())
 }
