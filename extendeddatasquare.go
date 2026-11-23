@@ -178,8 +178,11 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 
 	k := eds.originalDataWidth
 	var arena *parityArena
-	if _, ok := codec.(intoEncoder); ok {
-		arena = &parityArena{buf: make([]byte, 3*k*k*eds.shareSize), k: k, shareSize: eds.shareSize}
+	// Only allocate the arena for a complete original square, so that invalid
+	// input fails in Encode as before, without the up-front allocation.
+	// Exact type check: a type embedding *LeoRSCodec may override Encode.
+	if enc, ok := codec.(*LeoRSCodec); ok && eds.isOriginalComplete() {
+		arena = &parityArena{enc: enc, buf: make([]byte, 3*k*k*eds.shareSize), k: k, shareSize: eds.shareSize}
 	}
 
 	// Populate filler shares in Q1 and Q2. E represents erasure data.
@@ -193,6 +196,8 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 	// |   E   |   F   |
 	// |       |       |
 	//  ------- -------
+	// Arena tasks: 0..k-1 are Q1 rows, k..2k-1 are Q2 columns and 2k..3k-1
+	// are Q3 rows.
 	for i := uint(0); i < eds.originalDataWidth; i++ {
 		i := i
 
@@ -227,7 +232,7 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 	for i := eds.originalDataWidth; i < eds.width; i++ {
 		i := i
 
-		// Encode Q2 and populate Q3 with erasure data
+		// Encode Q2 and populate Q3 with erasure data (arena tasks 2k..3k-1)
 		errs.Go(func() error {
 			return eds.erasureExtendRow(codec, i, arena, k+i)
 		})
@@ -236,15 +241,10 @@ func (eds *ExtendedDataSquare) erasureExtendSquare(codec Codec) error {
 	return errs.Wait()
 }
 
-// intoEncoder is implemented by codecs that can encode into pre-allocated
-// parity buffers.
-type intoEncoder interface {
-	encodeInto(data, parity [][]byte) error
-}
-
 // parityArena hands out pre-allocated parity shares for one extension: a
 // single contiguous allocation of 3*k*k shares instead of 3*k*k allocations.
 type parityArena struct {
+	enc       *LeoRSCodec
 	buf       []byte
 	k         uint
 	shareSize uint
@@ -261,19 +261,31 @@ func (a *parityArena) slot(t uint) [][]byte {
 	return out
 }
 
-func (eds *ExtendedDataSquare) encode(codec Codec, data [][]byte, arena *parityArena, task uint) ([][]byte, error) {
-	if ie, ok := codec.(intoEncoder); ok && arena != nil {
-		parity := arena.slot(task)
-		if err := ie.encodeInto(data, parity); err != nil {
-			return nil, err
+// isOriginalComplete reports whether no share of the original square is nil.
+func (eds *ExtendedDataSquare) isOriginalComplete() bool {
+	for i := uint(0); i < eds.originalDataWidth; i++ {
+		if !isComplete(eds.rowSlice(i, 0, eds.originalDataWidth)) {
+			return false
 		}
-		return parity, nil
 	}
-	return codec.Encode(data)
+	return true
+}
+
+// encode returns the parity shares of data, written into arena slot task when
+// an arena is given.
+func encode(codec Codec, data [][]byte, arena *parityArena, task uint) ([][]byte, error) {
+	if arena == nil {
+		return codec.Encode(data)
+	}
+	parity := arena.slot(task)
+	if err := arena.enc.encodeInto(data, parity); err != nil {
+		return nil, err
+	}
+	return parity, nil
 }
 
 func (eds *ExtendedDataSquare) erasureExtendRow(codec Codec, rowIdx uint, arena *parityArena, task uint) error {
-	parityShares, err := eds.encode(codec, eds.rowSlice(rowIdx, 0, eds.originalDataWidth), arena, task)
+	parityShares, err := encode(codec, eds.rowSlice(rowIdx, 0, eds.originalDataWidth), arena, task)
 	if err != nil {
 		return err
 	}
@@ -281,7 +293,7 @@ func (eds *ExtendedDataSquare) erasureExtendRow(codec Codec, rowIdx uint, arena 
 }
 
 func (eds *ExtendedDataSquare) erasureExtendCol(codec Codec, colIdx uint, arena *parityArena, task uint) error {
-	parityShares, err := eds.encode(codec, eds.colSlice(0, colIdx, eds.originalDataWidth), arena, task)
+	parityShares, err := encode(codec, eds.colSlice(0, colIdx, eds.originalDataWidth), arena, task)
 	if err != nil {
 		return err
 	}
