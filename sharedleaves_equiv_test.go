@@ -3,6 +3,7 @@ package rsmt2d
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/bits"
@@ -12,6 +13,36 @@ import (
 	"github.com/celestiaorg/nmt"
 	"github.com/stretchr/testify/require"
 )
+
+const testNsSize = 29
+
+// sortedNamespacedShares returns k*k shares with namespaces increasing in
+// row-major order, so every Q0 row and column is sorted.
+func sortedNamespacedShares(rnd *rand.Rand, k, size int) [][]byte {
+	out := make([][]byte, k*k)
+	for i := range out {
+		out[i] = make([]byte, size)
+		rnd.Read(out[i])
+		ns := out[i][:testNsSize]
+		clear(ns)
+		binary.BigEndian.PutUint64(ns[testNsSize-8:], uint64(i))
+	}
+	return out
+}
+
+func requireSameRoots(t *testing.T, want, got *ExtendedDataSquare) {
+	t.Helper()
+	wr, err := want.RowRoots()
+	require.NoError(t, err)
+	wc, err := want.ColRoots()
+	require.NoError(t, err)
+	gr, err := got.RowRoots()
+	require.NoError(t, err)
+	gc, err := got.ColRoots()
+	require.NoError(t, err)
+	require.Equal(t, wr, gr)
+	require.Equal(t, wc, gc)
+}
 
 // nmtSharedLeaves is a SharedLeafRootComputer for erasuredNamespacedMerkleTree.
 // It mirrors what a celestia-app wrapper implementation has to do.
