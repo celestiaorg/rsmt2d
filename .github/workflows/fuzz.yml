@@ -38,6 +38,10 @@ jobs:
           - {target: FuzzComputeAndImportExtendedDataSquare, priority: 1}
           - {target: FuzzUnmarshalJSON, priority: 2}
           - {target: FuzzLeoRSCodec, priority: 1}
+          - {target: FuzzRepairByzantineSquare, priority: 1}
+          - {target: FuzzLeoRSCodecArbitraryInput, priority: 1}
+          - {target: FuzzImportAndRepairArbitrary, priority: 1}
+          - {target: FuzzEDSMutationAPIs, priority: 2}
     steps:
       - uses: actions/checkout@v7
       # Deliberately ahead of the go.mod version. Under Go 1.26 a fuzz target
