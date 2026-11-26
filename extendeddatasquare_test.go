@@ -294,3 +294,38 @@ func createExampleEds(t *testing.T, shareSize int) (eds *ExtendedDataSquare) {
 	require.NoError(t, err)
 	return eds
 }
+
+// maxChunksCodec is a Leopard codec with a smaller MaxChunks, so that tests
+// can check the width limit without a large allocation.
+type maxChunksCodec struct {
+	*LeoRSCodec
+	maxChunks int
+}
+
+func (c *maxChunksCodec) MaxChunks() int {
+	return c.maxChunks
+}
+
+func TestNewExtendedDataSquareRejectsWidthAboveMaxChunks(t *testing.T) {
+	// MaxChunks of 4 allows a 2x2 original data square, so a 4x4 EDS.
+	smallCodec := &maxChunksCodec{LeoRSCodec: NewLeoRSCodec(), maxChunks: 4}
+
+	t.Run("accepts the largest width the codec supports", func(t *testing.T) {
+		eds, err := NewExtendedDataSquare(smallCodec, NewDefaultTree, 4, shareSize)
+		require.NoError(t, err)
+		assert.Equal(t, uint(4), eds.Width())
+	})
+	t.Run("rejects the next even width", func(t *testing.T) {
+		_, err := NewExtendedDataSquare(smallCodec, NewDefaultTree, 6, shareSize)
+		require.Error(t, err)
+	})
+
+	// The Leopard codec supports an EDS width of at most 65536. These widths
+	// are rejected before any allocation, so the test stays cheap.
+	for _, edsWidth := range []uint{65536 + 2, 1 << 32, 1<<32 + 2} {
+		t.Run(fmt.Sprintf("rejects width %d with the Leopard codec", edsWidth), func(t *testing.T) {
+			_, err := NewExtendedDataSquare(NewLeoRSCodec(), NewDefaultTree, edsWidth, shareSize)
+			require.Error(t, err)
+		})
+	}
+}
