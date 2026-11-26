@@ -139,6 +139,14 @@ func NewExtendedDataSquare(codec Codec, treeCreatorFn TreeConstructorFn, edsWidt
 	if err != nil {
 		return nil, err
 	}
+	// Apply the same limit as ComputeExtendedDataSquare: the original data
+	// square may hold at most codec.MaxChunks() shares. Divide instead of
+	// multiply so that a large edsWidth cannot overflow.
+	odsWidth := edsWidth / 2
+	if odsWidth > uint(codec.MaxChunks())/odsWidth {
+		// TODO: export this error and rename chunk to share
+		return nil, errors.New("number of chunks exceeds the maximum")
+	}
 
 	data := make([][]byte, edsWidth*edsWidth)
 	dataSquare, err := newDataSquare(data, treeCreatorFn, shareSize)
